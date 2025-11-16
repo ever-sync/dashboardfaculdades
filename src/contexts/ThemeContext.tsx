@@ -14,25 +14,25 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    // Verificar preferência salva ou do sistema
-    const savedTheme = localStorage.getItem('theme') as Theme
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    // Verificar preferência salva ou do sistema (apenas no cliente)
+    const savedTheme = (typeof window !== 'undefined'
+      ? (localStorage.getItem('theme') as Theme | null)
+      : null)
+    const systemTheme =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
     const initialTheme = savedTheme || systemTheme
     setThemeState(initialTheme)
     applyTheme(initialTheme)
   }, [])
 
   const applyTheme = (newTheme: Theme) => {
+    // Layout agora é sempre claro; mantemos apenas o estado para possível uso futuro
     const root = document.documentElement
-    if (newTheme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
+    root.classList.remove('dark')
   }
 
   const setTheme = (newTheme: Theme) => {
@@ -46,11 +46,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newTheme)
   }
 
-  // Evitar flash de conteúdo não estilizado
-  if (!mounted) {
-    return <>{children}</>
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
@@ -61,7 +56,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext)
   if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider')
+    // Fallback seguro caso o ThemeProvider não esteja no topo da árvore
+    // Evita quebrar a aplicação em ambientes onde o layout não é aplicado (ex: DevTools, testes)
+    return {
+      theme: 'light' as Theme,
+      toggleTheme: () => {},
+      setTheme: () => {},
+    }
   }
   return context
 }

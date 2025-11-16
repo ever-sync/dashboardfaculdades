@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
       const { data, error } = await supabase
         .from('metricas_diarias')
         .select('*')
-        .eq('faculdade_id', faculdadeSelecionada?.id as string)
+        .eq('cliente_id', faculdadeSelecionada?.id as string)
         .order('data', { ascending: false })
         .limit(30)
 
@@ -151,7 +151,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-white text-black">
         <Header
           title="Analytics"
           subtitle="Análise detalhada do atendimento"
@@ -163,7 +163,7 @@ export default function AnalyticsPage() {
     )
   }
   return (
-    <div>
+    <div className="min-h-screen bg-white text-black">
       <Header
         title="Analytics"
         subtitle="Análise detalhada do atendimento"

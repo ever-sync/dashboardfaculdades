@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { MessageSquare, Search, User, Clock, Send } from 'lucide-react'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 interface ConversaWhatsApp {
@@ -45,21 +45,25 @@ export default function ConversasPage() {
   const itemsPerPage = 20
   const { faculdadeSelecionada } = useFaculdade()
 
-  useEffect(() => {
-    if (faculdadeSelecionada) fetchConversas()
-  }, [faculdadeSelecionada, currentPage])
+  const fetchConversas = useCallback(async () => {
+    if (!faculdadeSelecionada) {
+      setConversas([])
+      setLoading(false)
+      return
+    }
 
-  const fetchConversas = async () => {
     try {
       setLoading(true)
       
       // Buscar contagem total
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from('conversas_whatsapp')
         .select('*', { count: 'exact', head: true })
-        .eq('faculdade_id', faculdadeSelecionada?.id as string)
+        .eq('cliente_id', faculdadeSelecionada.id)
 
-      if (count) {
+      if (countError) {
+        console.warn('Erro ao contar conversas:', countError.message)
+      } else if (count !== null) {
         setTotalCount(count)
         setTotalPages(Math.ceil(count / itemsPerPage))
       }
@@ -68,34 +72,58 @@ export default function ConversasPage() {
       const startIndex = (currentPage - 1) * itemsPerPage
       const { data, error } = await supabase
         .from('conversas_whatsapp')
-        .select('id, nome, telefone, ultima_mensagem, data_ultima_mensagem, status, nao_lidas, faculdade_id')
-        .eq('faculdade_id', faculdadeSelecionada?.id as string)
+        .select('id, nome, telefone, ultima_mensagem, data_ultima_mensagem, status, nao_lidas, cliente_id')
+        .eq('cliente_id', faculdadeSelecionada.id)
         .order('data_ultima_mensagem', { ascending: false })
         .range(startIndex, startIndex + itemsPerPage - 1)
 
-      if (error) throw error
+      if (error) {
+        console.warn('Erro ao buscar conversas do Supabase:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        setConversas([])
+        return
+      }
 
       const conversasFormatadas: Conversa[] = (data || []).map((c: ConversaWhatsApp) => ({
         id: c.id,
-        nome: c.nome,
-        telefone: c.telefone,
+        nome: c.nome || 'Sem nome',
+        telefone: c.telefone || 'Não informado',
         ultimaMensagem: c.ultima_mensagem || 'Sem mensagens',
-        hora: new Date(c.data_ultima_mensagem).toLocaleTimeString('pt-BR', { 
+        hora: c.data_ultima_mensagem ? new Date(c.data_ultima_mensagem).toLocaleTimeString('pt-BR', { 
           hour: '2-digit', 
           minute: '2-digit' 
-        }),
-        status: (c.status === 'encerrado' ? 'finalizado' : c.status) as 'ativo' | 'pendente' | 'finalizado',
+        }) : 'N/A',
+        status: (c.status === 'encerrado' ? 'finalizado' : (c.status || 'ativo')) as 'ativo' | 'pendente' | 'finalizado',
         naoLidas: c.nao_lidas || 0,
-        avatar: c.nome.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+        avatar: c.nome ? c.nome.split(' ').map((n: string) => n[0]).join('').toUpperCase() : '?'
       }))
 
       setConversas(conversasFormatadas)
-    } catch (error) {
-      console.error('Erro ao buscar conversas:', error)
+    } catch (error: any) {
+      console.warn('Erro inesperado ao buscar conversas:', error?.message || error)
+      setConversas([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [faculdadeSelecionada, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    if (faculdadeSelecionada) fetchConversas()
+  }, [faculdadeSelecionada, currentPage, fetchConversas])
+
+  // Hooks devem ser chamados antes de qualquer early return
+  const conversasFiltradas = useMemo(() => {
+    return conversas.filter(conversa => {
+      const matchSearch = conversa.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         conversa.ultimaMensagem.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchStatus = statusFilter === 'todos' || conversa.status === statusFilter
+      return matchSearch && matchStatus
+    })
+  }, [conversas, searchTerm, statusFilter])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -108,7 +136,7 @@ export default function ConversasPage() {
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-white text-black">
         <Header
           title="Conversas"
           subtitle="Gerencie conversas do WhatsApp"
@@ -120,15 +148,6 @@ export default function ConversasPage() {
     )
   }
 
-  const conversasFiltradas = useMemo(() => {
-    return conversas.filter(conversa => {
-      const matchSearch = conversa.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         conversa.ultimaMensagem.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchStatus = statusFilter === 'todos' || conversa.status === statusFilter
-      return matchSearch && matchStatus
-    })
-  }, [conversas, searchTerm, statusFilter])
-
   const enviarMensagem = () => {
     if (novaMensagem.trim() && conversaSelecionada) {
       // Aqui você implementaria o envio real da mensagem
@@ -138,7 +157,7 @@ export default function ConversasPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-white text-black">
       <Header
         title="Conversas"
         subtitle="Gerencie conversas do WhatsApp"
@@ -152,13 +171,13 @@ export default function ConversasPage() {
               {/* Filtros e Busca */}
               <div className="space-y-4 mb-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <Input
                     type="text"
                     placeholder="Buscar conversas..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 text-gray-800"
+                    className="pl-10 text-gray-800 dark:text-gray-200"
                   />
                 </div>
                 

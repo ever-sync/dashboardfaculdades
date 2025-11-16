@@ -57,7 +57,7 @@ export function Sidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-black dark:bg-white text-white dark:text-black shadow-lg border border-gray-200 dark:border-gray-800"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-black text-white shadow-lg border border-gray-200"
         aria-label="Abrir menu"
         aria-expanded={isMobileMenuOpen}
         aria-controls="mobile-sidebar"
@@ -77,14 +77,14 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         id="mobile-sidebar"
-        className={`mobile-sidebar fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 min-h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`mobile-sidebar fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Logo */}
-        <div className="p-6 pt-16 lg:pt-6 border-b border-gray-200 dark:border-gray-800">
-          <h1 className="text-2xl font-bold text-black dark:text-white">WhatsApp</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Analytics Dashboard</p>
+        <div className="p-6 pt-16 lg:pt-6 border-b border-gray-200">
+          <h1 className="text-2xl font-bold text-black">WhatsApp</h1>
+          <p className="text-sm text-gray-600">Analytics Dashboard</p>
         </div>
         
         {/* Menu */}
@@ -100,8 +100,8 @@ export function Sidebar() {
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? 'bg-black dark:bg-white text-white dark:text-black'
-                    : 'text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
+                    ? 'bg-black text-white'
+                    : 'text-black hover:bg-gray-100'
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? '' : item.color}`} aria-hidden="true" />
@@ -112,10 +112,10 @@ export function Sidebar() {
         </nav>
         
         {/* Logout */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-black hover:bg-gray-100 transition-colors"
             aria-label="Sair do dashboard"
           >
             <LogOut className="w-5 h-5 text-red-500" aria-hidden="true" />

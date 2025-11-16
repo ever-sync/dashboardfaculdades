@@ -33,9 +33,16 @@ export function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   
   // CSP básico - ajustar conforme necessário
+  // Permitir fontes do Google (http e https em ambiente local) e fontes locais do Next.js
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:;"
+    "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com http://fonts.googleapis.com; " +
+      "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com http://fonts.googleapis.com; " +
+      "font-src 'self' data: https://fonts.gstatic.com http://fonts.gstatic.com http://192.168.0.171:3000 https://192.168.0.171:3000; " +
+      "img-src 'self' data: https:; " +
+      "connect-src 'self' https: http://192.168.0.171:3000 https://192.168.0.171:3000;"
   )
   
   return response

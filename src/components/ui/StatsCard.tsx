@@ -25,14 +25,14 @@ export function StatsCard({ title, value, icon: Icon, trend, subtitle, iconColor
   }
   
   return (
-    <div className="bg-white dark:bg-black rounded-lg shadow-md dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-800">
+    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-black dark:text-white">{title}</p>
-          <p className="text-2xl font-bold text-black dark:text-white mt-2">{value}</p>
+          <p className="text-sm font-medium text-black">{title}</p>
+          <p className="text-2xl font-bold text-black mt-2">{value}</p>
           
           {subtitle && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>
+            <p className="text-xs text-gray-600 mt-1">{subtitle}</p>
           )}
           
           {trend && (
@@ -40,11 +40,11 @@ export function StatsCard({ title, value, icon: Icon, trend, subtitle, iconColor
               <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
                 {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
               </span>
-              <span className="text-xs text-gray-600 dark:text-gray-400 ml-2">vs mês anterior</span>
+              <span className="text-xs text-gray-600 ml-2">vs mês anterior</span>
             </div>
           )}
         </div>
-        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-900">
+        <div className="p-3 rounded-lg bg-gray-100">
           <Icon className={`w-6 h-6 ${iconColors[iconColor]}`} />
         </div>
       </div>

@@ -130,19 +130,25 @@ export default function ProspectsPage() {
   const [totalCount, setTotalCount] = useState(0)
   const itemsPerPage = 20
 
-  const fetchProspects = async () => {
-    if (!faculdadeSelecionada) return
+  const fetchProspects = useCallback(async () => {
+    if (!faculdadeSelecionada) {
+      setProspects([])
+      setLoading(false)
+      return
+    }
     
     try {
       setLoading(true)
       
       // Buscar contagem total
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from('prospects_academicos')
         .select('*', { count: 'exact', head: true })
-        .eq('faculdade_id', faculdadeSelecionada.id)
+        .eq('cliente_id', faculdadeSelecionada.id)
 
-      if (count) {
+      if (countError) {
+        console.warn('Erro ao contar prospects:', countError.message)
+      } else if (count !== null) {
         setTotalCount(count)
         setTotalPages(Math.ceil(count / itemsPerPage))
       }
@@ -152,37 +158,49 @@ export default function ProspectsPage() {
       const { data, error } = await supabase
         .from('prospects_academicos')
         .select('id, nome, email, telefone, curso_interesse, status_academico, created_at, ultimo_contato, valor_mensalidade, nota_qualificacao')
-        .eq('faculdade_id', faculdadeSelecionada.id)
+        .eq('cliente_id', faculdadeSelecionada.id)
         .order('created_at', { ascending: false })
         .range(startIndex, startIndex + itemsPerPage - 1)
 
-      if (error) throw error
+      if (error) {
+        // Log mais detalhado do erro
+        console.warn('Erro ao buscar prospects do Supabase:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        // Não lançar erro, apenas definir array vazio
+        setProspects([])
+        return
+      }
 
       const prospectsFormatados: ProspectView[] = (data || []).map((p: any) => ({
         id: p.id,
-        nome: p.nome,
-        email: p.email,
-        telefone: p.telefone,
-        cursoInteresse: p.curso_interesse || p.curso || 'Não informado',
-        status: p.status_academico || 'novo',
-        dataCadastro: new Date(p.created_at).toLocaleDateString('pt-BR'),
+        nome: p.nome || 'Sem nome',
+        email: p.email || undefined,
+        telefone: p.telefone || 'Não informado',
+        cursoInteresse: p.curso_interesse || 'Não informado',
+        status: (p.status_academico || 'novo') as ProspectView['status'],
+        dataCadastro: p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : 'N/A',
         ultimoContato: p.ultimo_contato ? new Date(p.ultimo_contato).toLocaleDateString('pt-BR') : 'N/A',
-        valorEstimado: p.valor_mensalidade,
+        valorEstimado: p.valor_mensalidade ? Number(p.valor_mensalidade) : undefined,
         nota: p.nota_qualificacao || 0
       }))
 
       setProspects(prospectsFormatados)
-    } catch (error) {
-      console.error('Erro ao buscar prospects:', error)
+    } catch (error: any) {
+      // Captura erros inesperados
+      console.warn('Erro inesperado ao buscar prospects:', error?.message || error)
       setProspects([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [faculdadeSelecionada, currentPage, itemsPerPage])
 
   useEffect(() => {
     if (faculdadeSelecionada) fetchProspects()
-  }, [faculdadeSelecionada, currentPage])
+  }, [faculdadeSelecionada, currentPage, fetchProspects])
 
   // Hooks devem ser chamados antes de qualquer early return
   const cursosUnicos = useMemo(() => Array.from(new Set(prospects.map(p => p.cursoInteresse))), [prospects])
@@ -203,7 +221,7 @@ export default function ProspectsPage() {
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-white text-black">
         <Header
           title="Prospects"
           subtitle="Gerencie seus prospects e potenciais alunos"
@@ -216,7 +234,7 @@ export default function ProspectsPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-white text-black">
       <Header
         title="Prospects"
         subtitle="Gerencie seus prospects e potenciais alunos"
@@ -251,16 +269,16 @@ export default function ProspectsPage() {
         </div>
 
         {/* Filtros */}
-        <Card>
+        <Card className="border border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Buscar prospects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 text-gray-800"
+                className="pl-10 bg-white text-gray-800"
               />
             </div>
             
@@ -269,7 +287,7 @@ export default function ProspectsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="todos">Todos</option>
                 <option value="novo">Novo</option>
@@ -285,7 +303,7 @@ export default function ProspectsPage() {
               <select
                 value={cursoFilter}
                 onChange={(e) => setCursoFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="todos">Todos</option>
                 {cursosUnicos.map(curso => (
@@ -295,7 +313,10 @@ export default function ProspectsPage() {
             </div>
             
             <div className="flex items-end">
-              <Button variant="secondary" className="w-full">
+              <Button
+                variant="secondary"
+                className="w-full bg-black text-white hover:bg-gray-800 border border-gray-900"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
               </Button>
@@ -309,10 +330,10 @@ export default function ProspectsPage() {
             {prospectsFiltrados.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
                   {searchTerm || statusFilter !== 'todos' || cursoFilter !== 'todos' ? 'Nenhum prospect encontrado' : 'Nenhum prospect disponível'}
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-400">
                   {searchTerm || statusFilter !== 'todos' || cursoFilter !== 'todos' 
                     ? 'Tente ajustar seus filtros de busca' 
                     : 'Os prospects aparecerão aqui assim que forem cadastrados'}
@@ -321,40 +342,40 @@ export default function ProspectsPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Nome</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Contato</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Curso</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Status</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Nota</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Valor</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Último Contato</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800">Ações</th>
+                  <tr className="border-b border-gray-200 dark:border-gray-800">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Nome</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Contato</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Curso</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Nota</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Valor</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Último Contato</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {prospectsFiltrados.map((prospect) => (
-                    <tr key={prospect.id} className="border-b hover:bg-gray-50">
+                    <tr key={prospect.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">
                       <td className="py-3 px-4">
                         <div>
-                          <div className="font-semibold text-gray-800">{prospect.nome}</div>
-                          <div className="text-sm text-gray-600">ID: {prospect.id}</div>
+                          <div className="font-semibold text-gray-800 dark:text-white">{prospect.nome}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">ID: {prospect.id}</div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm text-gray-700">
-                            <Phone className="w-3 h-3 text-gray-500" />
+                          <div className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
+                            <Phone className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                             {prospect.telefone}
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-gray-700">
-                            <Mail className="w-3 h-3 text-gray-500" />
+                          <div className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
+                            <Mail className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                             {prospect.email || 'N/A'}
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-sm text-gray-800">{prospect.cursoInteresse}</div>
+                        <div className="text-sm text-gray-800 dark:text-gray-200">{prospect.cursoInteresse}</div>
                       </td>
                       <td className="py-3 px-4">
                         <Badge variant={getStatusColor(prospect.status)}>
@@ -363,7 +384,7 @@ export default function ProspectsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center">
-                          <span className="font-semibold text-gray-800">{prospect.nota.toFixed(1)}</span>
+                          <span className="font-semibold text-gray-800 dark:text-white">{prospect.nota.toFixed(1)}</span>
                           <span className="text-yellow-400 ml-1">★</span>
                         </div>
                       </td>
@@ -373,8 +394,8 @@ export default function ProspectsPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <Calendar className="w-3 h-3" />
+                        <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                          <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                           {prospect.ultimoContato}
                         </div>
                       </td>
@@ -397,8 +418,8 @@ export default function ProspectsPage() {
           
           {/* Controles de Paginação */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t px-4">
-              <div className="text-sm text-gray-600">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 px-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} de {totalCount} prospects
               </div>
               <div className="flex gap-2">
@@ -410,7 +431,7 @@ export default function ProspectsPage() {
                 >
                   Anterior
                 </Button>
-                <span className="flex items-center px-3 text-sm text-gray-700">
+                <span className="flex items-center px-3 text-sm text-gray-700 dark:text-gray-300">
                   Página {currentPage} de {totalPages}
                 </span>
                 <Button

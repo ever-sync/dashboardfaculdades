@@ -41,16 +41,16 @@ export async function GET(request: NextRequest) {
     // Buscar matrículas do período
     const { data: matriculas } = await supabase
       .from('prospects_academicos')
-      .select('data_matricula, curso, valor_mensalidade')
-      .eq('faculdade_id', faculdadeId)
+      .select('data_matricula, curso_interesse, valor_mensalidade')
+      .eq('cliente_id', faculdadeId)
       .eq('status_academico', 'matriculado')
       .gte('data_matricula', dataInicio.toISOString())
 
     // Buscar prospects do período
     const { data: prospects } = await supabase
       .from('prospects_academicos')
-      .select('curso, status_academico, origem, created_at')
-      .eq('faculdade_id', faculdadeId)
+      .select('curso_interesse, status_academico, origem, created_at')
+      .eq('cliente_id', faculdadeId)
       .gte('created_at', dataInicio.toISOString())
 
     // Agrupar por mês
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Cursos mais procurados
     const cursosMap = new Map<string, { procuras: number; matriculas: number }>()
     prospects?.forEach(p => {
-      const curso = (p as any).curso || 'Não informado'
+      const curso = (p as any).curso_interesse || 'Não informado'
       const atual = cursosMap.get(curso) || { procuras: 0, matriculas: 0 }
       atual.procuras++
       if (p.status_academico === 'matriculado') {

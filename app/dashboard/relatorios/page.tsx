@@ -35,6 +35,13 @@ interface RelatorioData {
   }
 }
 
+const desempenhoEquipeMock = [
+  { nome: 'Ana Silva', atendimentos: 120, conversao: 32, nota: 4.8 },
+  { nome: 'Carlos Oliveira', atendimentos: 98, conversao: 28, nota: 4.5 },
+  { nome: 'Beatriz Santos', atendimentos: 85, conversao: 25, nota: 4.6 },
+  { nome: 'Diego Ferreira', atendimentos: 60, conversao: 20, nota: 4.2 },
+]
+
 export default function RelatoriosPage() {
   const { faculdadeSelecionada } = useFaculdade()
   const [periodoSelecionado, setPeriodoSelecionado] = useState('mes')
@@ -90,13 +97,13 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-white text-black">
       <Header
         title="Relatórios"
         subtitle="Análises detalhadas e relatórios gerenciais"
       />
       
-      <div className="p-8 space-y-6">
+             <div className="p-8 space-y-6">
         {/* Filtros e Ações */}
         <Card>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -217,7 +224,7 @@ export default function RelatoriosPage() {
             </div>
 
             {/* Gráfico de Desempenho Mensal */}
-            <Card title="Desempenho Mensal" subtitle="Evolução das métricas principais">
+                   <Card title="Desempenho Mensal" subtitle="Evolução das métricas principais">
               {relatorioData.relatorioMensal.length > 0 ? (
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart data={relatorioData.relatorioMensal}>
@@ -233,7 +240,7 @@ export default function RelatoriosPage() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-96 flex items-center justify-center text-gray-500">
+                       <div className="h-96 flex items-center justify-center text-gray-500">
                   Nenhum dado disponível para o período selecionado
                 </div>
               )}
@@ -241,17 +248,17 @@ export default function RelatoriosPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Cursos Mais Procurados */}
-              <Card title="Cursos Mais Procurados" subtitle="Top cursos por interesse">
+                     <Card title="Cursos Mais Procurados" subtitle="Top cursos por interesse">
                 <div className="space-y-4">
                   {relatorioData.cursosMaisProcurados.length > 0 ? relatorioData.cursosMaisProcurados.map((curso, index) => (
-                <div key={curso.curso} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                           <div key={curso.curso} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
                       {index + 1}
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-black">{curso.curso}</h4>
-                      <p className="text-sm text-gray-600">{curso.procuras} procuras</p>
+                               <div>
+                                 <h4 className="font-semibold text-black">{curso.curso}</h4>
+                                 <p className="text-sm text-gray-600">{curso.procuras} procuras</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -260,7 +267,7 @@ export default function RelatoriosPage() {
                   </div>
                 </div>
                   )) : (
-                    <div className="text-center py-8 text-gray-500">
+                             <div className="text-center py-8 text-gray-500">
                       Nenhum curso encontrado
                     </div>
                   )}
@@ -268,10 +275,10 @@ export default function RelatoriosPage() {
               </Card>
 
               {/* Fontes de Leads */}
-              <Card title="Fontes de Leads" subtitle="Origem dos prospects">
+                     <Card title="Fontes de Leads" subtitle="Origem dos prospects">
                 {relatorioData.fontesLead.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={relatorioData.fontesLead}>
+                           <BarChart data={relatorioData.fontesLead}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="fonte" />
                       <YAxis />
@@ -281,7 +288,7 @@ export default function RelatoriosPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-96 flex items-center justify-center text-gray-500">
+                         <div className="h-96 flex items-center justify-center text-gray-500">
                     Nenhuma fonte de lead encontrada
                   </div>
                 )}
@@ -308,7 +315,7 @@ export default function RelatoriosPage() {
                 </tr>
               </thead>
               <tbody>
-                {desempenhoEquipe.map((membro, index) => (
+                {desempenhoEquipeMock.map((membro, index) => (
                   <tr key={membro.nome} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -329,14 +336,14 @@ export default function RelatoriosPage() {
                       </div>
                     </td>
                     <td className="text-center py-3 px-4">
-                      <div className={`w-full bg-gray-200 rounded-full h-2 ${
-                        index === 0 ? 'bg-green-500' :
-                        index === 1 ? 'bg-blue-500' :
-                        index === 2 ? 'bg-purple-500' :
-                        'bg-gray-400'
-                      }`}>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
-                          className="h-2 rounded-full" 
+                          className={`h-2 rounded-full ${
+                            index === 0 ? 'bg-green-500' :
+                            index === 1 ? 'bg-blue-500' :
+                            index === 2 ? 'bg-purple-500' :
+                            'bg-gray-400'
+                          }`} 
                           style={{ width: `${100 - (index * 15)}%` }}
                         ></div>
                       </div>

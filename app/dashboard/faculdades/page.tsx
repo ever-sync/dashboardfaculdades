@@ -98,10 +98,10 @@ export default function FaculdadesPage() {
     )
   }
 
-  return (
-    <div>
-      <Header title="Faculdades" subtitle="Gerencie seus clientes" />
-      <div className="p-8 space-y-6">
+         return (
+           <div className="min-h-screen bg-white text-black">
+             <Header title="Faculdades" subtitle="Gerencie seus clientes" />
+             <div className="p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div></div>
           <Button onClick={handleNovo}>
@@ -112,7 +112,7 @@ export default function FaculdadesPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {faculdades.map((f) => (
-            <Card key={f.id}>
+            <Card key={f.id} className="bg-white border border-gray-200 shadow-sm">
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
