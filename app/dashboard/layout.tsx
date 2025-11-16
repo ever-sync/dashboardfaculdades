@@ -8,9 +8,9 @@ export default function DashboardLayout({
 }) {
   return (
     <FaculdadeProvider>
-      <div className="flex min-h-screen bg-gray-100">
+      <div className="flex min-h-screen bg-white dark:bg-black">
         <Sidebar />
-        <div className="flex-1 bg-gray-50 lg:pl-0">
+        <div className="flex-1 bg-white dark:bg-black lg:pl-0">
           {/* Mobile header spacer */}
           <div className="lg:hidden h-16" />
           {children}

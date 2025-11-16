@@ -17,12 +17,12 @@ import {
 } from 'lucide-react'
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Users, label: 'Prospects', href: '/dashboard/prospects' },
-  { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics' },
-  { icon: MessageSquare, label: 'Conversas', href: '/dashboard/conversas' },
-  { icon: TrendingUp, label: 'Relatórios', href: '/dashboard/relatorios' },
-  { icon: Building2, label: 'Faculdades', href: '/dashboard/faculdades' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', color: 'text-blue-500' },
+  { icon: Users, label: 'Prospects', href: '/dashboard/prospects', color: 'text-green-500' },
+  { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', color: 'text-purple-500' },
+  { icon: MessageSquare, label: 'Conversas', href: '/dashboard/conversas', color: 'text-indigo-500' },
+  { icon: TrendingUp, label: 'Relatórios', href: '/dashboard/relatorios', color: 'text-orange-500' },
+  { icon: Building2, label: 'Faculdades', href: '/dashboard/faculdades', color: 'text-pink-500' },
 ]
 
 export function Sidebar() {
@@ -57,7 +57,7 @@ export function Sidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-gray-900 text-white shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-black dark:bg-white text-white dark:text-black shadow-lg border border-gray-200 dark:border-gray-800"
         aria-label="Abrir menu"
         aria-expanded={isMobileMenuOpen}
         aria-controls="mobile-sidebar"
@@ -71,24 +71,24 @@ export function Sidebar() {
       
       {/* Overlay for mobile */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40" />
+        <div className="lg:hidden fixed inset-0 bg-black/50 dark:bg-black/70 z-40" />
       )}
       
       {/* Sidebar */}
       <div
         id="mobile-sidebar"
-        className={`mobile-sidebar fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-gray-900 min-h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`mobile-sidebar fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 min-h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Logo */}
-        <div className="p-6 pt-16 lg:pt-6">
-          <h1 className="text-2xl font-bold text-white">WhatsApp</h1>
-          <p className="text-sm text-gray-400">Analytics Dashboard</p>
+        <div className="p-6 pt-16 lg:pt-6 border-b border-gray-200 dark:border-gray-800">
+          <h1 className="text-2xl font-bold text-black dark:text-white">WhatsApp</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Analytics Dashboard</p>
         </div>
         
         {/* Menu */}
-        <nav className="flex-1 px-4 space-y-1" role="navigation" aria-label="Menu principal">
+        <nav className="flex-1 px-4 space-y-1 py-4" role="navigation" aria-label="Menu principal">
           {menuItems.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
@@ -98,13 +98,13 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-black dark:bg-white text-white dark:text-black'
+                    : 'text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900'
                 }`}
               >
-                <Icon className="w-5 h-5" aria-hidden="true" />
+                <Icon className={`w-5 h-5 ${isActive ? '' : item.color}`} aria-hidden="true" />
                 <span className="font-medium">{item.label}</span>
               </Link>
             )
@@ -112,13 +112,13 @@ export function Sidebar() {
         </nav>
         
         {/* Logout */}
-        <div className="p-4">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
             aria-label="Sair do dashboard"
           >
-            <LogOut className="w-5 h-5" aria-hidden="true" />
+            <LogOut className="w-5 h-5 text-red-500" aria-hidden="true" />
             <span className="font-medium">Sair</span>
           </button>
         </div>

@@ -13,46 +13,39 @@ interface StatsCardProps {
 }
 
 export function StatsCard({ title, value, icon: Icon, trend, subtitle, iconColor = 'blue' }: StatsCardProps) {
+  const iconColors = {
+    blue: 'text-blue-500',
+    green: 'text-green-500',
+    purple: 'text-purple-500',
+    orange: 'text-orange-500',
+    red: 'text-red-500',
+    pink: 'text-pink-500',
+    indigo: 'text-indigo-500',
+    yellow: 'text-yellow-500',
+  }
+  
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+    <div className="bg-white dark:bg-black rounded-lg shadow-md dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-800">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-700">{title}</p>
-          <p className="text-2xl font-bold text-gray-800 mt-2">{value}</p>
+          <p className="text-sm font-medium text-black dark:text-white">{title}</p>
+          <p className="text-2xl font-bold text-black dark:text-white mt-2">{value}</p>
           
           {subtitle && (
-            <p className="text-xs text-gray-600 mt-1">{subtitle}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>
           )}
           
           {trend && (
             <div className="flex items-center mt-2">
-              <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
                 {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
               </span>
-              <span className="text-xs text-gray-600 ml-2">vs mês anterior</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 ml-2">vs mês anterior</span>
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-lg ${
-          iconColor === 'blue' ? 'bg-blue-100' :
-          iconColor === 'green' ? 'bg-green-100' :
-          iconColor === 'purple' ? 'bg-purple-100' :
-          iconColor === 'orange' ? 'bg-orange-100' :
-          iconColor === 'red' ? 'bg-red-100' :
-          iconColor === 'pink' ? 'bg-pink-100' :
-          iconColor === 'indigo' ? 'bg-indigo-100' :
-          'bg-yellow-100'
-        }`}>
-          <Icon className={`w-6 h-6 ${
-            iconColor === 'blue' ? 'text-blue-600' :
-            iconColor === 'green' ? 'text-green-600' :
-            iconColor === 'purple' ? 'text-purple-600' :
-            iconColor === 'orange' ? 'text-orange-600' :
-            iconColor === 'red' ? 'text-red-600' :
-            iconColor === 'pink' ? 'text-pink-600' :
-            iconColor === 'indigo' ? 'text-indigo-600' :
-            'text-yellow-600'
-          }`} />
+        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-900">
+          <Icon className={`w-6 h-6 ${iconColors[iconColor]}`} />
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { ToastContextWrapper } from "@/components/ui/ToastContextWrapper";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,12 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
-        <ToastProvider>
-          <ToastContextWrapper />
-          {children}
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <ToastContextWrapper />
+            {children}
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
