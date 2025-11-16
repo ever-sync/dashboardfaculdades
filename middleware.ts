@@ -5,15 +5,23 @@ export function middleware(request: NextRequest) {
   // Verificar se está tentando acessar rotas do dashboard
   const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
   const userCookie = request.cookies.get('user')
+  const accessToken = request.cookies.get('sb-access-token')
+  
+  // Verificar autenticação - aceitar qualquer um dos cookies
+  const isAuthenticated = !!(userCookie || accessToken)
   
   // Se tentar acessar dashboard sem estar logado, redirecionar para login
-  if (isDashboard && !userCookie) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  if (isDashboard && !isAuthenticated) {
+    const loginUrl = new URL('/login', request.url)
+    // Adicionar redirect após login
+    loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
   }
   
   // Se estiver logado e tentar acessar login, redirecionar para dashboard
-  if (request.nextUrl.pathname === '/login' && userCookie) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (request.nextUrl.pathname === '/login' && isAuthenticated) {
+    const redirect = request.nextUrl.searchParams.get('redirect')
+    return NextResponse.redirect(new URL(redirect || '/dashboard', request.url))
   }
   
   // Adicionar headers de segurança

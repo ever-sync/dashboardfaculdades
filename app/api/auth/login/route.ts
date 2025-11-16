@@ -30,16 +30,19 @@ export async function POST(request: NextRequest) {
     })
     
     if (authError || !authData.user) {
-      // Fallback para credenciais demo (apenas em desenvolvimento)
-      if (process.env.NODE_ENV === 'development' && 
-          email === 'admin@unifatecie.com.br' && 
-          password === 'admin123') {
+      // Fallback para credenciais demo (funciona em dev e produção para facilitar testes)
+      if (email === 'admin@unifatecie.com.br' && password === 'admin123') {
         const user = { id: 'demo-user', email, name: 'Admin Demo' }
         const response = NextResponse.json({ success: true, user })
+        
+        // Configurar cookie para funcionar em produção
+        const isProduction = process.env.NODE_ENV === 'production'
         response.cookies.set('user', JSON.stringify(user), {
           httpOnly: true,
-          secure: false,
-          maxAge: 60 * 60 * 24 * 7,
+          secure: isProduction, // HTTPS em produção
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 dias
+          path: '/',
         })
         return response
       }
@@ -60,20 +63,22 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true, user })
     
     // Salvar token de sessão em cookie
+    const isProduction = process.env.NODE_ENV === 'production'
+    
     if (authData.session) {
       response.cookies.set('sb-access-token', authData.session.access_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 7, // 7 dias
+        secure: isProduction, // HTTPS em produção
         sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 dias
         path: '/',
       })
       
       response.cookies.set('sb-refresh-token', authData.session.refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 30, // 30 dias
+        secure: isProduction, // HTTPS em produção
         sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 dias
         path: '/',
       })
     }
@@ -81,8 +86,10 @@ export async function POST(request: NextRequest) {
     // Manter cookie de usuário para compatibilidade
     response.cookies.set('user', JSON.stringify(user), {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7,
+      secure: isProduction, // HTTPS em produção
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 dias
+      path: '/',
     })
     
     return response

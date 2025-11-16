@@ -1,0 +1,54 @@
+═══════════════════════════════════════════════════════════════
+  COMANDOS PARA FAZER PUSH NO GIT
+═══════════════════════════════════════════════════════════════
+
+1️⃣ CONFIGURAR GIT (OBRIGATÓRIO - Execute primeiro!)
+───────────────────────────────────────────────────────────────
+git config --global user.name "Seu Nome"
+git config --global user.email "seu@email.com"
+
+Exemplo:
+git config --global user.name "Giuliano"
+git config --global user.email "giuliano@exemplo.com"
+
+
+2️⃣ FAZER O COMMIT
+───────────────────────────────────────────────────────────────
+git commit -m "feat: Implementação completa do dashboard de faculdades
+
+- Autenticação robusta com Supabase Auth
+- CRUD completo de faculdades
+- Sistema de validações robustas
+- Notificações toast para feedback
+- Gráficos reais no dashboard
+- Dados reais nos relatórios
+- Exportação de relatórios (PDF/Excel/CSV)
+- Testes unitários (Jest)
+- Testes E2E (Playwright)
+- Documentação completa"
+
+
+3️⃣ ADICIONAR REMOTE (Se você já tem repositório no GitHub/GitLab)
+───────────────────────────────────────────────────────────────
+git remote add origin https://github.com/SEU-USUARIO/SEU-REPOSITORIO.git
+
+Substitua SEU-USUARIO e SEU-REPOSITORIO pelos seus dados!
+
+
+4️⃣ FAZER PUSH
+───────────────────────────────────────────────────────────────
+git push -u origin main
+
+
+═══════════════════════════════════════════════════════════════
+  STATUS ATUAL
+═══════════════════════════════════════════════════════════════
+
+✅ Arquivos adicionados ao staging
+⏳ Aguardando configuração do Git (nome/email)
+⏳ Aguardando commit
+⏳ Aguardando configuração do remote
+⏳ Aguardando push
+
+═══════════════════════════════════════════════════════════════
+
