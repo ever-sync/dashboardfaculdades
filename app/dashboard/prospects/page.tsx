@@ -15,7 +15,7 @@ import {
   Filter,
   Download
 } from 'lucide-react'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { Prospect } from '@/types/supabase'
@@ -130,11 +130,9 @@ export default function ProspectsPage() {
   const [totalCount, setTotalCount] = useState(0)
   const itemsPerPage = 20
 
-  useEffect(() => {
-    if (faculdadeSelecionada) fetchProspects()
-  }, [faculdadeSelecionada, currentPage])
-
   const fetchProspects = async () => {
+    if (!faculdadeSelecionada) return
+    
     try {
       setLoading(true)
       
@@ -142,7 +140,7 @@ export default function ProspectsPage() {
       const { count } = await supabase
         .from('prospects_academicos')
         .select('*', { count: 'exact', head: true })
-        .eq('faculdade_id', faculdadeSelecionada?.id as string)
+        .eq('faculdade_id', faculdadeSelecionada.id)
 
       if (count) {
         setTotalCount(count)
@@ -153,8 +151,8 @@ export default function ProspectsPage() {
       const startIndex = (currentPage - 1) * itemsPerPage
       const { data, error } = await supabase
         .from('prospects_academicos')
-        .select('id, nome, email, telefone, curso, status_academico, created_at, ultimo_contato, valor_mensalidade, nota_qualificacao')
-        .eq('faculdade_id', faculdadeSelecionada?.id as string)
+        .select('id, nome, email, telefone, curso_interesse, status_academico, created_at, ultimo_contato, valor_mensalidade, nota_qualificacao')
+        .eq('faculdade_id', faculdadeSelecionada.id)
         .order('created_at', { ascending: false })
         .range(startIndex, startIndex + itemsPerPage - 1)
 
@@ -165,7 +163,7 @@ export default function ProspectsPage() {
         nome: p.nome,
         email: p.email,
         telefone: p.telefone,
-        cursoInteresse: p.curso || 'Não informado',
+        cursoInteresse: p.curso_interesse || p.curso || 'Não informado',
         status: p.status_academico || 'novo',
         dataCadastro: new Date(p.created_at).toLocaleDateString('pt-BR'),
         ultimoContato: p.ultimo_contato ? new Date(p.ultimo_contato).toLocaleDateString('pt-BR') : 'N/A',
@@ -176,25 +174,17 @@ export default function ProspectsPage() {
       setProspects(prospectsFormatados)
     } catch (error) {
       console.error('Erro ao buscar prospects:', error)
+      setProspects([])
     } finally {
       setLoading(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div>
-        <Header
-          title="Prospects"
-          subtitle="Gerencie seus prospects e potenciais alunos"
-        />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (faculdadeSelecionada) fetchProspects()
+  }, [faculdadeSelecionada, currentPage])
 
+  // Hooks devem ser chamados antes de qualquer early return
   const cursosUnicos = useMemo(() => Array.from(new Set(prospects.map(p => p.cursoInteresse))), [prospects])
 
   const prospectsFiltrados = useMemo(() => {
@@ -210,6 +200,20 @@ export default function ProspectsPage() {
 
   const totalValor = useMemo(() => prospectsFiltrados.reduce((sum, p) => sum + (p.valorEstimado || 0), 0), [prospectsFiltrados])
   const mediaNota = useMemo(() => prospectsFiltrados.reduce((sum, p) => sum + p.nota, 0) / (prospectsFiltrados.length || 1), [prospectsFiltrados])
+
+  if (loading) {
+    return (
+      <div>
+        <Header
+          title="Prospects"
+          subtitle="Gerencie seus prospects e potenciais alunos"
+        />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
