@@ -95,7 +95,7 @@ export default function LoginPage() {
               <MessageSquare className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-black mb-2">
-              WhatsApp Analytics
+              Edu.Zap
             </h1>
             <p className="text-gray-600 text-sm">Faça login para acessar o dashboard</p>
           </div>
@@ -119,7 +119,7 @@ export default function LoginPage() {
                     if (errors.email) setErrors({ ...errors, email: undefined })
                   }}
                   placeholder="seu@email.com"
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all ${
                     errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
                   }`}
                   required
@@ -149,7 +149,7 @@ export default function LoginPage() {
                     if (errors.password) setErrors({ ...errors, password: undefined })
                   }}
                   placeholder="••••••••"
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all ${
                     errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
                   }`}
                   required
@@ -173,7 +173,7 @@ export default function LoginPage() {
             <div className="flex justify-end">
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                className="text-sm text-gray-600 hover:text-gray-700 font-medium transition-colors"
                 onClick={() => showToast('Funcionalidade em desenvolvimento', 'info')}
               >
                 Esqueci minha senha
@@ -217,7 +217,7 @@ export default function LoginPage() {
             </button>
             
             {showDemo && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-2">
+              <div className="mt-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 animate-in fade-in slide-in-from-top-2">
                 <p className="text-xs text-gray-700 font-medium mb-3">Use estas credenciais para testar:</p>
                 <div className="space-y-2 mb-3">
                   <div className="flex items-center gap-2">
@@ -234,7 +234,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={fillDemoCredentials}
-                  className="w-full mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full mt-2 px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <span>Preencher automaticamente</span>
                   <ArrowRight className="w-4 h-4" />
@@ -246,7 +246,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
-              © 2024 WhatsApp Analytics Dashboard
+              © 2024 Edu.Zap Dashboard
             </p>
           </div>
         </div>

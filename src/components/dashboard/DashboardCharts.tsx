@@ -101,7 +101,7 @@ export function DashboardCharts({ faculdadeId }: DashboardChartsProps) {
             <Line
               type="monotone"
               dataKey="conversas"
-              stroke="#3b82f6"
+              stroke="#6b7280"
               strokeWidth={2}
               name="Conversas"
             />

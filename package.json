@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
+    "@tanstack/react-query": "^5.90.10",
     "lucide-react": "^0.460.0",
     "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "recharts": "^3.4.1"
+    "recharts": "^3.4.1",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
@@ -39,7 +41,9 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     },

@@ -116,8 +116,8 @@ export default function FaculdadesPage() {
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-6 h-6 text-blue-600" />
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-gray-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">{f.nome}</h3>

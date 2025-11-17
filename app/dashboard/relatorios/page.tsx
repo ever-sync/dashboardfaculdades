@@ -141,7 +141,7 @@ export default function RelatoriosPage() {
             <div className="flex gap-2">
               <button 
                 onClick={() => handleVisualizar('relatorio')}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
               >
                 <Eye className="w-4 h-4" />
                 Visualizar
@@ -235,7 +235,7 @@ export default function RelatoriosPage() {
                     <Tooltip />
                     <Legend />
                     <Line yAxisId="left" type="monotone" dataKey="matriculas" stroke="#10b981" strokeWidth={3} name="Matrículas" />
-                    <Line yAxisId="left" type="monotone" dataKey="prospects" stroke="#3b82f6" strokeWidth={2} name="Prospects" />
+                    <Line yAxisId="left" type="monotone" dataKey="prospects" stroke="#6b7280" strokeWidth={2} name="Prospects" />
                     <Line yAxisId="right" type="monotone" dataKey="receita" stroke="#f59e0b" strokeWidth={2} name="Receita (R$)" />
                   </LineChart>
                 </ResponsiveContainer>
@@ -253,7 +253,7 @@ export default function RelatoriosPage() {
                   {relatorioData.cursosMaisProcurados.length > 0 ? relatorioData.cursosMaisProcurados.map((curso, index) => (
                            <div key={curso.curso} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
+                    <div className="w-8 h-8 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center font-semibold text-sm">
                       {index + 1}
                     </div>
                                <div>
@@ -283,7 +283,7 @@ export default function RelatoriosPage() {
                       <XAxis dataKey="fonte" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="leads" fill="#3b82f6" name="Leads" />
+                      <Bar dataKey="leads" fill="#6b7280" name="Leads" />
                       <Bar dataKey="conversao" fill="#10b981" name="Conversão (%)" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -340,7 +340,7 @@ export default function RelatoriosPage() {
                         <div 
                           className={`h-2 rounded-full ${
                             index === 0 ? 'bg-green-500' :
-                            index === 1 ? 'bg-blue-500' :
+                            index === 1 ? 'bg-gray-500' :
                             index === 2 ? 'bg-purple-500' :
                             'bg-gray-400'
                           }`} 
@@ -359,10 +359,10 @@ export default function RelatoriosPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div onClick={() => handleVisualizar('relatorio-matriculas')}>
           <Card className="text-center hover:shadow-lg transition-shadow cursor-pointer">
-            <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+            <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-black mb-2">Relatório de Matrículas</h3>
             <p className="text-gray-600 text-sm">Detalhamento completo das matrículas por curso e período</p>
-            <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <button className="mt-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
               Visualizar
             </button>
           </Card>
@@ -419,19 +419,19 @@ export default function RelatoriosPage() {
               <h4 className="font-semibold text-black mb-3">Recomendações</h4>
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">→</span>
+                  <span className="text-gray-500 mt-1">→</span>
                   <span>Implementar treinamento para reduzir tempo de resposta</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">→</span>
+                  <span className="text-gray-500 mt-1">→</span>
                   <span>Intensificar campanhas para cursos com menor procura</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">→</span>
+                  <span className="text-gray-500 mt-1">→</span>
                   <span>Criar programa de incentivo a indicações (melhor conversão)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">→</span>
+                  <span className="text-gray-500 mt-1">→</span>
                   <span>Otimizar processo de qualificação de leads</span>
                 </li>
               </ul>

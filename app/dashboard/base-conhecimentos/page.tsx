@@ -319,11 +319,35 @@ export default function BaseConhecimentosPage() {
     return (
       <div className="min-h-screen bg-white text-black">
         <Header
-          title="Base de Conhecimentos"
+          title="Conhecimento"
           subtitle="Gerencie perguntas e respostas"
         />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-500"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!faculdadeSelecionada) {
+    return (
+      <div className="min-h-screen bg-white text-black">
+        <Header
+          title="Conhecimento"
+          subtitle="Gerencie perguntas e respostas"
+        />
+        <div className="p-8">
+          <Card>
+            <div className="text-center py-12">
+              <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Nenhuma faculdade selecionada
+              </h3>
+              <p className="text-gray-600">
+                Por favor, selecione uma faculdade no menu superior para gerenciar a base de conhecimentos.
+              </p>
+            </div>
+          </Card>
         </div>
       </div>
     )
@@ -332,8 +356,8 @@ export default function BaseConhecimentosPage() {
   return (
     <div className="min-h-screen bg-white text-black">
       <Header
-        title="Base de Conhecimentos"
-        subtitle="Gerencie perguntas e respostas"
+        title="Conhecimento"
+        subtitle={`Gerencie perguntas e respostas - ${faculdadeSelecionada.nome}`}
       />
       
       <div className="p-8 space-y-6">
@@ -404,14 +428,16 @@ export default function BaseConhecimentosPage() {
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {searchTerm ? 'Nenhum conhecimento encontrado' : 'Nenhum conhecimento cadastrado'}
+                {searchTerm || categoriaFilter 
+                  ? 'Nenhum conhecimento encontrado' 
+                  : `Nenhum conhecimento cadastrado para ${faculdadeSelecionada.nome}`}
               </h3>
               <p className="text-gray-600 mb-4">
-                {searchTerm
-                  ? 'Tente ajustar sua busca'
+                {searchTerm || categoriaFilter
+                  ? 'Tente ajustar sua busca ou filtros'
                   : 'Comece criando seu primeiro conhecimento ou importe um arquivo CSV'}
               </p>
-              {!searchTerm && (
+              {!searchTerm && !categoriaFilter && (
                 <div className="flex gap-2 justify-center">
                   <Button onClick={() => setUploadModalAberto(true)} variant="secondary">
                     <Upload className="w-4 h-4 mr-2" />

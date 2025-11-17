@@ -62,7 +62,7 @@ const processarSetores = (metricas: AnalyticsData[]) => {
     }
   })
   
-  const cores = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+  const cores = ['#6b7280', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
   let corIndex = 0
   
   return Array.from(setoresMap.entries()).map(([name, value]) => ({
@@ -182,9 +182,9 @@ export default function AnalyticsPage() {
               <Line
                 type="monotone"
                 dataKey="conversas"
-                stroke="#3b82f6"
+                stroke="#6b7280"
                 strokeWidth={2}
-                dot={{ fill: '#3b82f6' }}
+                dot={{ fill: '#6b7280' }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -199,7 +199,7 @@ export default function AnalyticsPage() {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Area type="monotone" dataKey="conversas" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
+              <Area type="monotone" dataKey="conversas" stackId="1" stroke="#6b7280" fill="#6b7280" fillOpacity={0.6} />
               <Area type="monotone" dataKey="prospects" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.6} />
               <Area type="monotone" dataKey="matriculas" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.6} />
             </AreaChart>
@@ -238,7 +238,7 @@ export default function AnalyticsPage() {
                 <XAxis type="number" />
                 <YAxis dataKey="etapa" type="category" width={150} />
                 <Tooltip />
-                <Bar dataKey="valor" fill="#3b82f6" />
+                <Bar dataKey="valor" fill="#6b7280" />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -254,9 +254,9 @@ export default function AnalyticsPage() {
           </Card>
           
           <Card className="text-center">
-            <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+            <Users className="w-8 h-8 text-gray-500 mx-auto mb-2" />
             <h3 className="text-lg font-semibold text-black">Prospects Ativos</h3>
-            <p className="text-2xl font-bold text-blue-500">{prospectsAtivos}</p>
+            <p className="text-2xl font-bold text-gray-500">{prospectsAtivos}</p>
             <p className="text-sm text-gray-600">Este mês</p>
           </Card>
           

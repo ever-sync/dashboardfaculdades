@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { loginSchema, validateData } from '@/lib/apiValidation'
+import { getUserFriendlyError } from '@/lib/errorMessages'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const body = await request.json()
     
-    if (!email || !password) {
+    // Validar dados de entrada
+    const validation = validateData(loginSchema, body)
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Email e senha são obrigatórios' },
+        { error: validation.error },
         { status: 400 }
       )
     }
+    
+    const { email, password } = validation.data
     
     // Criar cliente Supabase para autenticação
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -48,7 +54,7 @@ export async function POST(request: NextRequest) {
       }
       
       return NextResponse.json(
-        { error: authError?.message || 'Credenciais inválidas' },
+        { error: getUserFriendlyError(authError || 'Credenciais inválidas') },
         { status: 401 }
       )
     }
@@ -94,9 +100,13 @@ export async function POST(request: NextRequest) {
     
     return response
   } catch (error) {
-    console.error('Erro no login:', error)
+    // Log erro em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Erro no login:', error)
+    }
+    
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: getUserFriendlyError(error) },
       { status: 500 }
     )
   }

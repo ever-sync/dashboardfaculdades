@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { z } from 'zod'
+import { getUserFriendlyError } from '@/lib/errorMessages'
 
 // Use service role key for server-side operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -7,12 +9,39 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Schema de validação para query params
+const statsQuerySchema = z.object({
+  faculdade_id: z.string().uuid('ID de faculdade inválido').nullable().optional(),
+  cliente_id: z.string().uuid('ID de cliente inválido').nullable().optional(),
+}).refine((data) => data.faculdade_id || data.cliente_id, {
+  message: 'faculdade_id ou cliente_id é obrigatório',
+})
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const clienteId = searchParams.get('cliente_id') || searchParams.get('faculdade_id')
+    
+    // Validar query params (transformar null em undefined para Zod)
+    const queryParams = {
+      faculdade_id: searchParams.get('faculdade_id') || undefined,
+      cliente_id: searchParams.get('cliente_id') || undefined,
+    }
+    
+    const validation = statsQuerySchema.safeParse(queryParams)
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: getUserFriendlyError(validation.error.errors[0].message) },
+        { status: 400 }
+      )
+    }
+    
+    const clienteId = validation.data.faculdade_id || validation.data.cliente_id
+    
     if (!clienteId) {
-      return NextResponse.json({ error: 'cliente_id ou faculdade_id é obrigatório' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'faculdade_id ou cliente_id é obrigatório' },
+        { status: 400 }
+      )
     }
     // Get conversation stats from conversas_whatsapp table
     const { count: totalConversas } = await supabase
@@ -97,9 +126,13 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(stats)
   } catch (error) {
-    console.error('Erro ao buscar stats:', error)
+    // Log erro em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Erro ao buscar stats:', error)
+    }
+    
     return NextResponse.json(
-      { error: 'Erro ao buscar estatísticas' },
+      { error: getUserFriendlyError(error) },
       { status: 500 }
     )
   }

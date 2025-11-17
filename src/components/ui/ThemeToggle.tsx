@@ -16,7 +16,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button
-        className="p-2 rounded-lg bg-white dark:bg-black border border-gray-200 dark:border-gray-800"
+        className="p-2 rounded-lg bg-white dark:bg-white border border-gray-200 dark:border-gray-200"
         aria-label="Alternar tema"
         disabled
       >
@@ -28,7 +28,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg bg-white dark:bg-black border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+      className="p-2 rounded-lg bg-white dark:bg-white border border-gray-200 dark:border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors"
       aria-label={`Alternar para modo ${theme === 'light' ? 'escuro' : 'claro'}`}
     >
       {theme === 'light' ? (

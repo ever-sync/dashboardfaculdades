@@ -17,7 +17,7 @@ export function Button({
   
   const variants = {
     primary: 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200',
-    secondary: 'bg-gray-200 dark:bg-gray-800 text-black dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700',
+    secondary: 'bg-gray-200 dark:bg-gray-200 text-black dark:text-black hover:bg-gray-300 dark:hover:bg-gray-300',
     danger: 'bg-red-500 text-white hover:bg-red-600',
   }
   
@@ -29,7 +29,7 @@ export function Button({
   
   return (
     <button
-      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${baseStyles} ${variants[variant]} ${sizes[size]} inline-flex items-center justify-center gap-2 ${className}`}
       {...props}
     >
       {children}

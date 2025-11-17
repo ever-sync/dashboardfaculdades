@@ -16,17 +16,21 @@ import {
   X,
   Bot,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  Send,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', color: 'text-blue-500' },
-  { icon: Users, label: 'Prospects', href: '/dashboard/prospects', color: 'text-green-500' },
-  { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', color: 'text-purple-500' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', color: 'text-gray-500' },
   { icon: MessageSquare, label: 'Conversas', href: '/dashboard/conversas', color: 'text-indigo-500' },
-  { icon: Bot, label: 'Agentes IA', href: '/dashboard/agentes-ia', color: 'text-cyan-500' },
+  { icon: Send, label: 'Disparo em Massa', href: '/dashboard/disparo-massa', color: 'text-violet-500' },
+  { icon: Users, label: 'Alunos', href: '/dashboard/prospects', color: 'text-green-500' },
   { icon: GraduationCap, label: 'Cursos', href: '/dashboard/cursos', color: 'text-emerald-500' },
-  { icon: BookOpen, label: 'Base de Conhecimentos', href: '/dashboard/base-conhecimentos', color: 'text-teal-500' },
+  { icon: Bot, label: 'Agentes IA', href: '/dashboard/agentes-ia', color: 'text-cyan-500' },
+  { icon: BookOpen, label: 'Conhecimento', href: '/dashboard/base-conhecimentos', color: 'text-teal-500' },
+  { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', color: 'text-purple-500' },
   { icon: TrendingUp, label: 'Relatórios', href: '/dashboard/relatorios', color: 'text-orange-500' },
   { icon: Building2, label: 'Faculdades', href: '/dashboard/faculdades', color: 'text-pink-500' },
 ]
@@ -34,6 +38,22 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  
+  // Load collapsed state from localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebarCollapsed')
+    if (savedState !== null) {
+      setIsCollapsed(savedState === 'true')
+    }
+  }, [])
+  
+  // Save collapsed state to localStorage
+  const toggleCollapse = () => {
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    localStorage.setItem('sidebarCollapsed', String(newState))
+  }
   
   // Close mobile menu when route changes
   useEffect(() => {
@@ -83,18 +103,48 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         id="mobile-sidebar"
-        className={`mobile-sidebar fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`mobile-sidebar fixed lg:relative inset-y-0 left-0 z-40 bg-white border-r border-gray-200 h-screen flex flex-col transform transition-all duration-300 ease-in-out ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        } ${
+          isCollapsed ? 'lg:w-16' : 'lg:w-64'
         }`}
       >
-        {/* Logo */}
-        <div className="p-6 pt-16 lg:pt-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-black">WhatsApp</h1>
-          <p className="text-sm text-gray-600">Analytics Dashboard</p>
+        {/* Logo e Botão de Colapsar */}
+        <div className={`p-6 pt-16 lg:pt-6 border-b border-gray-200 flex-shrink-0 ${isCollapsed ? 'lg:px-3 lg:py-4' : ''}`}>
+          {!isCollapsed ? (
+            <div className="relative">
+              <h1 className="text-2xl font-bold text-black pr-8">Edu.Zap</h1>
+              <p className="text-sm text-gray-600">Dashboard Acadêmico</p>
+              {/* Botão de Colapsar (apenas desktop) */}
+              <button
+                onClick={toggleCollapse}
+                className="hidden lg:flex absolute top-0 right-0 p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600 hover:text-gray-900 z-10"
+                aria-label="Colapsar menu"
+                title="Colapsar menu"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="lg:flex flex-col items-center gap-3">
+              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-white" />
+              </div>
+              {/* Botão de Expandir (apenas desktop) */}
+              <button
+                onClick={toggleCollapse}
+                className="hidden lg:flex p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600 hover:text-gray-900"
+                aria-label="Expandir menu"
+                title="Expandir menu"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
         
-        {/* Menu */}
-        <nav className="flex-1 px-4 space-y-1 py-4" role="navigation" aria-label="Menu principal">
+        {/* Menu - Scrollável */}
+        <nav className="flex-1 px-4 space-y-1 py-4 overflow-y-auto" role="navigation" aria-label="Menu principal">
           {menuItems.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
@@ -108,24 +158,42 @@ export function Sidebar() {
                   isActive
                     ? 'bg-black text-white'
                     : 'text-black hover:bg-gray-100'
-                }`}
+                } ${isCollapsed ? 'lg:justify-center lg:px-2' : ''}`}
+                title={isCollapsed ? item.label : undefined}
               >
-                <Icon className={`w-5 h-5 ${isActive ? '' : item.color}`} aria-hidden="true" />
-                <span className="font-medium">{item.label}</span>
+                <Icon className={`w-5 h-5 ${isActive ? '' : item.color} flex-shrink-0`} aria-hidden="true" />
+                {!isCollapsed && <span className="font-medium">{item.label}</span>}
               </Link>
             )
           })}
         </nav>
         
-        {/* Logout */}
-        <div className="p-4 border-t border-gray-200">
+        {/* Configuração e Logout - Fixo na parte inferior */}
+        <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0 bg-white">
+          <Link
+            href="/dashboard/configuracoes"
+            aria-current={pathname === '/dashboard/configuracoes' ? 'page' : undefined}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              pathname === '/dashboard/configuracoes'
+                ? 'bg-black text-white'
+                : 'text-black hover:bg-gray-100'
+            } ${isCollapsed ? 'lg:justify-center lg:px-2' : ''}`}
+            title={isCollapsed ? 'Configuração' : undefined}
+          >
+            <Settings className={`w-5 h-5 ${pathname === '/dashboard/configuracoes' ? '' : 'text-gray-600'} flex-shrink-0`} aria-hidden="true" />
+            {!isCollapsed && <span className="font-medium">Configuração</span>}
+          </Link>
+          
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-black hover:bg-gray-100 transition-colors"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg w-full text-black hover:bg-gray-100 transition-colors ${
+              isCollapsed ? 'lg:justify-center lg:px-2' : ''
+            }`}
             aria-label="Sair do dashboard"
+            title={isCollapsed ? 'Sair' : undefined}
           >
-            <LogOut className="w-5 h-5 text-red-500" aria-hidden="true" />
-            <span className="font-medium">Sair</span>
+            <LogOut className="w-5 h-5 text-red-500 flex-shrink-0" aria-hidden="true" />
+            {!isCollapsed && <span className="font-medium">Sair</span>}
           </button>
         </div>
       </div>

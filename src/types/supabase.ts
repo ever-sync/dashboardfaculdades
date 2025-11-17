@@ -192,6 +192,9 @@ export interface Curso {
   laboratorio: boolean
   estagio: boolean
   tcc: boolean
+  link?: string
+  descricao?: string
+  categoria?: string
   ativo: boolean
   created_at: string
   updated_at: string

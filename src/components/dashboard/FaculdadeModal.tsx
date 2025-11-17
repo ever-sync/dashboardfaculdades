@@ -179,9 +179,9 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-slate-700">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+      <div className="bg-white dark:bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-black">
             {faculdade ? 'Editar Faculdade' : 'Nova Faculdade'}
           </h2>
           <button
@@ -249,7 +249,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
               <select
                 value={formData.plano}
                 onChange={(e) => setFormData({ ...formData, plano: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-900 text-black dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-300 bg-white dark:bg-white text-black dark:text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="basico">Básico</option>
                 <option value="pro">Pro</option>
@@ -264,7 +264,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-900 text-black dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-300 bg-white dark:bg-white text-black dark:text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>

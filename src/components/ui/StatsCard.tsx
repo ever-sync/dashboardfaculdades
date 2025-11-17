@@ -14,7 +14,7 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, icon: Icon, trend, subtitle, iconColor = 'blue' }: StatsCardProps) {
   const iconColors = {
-    blue: 'text-blue-500',
+    blue: 'text-gray-500',
     green: 'text-green-500',
     purple: 'text-purple-500',
     orange: 'text-orange-500',

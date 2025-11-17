@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
+import { CardSkeleton } from '@/components/ui/Skeleton'
 
 export default function DashboardPage() {
   const { faculdadeSelecionada } = useFaculdade()
@@ -51,8 +52,14 @@ export default function DashboardPage() {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-white text-black">
+        <Header
+          title="Dashboard"
+          subtitle="Visão geral do atendimento WhatsApp"
+        />
+        <div className="p-4 sm:p-6 lg:p-8">
+          <CardSkeleton count={8} />
+        </div>
       </div>
     )
   }
@@ -62,7 +69,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-white text-black p-8">
         <Header
           title="Dashboard"
-          subtitle="Visão geral do atendimento WhatsApp"
+          subtitle="Visão geral do dashboard acadêmico"
         />
         <p className="mt-8 text-center text-red-500">
           Erro ao carregar dados do dashboard.
@@ -86,7 +93,7 @@ export default function DashboardPage() {
             value={stats.total_conversas}
             icon={MessageSquare}
             trend={{ value: 12.5, isPositive: true }}
-            iconColor="blue"
+            iconColor="gray"
           />
           
           <StatsCard

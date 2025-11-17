@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { faculdadeSchema, validateData } from '@/lib/apiValidation'
+import { getUserFriendlyError } from '@/lib/errorMessages'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -32,9 +34,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data || [])
   } catch (error) {
-    console.error('Erro ao buscar faculdades:', error)
+    // Log erro em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Erro ao buscar faculdades:', error)
+    }
+    
     return NextResponse.json(
-      { error: 'Erro ao buscar faculdades' },
+      { error: getUserFriendlyError(error) },
       { status: 500 }
     )
   }
@@ -44,14 +50,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nome, cnpj, telefone, email, endereco, cidade, estado, plano, status } = body
-
-    if (!nome) {
+    
+    // Validar dados de entrada
+    const validation = validateData(faculdadeSchema, body)
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Nome é obrigatório' },
+        { error: validation.error },
         { status: 400 }
       )
     }
+    
+    const { nome, cnpj, telefone, email, endereco, cidade, estado, plano, status } = validation.data
 
     const { data, error } = await supabase
       .from('faculdades')
@@ -73,18 +82,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data, { status: 201 })
   } catch (error: any) {
-    console.error('Erro ao criar faculdade:', error)
-    
-    if (error.code === '23505') {
-      return NextResponse.json(
-        { error: 'CNPJ já cadastrado' },
-        { status: 409 }
-      )
+    // Log erro em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Erro ao criar faculdade:', error)
     }
-
+    
     return NextResponse.json(
-      { error: 'Erro ao criar faculdade' },
-      { status: 500 }
+      { error: getUserFriendlyError(error) },
+      { status: error.code === '23505' ? 409 : 500 }
     )
   }
 }

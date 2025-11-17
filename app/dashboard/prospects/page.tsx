@@ -26,6 +26,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { Prospect } from '@/types/supabase'
+import { useDebounce } from '@/lib/debounce'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 
 interface ProspectView {
   id: string
@@ -154,6 +156,9 @@ export default function ProspectsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('todos')
   const [cursoFilter, setCursoFilter] = useState<string>('todos')
    const [vinculoFilter, setVinculoFilter] = useState<string>('todos')
+  
+  // Debounce do termo de busca
+  const debouncedSearchTerm = useDebounce(searchTerm, 400)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -265,16 +270,16 @@ export default function ProspectsPage() {
 
   const prospectsFiltrados = useMemo(() => {
     return prospects.filter(prospect => {
-      const matchSearch = prospect.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (prospect.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         prospect.telefone.includes(searchTerm)
+      const matchSearch = prospect.nome.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                         (prospect.email || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                         prospect.telefone.includes(debouncedSearchTerm)
       const matchStatus = statusFilter === 'todos' || prospect.status === statusFilter
       // Vínculo não existe mais, mas mantemos o filtro para não quebrar a UI
       const matchVinculo = vinculoFilter === 'todos' // Sempre true por enquanto
       const matchCurso = cursoFilter === 'todos' || prospect.cursoInteresse === cursoFilter
       return matchSearch && matchStatus && matchCurso && matchVinculo
     })
-  }, [prospects, searchTerm, statusFilter, cursoFilter, vinculoFilter])
+  }, [prospects, debouncedSearchTerm, statusFilter, cursoFilter, vinculoFilter])
 
   const totalValor = useMemo(() => prospectsFiltrados.reduce((sum, p) => sum + (p.valorEstimado || 0), 0), [prospectsFiltrados])
   const mediaNota = useMemo(() => prospectsFiltrados.reduce((sum, p) => sum + p.nota, 0) / (prospectsFiltrados.length || 1), [prospectsFiltrados])
@@ -286,6 +291,7 @@ export default function ProspectsPage() {
     return Math.round((convertidos / prospectsFiltrados.length) * 100)
   }, [prospectsFiltrados])
 
+  // Skeleton loader
   if (loading) {
     return (
       <div className="min-h-screen bg-white text-black">
@@ -293,8 +299,16 @@ export default function ProspectsPage() {
           title="Prospects"
           subtitle="Gerencie seus prospects e potenciais alunos"
         />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="p-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div className="h-8 w-24 bg-gray-200 rounded mb-4 animate-pulse" />
+                <div className="h-12 w-16 bg-gray-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+          <ListSkeleton items={5} />
         </div>
       </div>
     )
@@ -311,9 +325,9 @@ export default function ProspectsPage() {
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="text-center">
-            <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+            <Users className="w-8 h-8 text-gray-500 mx-auto mb-2" />
             <h3 className="text-lg font-semibold">Total Prospects</h3>
-            <p className="text-2xl font-bold text-blue-500">{prospectsFiltrados.length}</p>
+            <p className="text-2xl font-bold text-gray-500">{prospectsFiltrados.length}</p>
           </Card>
           
           <Card className="text-center">
@@ -612,7 +626,7 @@ export default function ProspectsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="bg-gray-50">
                   <div className="flex items-center gap-2 mb-2">
-                    <User className="w-4 h-4 text-blue-500" />
+                    <User className="w-4 h-4 text-gray-500" />
                     <h3 className="text-sm font-semibold text-gray-700">Dados Pessoais</h3>
                   </div>
                   <p className="text-sm text-gray-800"><span className="font-medium">Nome:</span> {prospectSelecionado.nome}</p>
