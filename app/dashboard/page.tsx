@@ -28,12 +28,22 @@ export default function DashboardPage() {
   }, [faculdadeSelecionada])
   
   const fetchStats = async () => {
+    if (!faculdadeSelecionada) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const res = await fetch(`/api/dashboard/stats?cliente_id=${faculdadeSelecionada?.id}`)
+      setLoading(true)
+      const res = await fetch(`/api/dashboard/stats?faculdade_id=${faculdadeSelecionada.id}`)
+      if (!res.ok) {
+        throw new Error(`Erro ${res.status}: ${res.statusText}`)
+      }
       const data = await res.json()
       setStats(data)
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error)
+      setStats(null)
     } finally {
       setLoading(false)
     }

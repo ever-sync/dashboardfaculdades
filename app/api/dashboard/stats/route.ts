@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // Calculate revenue from enrolled prospects
     const { data: prospectsMatriculados } = await supabase
       .from('prospects_academicos')
-      .select('valor_mensalidade')
+      .select('valor_mensalidade, data_matricula')
       .eq('faculdade_id', clienteId)
       .eq('status_academico', 'matriculado')
       .gte('data_matricula', primeiroDiaMes.toISOString())

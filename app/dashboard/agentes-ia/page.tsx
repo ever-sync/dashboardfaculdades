@@ -31,6 +31,7 @@ export default function AgentesIAPage() {
   const [agenteSelecionado, setAgenteSelecionado] = useState<AgenteIA | null>(null)
   const [modalAberto, setModalAberto] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
+  const [erroTabela, setErroTabela] = useState<string | null>(null)
 
   const fetchAgentes = useCallback(async () => {
     // Buscar todos os agentes se não houver faculdade selecionada, ou filtrar por faculdade
@@ -51,14 +52,44 @@ export default function AgentesIAPage() {
       const { data, error } = await query.order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Erro ao buscar agentes:', error)
+        console.error('Erro ao buscar agentes:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        
+        // Se a tabela não existe (404 ou 42P01), mostrar mensagem específica
+        if (error.code === '42P01' || error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('não existe')) {
+          const mensagemErro = 'A tabela "agentes_ia" não existe no banco de dados. Execute a migração SQL: supabase/migrations/006_create_agentes_ia_table_complete.sql'
+          console.warn('⚠️', mensagemErro)
+          setErroTabela(mensagemErro)
+        } else {
+          setErroTabela(error.message || 'Erro ao buscar agentes')
+        }
+        
         setAgentes([])
         return
       }
 
+      // Limpar erro se sucesso
+      setErroTabela(null)
+
       setAgentes(data || [])
     } catch (error: any) {
-      console.error('Erro inesperado ao buscar agentes:', error?.message || error)
+      console.error('Erro inesperado ao buscar agentes:', {
+        message: error?.message || 'Erro desconhecido',
+        error: error
+      })
+      const mensagemErro = error?.message || 'Erro desconhecido ao buscar agentes'
+      
+      // Verificar se é erro de tabela não encontrada
+      if (mensagemErro.includes('does not exist') || mensagemErro.includes('relation') || mensagemErro.includes('não existe') || mensagemErro.includes('agentes_ia')) {
+        setErroTabela('A tabela "agentes_ia" não existe no banco de dados. Execute a migração SQL: supabase/migrations/006_create_agentes_ia_table_complete.sql')
+      } else {
+        setErroTabela(mensagemErro)
+      }
+      
       setAgentes([])
     } finally {
       setLoading(false)
@@ -207,8 +238,30 @@ export default function AgentesIAPage() {
           </div>
         </Card>
 
+        {/* Mensagem de Erro da Tabela */}
+        {erroTabela && (
+          <Card className="border-red-300 bg-red-50">
+            <div className="text-center py-6">
+              <div className="text-red-600 text-lg font-semibold mb-2">
+                ⚠️ Tabela não encontrada
+              </div>
+              <p className="text-red-700 mb-4 text-sm">
+                {erroTabela}
+              </p>
+              <div className="bg-white p-4 rounded border border-red-200 text-left">
+                <p className="text-sm font-semibold text-gray-900 mb-2">Como resolver:</p>
+                <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
+                  <li>Acesse o Supabase Dashboard</li>
+                  <li>Vá em SQL Editor</li>
+                  <li>Execute o arquivo: <code className="bg-gray-100 px-2 py-1 rounded">supabase/migrations/006_create_agentes_ia_table_complete.sql</code></li>
+                </ol>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Lista de Agentes */}
-        {agentesFiltrados.length === 0 ? (
+        {!erroTabela && agentesFiltrados.length === 0 ? (
           <Card>
             <div className="text-center py-12">
               <Bot className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -228,7 +281,7 @@ export default function AgentesIAPage() {
               )}
             </div>
           </Card>
-        ) : (
+        ) : !erroTabela && agentesFiltrados.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {agentesFiltrados.map((agente) => (
               <Card key={agente.id} className="hover:shadow-lg transition-shadow">
@@ -266,12 +319,12 @@ export default function AgentesIAPage() {
                   </span>
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => handleEditarAgente(agente)}
-                    className="flex-1"
+                    className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200 !border !border-gray-300"
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Editar
@@ -280,7 +333,7 @@ export default function AgentesIAPage() {
                     variant="secondary"
                     size="sm"
                     onClick={() => handleToggleAtivo(agente)}
-                    className="flex-1"
+                    className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200 !border !border-gray-300"
                   >
                     {agente.ativo ? (
                       <>
@@ -298,7 +351,7 @@ export default function AgentesIAPage() {
                     variant="secondary"
                     size="sm"
                     onClick={() => handleExcluirAgente(agente.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="!bg-red-50 !text-red-600 hover:!bg-red-100 !border !border-red-300 flex items-center justify-center"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -306,7 +359,7 @@ export default function AgentesIAPage() {
               </Card>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Modal de Cadastro/Edição */}

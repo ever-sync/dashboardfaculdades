@@ -32,27 +32,50 @@ export async function GET(request: NextRequest) {
 
     const { data: conversas } = await supabase
       .from('conversas_whatsapp')
-      .select('data_ultima_mensagem, departamento')
+      .select('data_ultima_mensagem, setor, departamento')
       .eq('faculdade_id', faculdadeId)
       .gte('data_ultima_mensagem', vinteQuatroHorasAtras.toISOString())
 
+    // Buscar prospects convertidos do mês atual para cálculo de matrículas
+    const primeiroDiaMes = new Date()
+    primeiroDiaMes.setDate(1)
+    primeiroDiaMes.setHours(0, 0, 0, 0)
+    
+    const { data: prospectsMatriculados } = await supabase
+      .from('prospects_academicos')
+      .select('data_matricula')
+      .eq('faculdade_id', faculdadeId)
+      .eq('status_academico', 'matriculado')
+
+    // Criar mapa de matrículas por dia
+    const matriculasPorDia = new Map<string, number>()
+    prospectsMatriculados?.forEach(p => {
+      if (p.data_matricula) {
+        const dataMatricula = new Date(p.data_matricula).toISOString().split('T')[0]
+        matriculasPorDia.set(dataMatricula, (matriculasPorDia.get(dataMatricula) || 0) + 1)
+      }
+    })
+
     // Processar dados para gráficos
     const evolucaoSemanal = (metricas || []).map(m => {
-      const data = new Date(m.data)
+      const dataObj = new Date(m.data)
       const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+      const dataStr = m.data.split('T')[0]
       return {
-        dia: diasSemana[data.getDay()],
+        dia: diasSemana[dataObj.getDay()],
         conversas: m.total_conversas || 0,
-        prospects: m.novos_prospects || 0,
-        matriculas: m.prospects_convertidos || 0,
+        prospects: m.prospects_novos || m.novos_prospects || 0,
+        matriculas: matriculasPorDia.get(dataStr) || 0,
       }
     })
 
     // Agrupar conversas por hora
     const conversasPorHora: Record<number, number> = {}
     conversas?.forEach(c => {
-      const hora = new Date(c.data_ultima_mensagem).getHours()
-      conversasPorHora[hora] = (conversasPorHora[hora] || 0) + 1
+      if (c.data_ultima_mensagem) {
+        const hora = new Date(c.data_ultima_mensagem).getHours()
+        conversasPorHora[hora] = (conversasPorHora[hora] || 0) + 1
+      }
     })
 
     const horas = Array.from({ length: 24 }, (_, i) => i)
@@ -61,12 +84,13 @@ export async function GET(request: NextRequest) {
       conversas: conversasPorHora[hora] || 0,
     }))
 
-    // Agrupar por setor
+    // Agrupar por setor (usar setor ou departamento)
     const setoresMap = new Map<string, number>()
     conversas?.forEach(c => {
-      if (c.departamento) {
-        const atual = setoresMap.get(c.departamento) || 0
-        setoresMap.set(c.departamento, atual + 1)
+      const setorNome = c.setor || c.departamento || 'Não definido'
+      if (setorNome) {
+        const atual = setoresMap.get(setorNome) || 0
+        setoresMap.set(setorNome, atual + 1)
       }
     })
 

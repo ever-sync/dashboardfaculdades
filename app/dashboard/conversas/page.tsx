@@ -18,7 +18,6 @@ interface ConversaWhatsApp {
   status: string
   nao_lidas?: number
   faculdade_id?: string
-  cliente_id?: string
 }
 
 interface Conversa {
@@ -55,11 +54,11 @@ export default function ConversasPage() {
     try {
       setLoading(true)
       
-      // Buscar contagem total
+      // Buscar contagem total - usando campos corretos
       const { count, error: countError } = await supabase
         .from('conversas_whatsapp')
         .select('*', { count: 'exact', head: true })
-        .eq('cliente_id', faculdadeSelecionada.id)
+        .eq('faculdade_id', faculdadeSelecionada.id)
 
       if (countError) {
         console.warn('Erro ao contar conversas:', countError.message)
@@ -68,17 +67,17 @@ export default function ConversasPage() {
         setTotalPages(Math.ceil(count / itemsPerPage))
       }
 
-      // Buscar conversas paginadas
+      // Buscar conversas paginadas - usando campos corretos do banco
       const startIndex = (currentPage - 1) * itemsPerPage
       const { data, error } = await supabase
         .from('conversas_whatsapp')
-        .select('id, nome_contato, telefone, mensagem, data_hora, status_entrega, cliente_id')
-        .eq('cliente_id', faculdadeSelecionada.id)
-        .order('data_hora', { ascending: false })
+        .select('*')
+        .eq('faculdade_id', faculdadeSelecionada.id)
+        .order('data_ultima_mensagem', { ascending: false })
         .range(startIndex, startIndex + itemsPerPage - 1)
 
       if (error) {
-        console.warn('Erro ao buscar conversas do Supabase:', {
+        console.error('Erro ao buscar conversas do Supabase:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -89,28 +88,30 @@ export default function ConversasPage() {
       }
 
       const conversasFormatadas: Conversa[] = (data || []).map((c: any) => {
-        const nome = c.nome_contato || 'Sem nome'
-        const statusBruto = c.status_entrega || 'ativo'
+        const nome = c.nome || 'Sem nome'
+        const statusBruto = c.status_conversa || c.status || 'pendente'
         const statusNormalizado: 'ativo' | 'pendente' | 'finalizado' =
-          statusBruto === 'encerrado'
+          statusBruto === 'encerrada' || statusBruto === 'encerrado'
             ? 'finalizado'
             : statusBruto === 'pendente'
               ? 'pendente'
-              : 'ativo'
+              : statusBruto === 'ativa' || statusBruto === 'ativo'
+                ? 'ativo'
+                : 'pendente'
 
         return {
           id: c.id,
           nome,
           telefone: c.telefone || 'Não informado',
-          ultimaMensagem: c.mensagem || 'Sem mensagens',
-          hora: c.data_hora
-            ? new Date(c.data_hora).toLocaleTimeString('pt-BR', {
+          ultimaMensagem: c.ultima_mensagem || 'Sem mensagens',
+          hora: c.data_ultima_mensagem
+            ? new Date(c.data_ultima_mensagem).toLocaleTimeString('pt-BR', {
                 hour: '2-digit',
                 minute: '2-digit',
               })
             : 'N/A',
           status: statusNormalizado,
-          naoLidas: 0,
+          naoLidas: c.nao_lidas || 0,
           avatar: nome
             .split(' ')
             .map((n: string) => n[0])

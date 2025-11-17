@@ -206,9 +206,12 @@ export default function ProspectsPage() {
         return
       }
 
+      // Log dos dados brutos para debug
+      console.log('Dados brutos do banco:', data)
+
       // Mapear campos do banco para a interface ProspectView
-      const prospectsFormatados: ProspectView[] = (data || []).map((p: Prospect) => {
-        // Converter status_academico para status esperado (remover 'em_contato' se não existir)
+      const prospectsFormatados: ProspectView[] = (data || []).map((p: any) => {
+        // Converter status_academico para status esperado
         let status: ProspectView['status'] = 'novo'
         if (p.status_academico) {
           const statusMap: Record<string, ProspectView['status']> = {
@@ -221,14 +224,20 @@ export default function ProspectsPage() {
           status = statusMap[p.status_academico] || 'novo'
         }
 
+        // Limpar telefone do formato WhatsApp se necessário
+        let telefoneFormatado = p.telefone || 'Não informado'
+        if (telefoneFormatado.includes('@s.whatsapp.net')) {
+          telefoneFormatado = telefoneFormatado.replace('@s.whatsapp.net', '')
+        }
+
         return {
           id: p.id,
-          nome: p.nome || 'Sem nome',
+          nome: p.nome || p.nome_completo || 'Sem nome',
           email: p.email || undefined,
-          telefone: p.telefone || 'Não informado',
-          cursoInteresse: p.curso || 'Não informado',
+          telefone: telefoneFormatado,
+          cursoInteresse: p.curso || p.curso_pretendido || 'Não informado',
           status,
-          vinculo: undefined, // Campo não existe na tabela
+          vinculo: p.tipo_prospect || undefined,
           dataCadastro: p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : 'N/A',
           ultimoContato: p.ultimo_contato ? new Date(p.ultimo_contato).toLocaleDateString('pt-BR') : 'N/A',
           valorEstimado: p.valor_mensalidade ? Number(p.valor_mensalidade) : undefined,
@@ -236,6 +245,7 @@ export default function ProspectsPage() {
         }
       })
 
+      console.log('Prospects formatados:', prospectsFormatados)
       setProspects(prospectsFormatados)
     } catch (error: any) {
       // Captura erros inesperados
@@ -487,17 +497,24 @@ export default function ProspectsPage() {
                                     status = statusMap[data.status_academico] || 'novo'
                                   }
 
+                                  // Limpar telefone do formato WhatsApp se necessário
+                                  let telefoneFormatado = data.telefone || ''
+                                  if (telefoneFormatado.includes('@s.whatsapp.net')) {
+                                    telefoneFormatado = telefoneFormatado.replace('@s.whatsapp.net', '')
+                                  }
+
+                                  // Mapear todos os campos do banco, incluindo os novos
                                   const detalhado: ProspectDetalhado = {
                                     id: data.id,
-                                    nome: data.nome || '',
-                                    nome_completo: data.nome_completo || undefined,
+                                    nome: data.nome || data.nome_completo || '',
+                                    nome_completo: data.nome_completo || data.nome || undefined,
                                     email: data.email || undefined,
-                                    telefone: data.telefone || '',
+                                    telefone: telefoneFormatado,
                                     cpf: data.cpf || undefined,
                                     data_nascimento: data.data_nascimento || undefined,
                                     tipo_prospect: data.tipo_prospect || undefined,
-                                    cursoInteresse: data.curso || '',
-                                    curso_pretendido: data.curso_pretendido || undefined,
+                                    cursoInteresse: data.curso || data.curso_pretendido || 'Não informado',
+                                    curso_pretendido: data.curso_pretendido || data.curso || undefined,
                                     status,
                                     dataCadastro: data.created_at ? new Date(data.created_at).toLocaleDateString('pt-BR') : 'N/A',
                                     ultimoContato: data.ultimo_contato ? new Date(data.ultimo_contato).toLocaleDateString('pt-BR') : 'N/A',
@@ -516,6 +533,9 @@ export default function ProspectsPage() {
                                     turno: data.turno || undefined,
                                     origem_lead: data.origem || undefined,
                                   }
+
+                                  console.log('Dados brutos do banco:', data)
+                                  console.log('Dados formatados do prospect:', detalhado)
 
                                   setProspectSelecionado(detalhado)
                                 }

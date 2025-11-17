@@ -14,7 +14,9 @@ import {
   Building2,
   Menu,
   X,
-  Bot
+  Bot,
+  GraduationCap,
+  BookOpen
 } from 'lucide-react'
 
 const menuItems = [
@@ -23,6 +25,8 @@ const menuItems = [
   { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics', color: 'text-purple-500' },
   { icon: MessageSquare, label: 'Conversas', href: '/dashboard/conversas', color: 'text-indigo-500' },
   { icon: Bot, label: 'Agentes IA', href: '/dashboard/agentes-ia', color: 'text-cyan-500' },
+  { icon: GraduationCap, label: 'Cursos', href: '/dashboard/cursos', color: 'text-emerald-500' },
+  { icon: BookOpen, label: 'Base de Conhecimentos', href: '/dashboard/base-conhecimentos', color: 'text-teal-500' },
   { icon: TrendingUp, label: 'Relatórios', href: '/dashboard/relatorios', color: 'text-orange-500' },
   { icon: Building2, label: 'Faculdades', href: '/dashboard/faculdades', color: 'text-pink-500' },
 ]

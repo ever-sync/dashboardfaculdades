@@ -179,6 +179,39 @@ export interface AgenteIA {
   updated_at: string
 }
 
+export interface Curso {
+  id: string
+  faculdade_id: string
+  curso: string
+  quantidade_de_parcelas: number
+  modalidade: 'Presencial' | 'EAD' | 'Híbrido'
+  duracao: string
+  valor_com_desconto_pontualidade: number
+  desconto_percentual: number
+  pratica: boolean
+  laboratorio: boolean
+  estagio: boolean
+  tcc: boolean
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface BaseConhecimento {
+  id: string
+  faculdade_id: string
+  pergunta: string
+  resposta: string
+  categoria?: string
+  tags?: string[]
+  ativo: boolean
+  visualizacoes: number
+  util: number
+  nao_util: number
+  created_at: string
+  updated_at: string
+}
+
 // Tipos auxiliares para queries e respostas da API
 export interface DashboardStats {
   total_conversas: number
