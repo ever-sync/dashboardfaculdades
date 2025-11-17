@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const validation = transferirConversaSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
-        { error: getUserFriendlyError(validation.error.errors[0].message) },
+        { error: getUserFriendlyError(validation.error.issues[0]?.message || 'Erro de validação') },
         { status: 400 }
       )
     }

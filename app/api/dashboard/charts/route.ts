@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const validation = chartsQuerySchema.safeParse(queryParams)
     if (!validation.success) {
       return NextResponse.json(
-        { error: getUserFriendlyError(validation.error.errors[0].message) },
+        { error: getUserFriendlyError(validation.error.issues[0]?.message || 'Erro de validação') },
         { status: 400 }
       )
     }

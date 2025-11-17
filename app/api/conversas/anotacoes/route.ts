@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     const validation = criarAnotacaoSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
-        { error: getUserFriendlyError(validation.error.errors[0].message) },
+        { error: getUserFriendlyError(validation.error.issues[0]?.message || 'Erro de validação') },
         { status: 400 }
       )
     }
@@ -155,7 +155,7 @@ export async function PUT(request: NextRequest) {
     const validation = editarAnotacaoSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
-        { error: getUserFriendlyError(validation.error.errors[0].message) },
+        { error: getUserFriendlyError(validation.error.issues[0]?.message || 'Erro de validação') },
         { status: 400 }
       )
     }
@@ -236,7 +236,7 @@ export async function DELETE(request: NextRequest) {
     const validation = deletarAnotacaoSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
-        { error: getUserFriendlyError(validation.error.errors[0].message) },
+        { error: getUserFriendlyError(validation.error.issues[0]?.message || 'Erro de validação') },
         { status: 400 }
       )
     }
