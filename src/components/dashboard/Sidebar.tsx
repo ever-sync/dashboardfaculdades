@@ -19,13 +19,14 @@ import {
   BookOpen,
   Send,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Clock
 } from 'lucide-react'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', color: 'text-gray-500' },
-  { icon: MessageSquare, label: 'Conversas', href: '/dashboard/conversas', color: 'text-indigo-500' },
-  { icon: Send, label: 'Disparo em Massa', href: '/dashboard/disparo-massa', color: 'text-violet-500' },
   { icon: Users, label: 'Alunos', href: '/dashboard/prospects', color: 'text-green-500' },
   { icon: GraduationCap, label: 'Cursos', href: '/dashboard/cursos', color: 'text-emerald-500' },
   { icon: Bot, label: 'Agentes IA', href: '/dashboard/agentes-ia', color: 'text-cyan-500' },
@@ -35,10 +36,19 @@ const menuItems = [
   { icon: Building2, label: 'Faculdades', href: '/dashboard/faculdades', color: 'text-pink-500' },
 ]
 
+// Submenu de Conversas
+const conversasSubmenu = [
+  { icon: MessageSquare, label: 'Conversas', href: '/dashboard/conversas', color: 'text-indigo-500' },
+  { icon: Send, label: 'Disparo em Massa', href: '/dashboard/disparo-massa', color: 'text-violet-500' },
+  { icon: Clock, label: 'Filas', href: '/dashboard/filas', color: 'text-orange-500' },
+  { icon: Users, label: 'Atendentes', href: '/dashboard/atendentes', color: 'text-blue-500' },
+]
+
 export function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [conversasDropdownOpen, setConversasDropdownOpen] = useState(false)
   
   // Load collapsed state from localStorage
   useEffect(() => {
@@ -58,6 +68,14 @@ export function Sidebar() {
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false)
+  }, [pathname])
+
+  // Verificar se alguma página do submenu está ativa para abrir o dropdown
+  useEffect(() => {
+    const conversasRoutes = conversasSubmenu.map(item => item.href)
+    if (conversasRoutes.includes(pathname)) {
+      setConversasDropdownOpen(true)
+    }
   }, [pathname])
   
   // Close mobile menu when clicking outside
@@ -145,6 +163,81 @@ export function Sidebar() {
         
         {/* Menu - Scrollável */}
         <nav className="flex-1 px-4 space-y-1 py-4 overflow-y-auto" role="navigation" aria-label="Menu principal">
+          {/* Item Conversas com Dropdown */}
+          <div 
+            className="relative group"
+            onMouseEnter={() => !isCollapsed && setConversasDropdownOpen(true)}
+            onMouseLeave={() => !isCollapsed && setConversasDropdownOpen(false)}
+          >
+            <Link
+              href="/dashboard/conversas"
+              onClick={(e) => {
+                if (!isCollapsed) {
+                  if (!conversasDropdownOpen) {
+                    // Se dropdown está fechado, abre o dropdown e previne navegação
+                    e.preventDefault()
+                    setConversasDropdownOpen(true)
+                  } else if (pathname === '/dashboard/conversas') {
+                    // Se já está na página de conversas e dropdown aberto, fecha o dropdown
+                    e.preventDefault()
+                    setConversasDropdownOpen(false)
+                  }
+                  // Se dropdown está aberto e não está na página de conversas, permite navegação normal
+                }
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                conversasSubmenu.some(item => pathname === item.href)
+                  ? 'bg-black text-white'
+                  : 'text-black hover:bg-gray-100'
+              } ${isCollapsed ? 'lg:justify-center lg:px-2' : ''}`}
+              title={isCollapsed ? 'Conversas' : undefined}
+            >
+              <MessageSquare className={`w-5 h-5 ${
+                conversasSubmenu.some(item => pathname === item.href)
+                  ? ''
+                  : 'text-indigo-500'
+              } flex-shrink-0`} aria-hidden="true" />
+              {!isCollapsed && (
+                <>
+                  <span className="font-medium flex-1 text-left">Conversas</span>
+                  {conversasDropdownOpen ? (
+                    <ChevronUp className="w-4 h-4 flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                  )}
+                </>
+              )}
+            </Link>
+
+            {/* Dropdown de Conversas */}
+            {!isCollapsed && conversasDropdownOpen && (
+              <div className="mt-1 ml-4 space-y-1 border-l-2 border-gray-200 pl-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                {conversasSubmenu.map((item) => {
+                  const isActive = pathname === item.href
+                  const Icon = item.icon
+                  
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => setConversasDropdownOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm ${
+                        isActive
+                          ? 'bg-gray-900 text-white font-medium'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? '' : item.color} flex-shrink-0`} aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Outros itens do menu */}
           {menuItems.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon

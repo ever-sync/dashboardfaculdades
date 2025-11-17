@@ -18,7 +18,9 @@ import {
   GraduationCap,
   DollarSign,
   TrendingUp,
+  BookOpen,
   X,
+  BarChart3,
   Bot,
   UserCog,
   UserCheck,
@@ -31,7 +33,13 @@ import {
   CheckCheck,
   ArrowRight,
   Pause,
-  Play
+  Play,
+  Download,
+  Ban,
+  Unlock,
+  ArrowRightLeft,
+  XCircle,
+  RotateCcw
 } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -39,6 +47,17 @@ import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useMensagens } from '@/hooks/useMensagens'
 import { Prospect, Curso } from '@/types/supabase'
 import { useDebounce } from '@/lib/debounce'
+import { TransferirModal } from '@/components/dashboard/TransferirModal'
+import { MetricasModal } from '@/components/dashboard/MetricasModal'
+import { TagsManager } from '@/components/dashboard/TagsManager'
+import { AnotacoesPanel } from '@/components/dashboard/AnotacoesPanel'
+import { TimelineProspect } from '@/components/dashboard/TimelineProspect'
+import { RespostasAutomaticas } from '@/components/dashboard/RespostasAutomaticas'
+import { ScriptSuggestions } from '@/components/dashboard/ScriptSuggestions'
+import { SugestoesBase } from '@/components/dashboard/SugestoesBase'
+import { AgendarMensagem } from '@/components/dashboard/AgendarMensagem'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { exportarConversaTXT } from '@/lib/exportarConversa'
 
 interface ConversaWhatsApp {
   id: string
@@ -112,13 +131,28 @@ export default function ConversasPage() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [showAnexos, setShowAnexos] = useState(false)
   const [showCursos, setShowCursos] = useState(false)
+  const [showBaseConhecimento, setShowBaseConhecimento] = useState(false)
   const [cursos, setCursos] = useState<Curso[]>([])
   const [loadingCursos, setLoadingCursos] = useState(false)
   const [iaPausada, setIaPausada] = useState(false)
+  const [showTransferirModal, setShowTransferirModal] = useState(false)
+  const [showMetricasModal, setShowMetricasModal] = useState(false)
+  const [showAgendarModal, setShowAgendarModal] = useState(false)
+  const [buscaAvancada, setBuscaAvancada] = useState(false)
+  const [filtroBusca, setFiltroBusca] = useState({
+    query: '',
+    buscaMensagens: false,
+    setor: '',
+    status: '',
+    dataInicio: '',
+    dataFim: '',
+    tags: [] as string[]
+  })
   const itemsPerPage = 20
   const { faculdadeSelecionada } = useFaculdade()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Garantir que só renderize após montar no cliente
   useEffect(() => {
@@ -126,9 +160,10 @@ export default function ConversasPage() {
   }, [])
 
   // Hook para buscar mensagens
-  const { mensagens, loading: loadingMensagens, sendMessage } = useMensagens({
+  const { mensagens, loading: loadingMensagens, sendMessage, refetch: refetchMensagens, isTyping: clienteDigitando, setIsTyping: setClienteDigitando } = useMensagens({
     conversaId: conversaSelecionada
   })
+  const [isTypingLocal, setIsTypingLocal] = useState(false)
 
   const fetchConversas = useCallback(async () => {
     if (!faculdadeSelecionada) {
@@ -672,6 +707,10 @@ export default function ConversasPage() {
     if (!novaMensagem.trim() || !conversaSelecionada) return
 
     try {
+      // Parar indicador de digitação ao enviar
+      setIsTypingLocal(false)
+      setClienteDigitando(false)
+      
       await sendMessage(novaMensagem.trim(), 'agente')
       setNovaMensagem('')
       // Resetar altura do textarea
@@ -680,8 +719,28 @@ export default function ConversasPage() {
       }
       await fetchConversas() // Atualizar lista de conversas
     } catch (error: any) {
-      console.error('Erro ao enviar mensagem:', error)
-      alert('Erro ao enviar mensagem: ' + error.message)
+      console.error('Erro ao enviar mensagem:', {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        error: error
+      })
+      
+      // Mensagem de erro mais amigável
+      let errorMessage = 'Erro ao enviar mensagem'
+      
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.details) {
+        errorMessage = error.details
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else if (error?.error?.message) {
+        errorMessage = error.error.message
+      }
+      
+      alert(errorMessage)
     }
   }
 
@@ -698,6 +757,170 @@ export default function ConversasPage() {
     setShowTemplates(false)
     textareaRef.current?.focus()
   }
+
+  const handleMarcarComoLida = useCallback(async () => {
+    if (!conversaSelecionada) return
+
+    try {
+      const response = await fetch('/api/conversas/marcar-lida', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversa_id: conversaSelecionada,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao marcar como lida')
+      }
+
+      // Atualizar lista de conversas
+      await fetchConversas()
+      // Recarregar mensagens para atualizar status de lidas
+      await refetchMensagens()
+    } catch (error: any) {
+      console.error('Erro ao marcar como lida:', error)
+      alert('Erro ao marcar como lida: ' + error.message)
+    }
+  }, [conversaSelecionada, fetchConversas, refetchMensagens])
+
+  const handleTransferirSucesso = useCallback(async () => {
+    // Recarregar conversas após transferência
+    await fetchConversas()
+    // Recarregar detalhes da conversa e mensagens
+    if (conversaSelecionada) {
+      await refetchMensagens()
+      // Recarregar detalhes da conversa também
+      const { data: conversaData } = await supabase
+        .from('conversas_whatsapp')
+        .select('*')
+        .eq('id', conversaSelecionada)
+        .single()
+      
+      if (conversaData) {
+        const conversaFormatada = {
+          ...conversaData,
+          tags: Array.isArray(conversaData.tags) ? conversaData.tags : (conversaData.tags ? [conversaData.tags] : [])
+        }
+        setConversaDetalhes(conversaFormatada as ConversaWhatsApp)
+      }
+    }
+  }, [conversaSelecionada, fetchConversas, refetchMensagens])
+
+  // Função para agendar mensagem
+  const handleAgendarMensagem = async (mensagemAgendada: Omit<import('@/types/supabase').MensagemAgendada, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const response = await fetch('/api/mensagens/agendar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mensagemAgendada),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao agendar mensagem')
+      }
+
+      alert('Mensagem agendada com sucesso!')
+      setShowAgendarModal(false)
+    } catch (error: any) {
+      console.error('Erro ao agendar mensagem:', error)
+      throw error
+    }
+  }
+
+  // Função para busca avançada
+  const handleBuscaAvancada = useCallback(async () => {
+    if (!faculdadeSelecionada) return
+
+    if (!filtroBusca.query.trim()) {
+      // Se não há query, apenas recarregar conversas normalmente
+      await fetchConversas()
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      const response = await fetch('/api/conversas/buscar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: filtroBusca.query,
+          faculdade_id: faculdadeSelecionada.id,
+          setor: filtroBusca.setor || undefined,
+          status: filtroBusca.status || undefined,
+          data_inicio: filtroBusca.dataInicio || undefined,
+          data_fim: filtroBusca.dataFim || undefined,
+          tags: filtroBusca.tags.length > 0 ? filtroBusca.tags : undefined,
+          busca_mensagens: filtroBusca.buscaMensagens,
+          limite: 100,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao buscar conversas')
+      }
+
+      // Mapear resultados para formato de Conversa[]
+      const conversasFormatadas: Conversa[] = (data.conversas || []).map((c: any) => {
+        const prospect = c.prospects_academicos?.[0]
+        const nome = prospect?.nome || prospect?.nome_completo || c.nome || 'Sem nome'
+        const statusBruto = c.status_conversa || c.status || 'pendente'
+        const statusNormalizado: 'ativo' | 'pendente' | 'finalizado' =
+          statusBruto === 'encerrada' || statusBruto === 'encerrado'
+            ? 'finalizado'
+            : statusBruto === 'pendente'
+              ? 'pendente'
+              : statusBruto === 'ativa' || statusBruto === 'ativo'
+                ? 'ativo'
+                : 'pendente'
+
+        return {
+          id: c.id,
+          nome,
+          telefone: c.telefone || 'Não informado',
+          ultimaMensagem: c.ultima_mensagem || 'Sem mensagens',
+          hora: c.data_ultima_mensagem
+            ? new Date(c.data_ultima_mensagem).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'N/A',
+          status: statusNormalizado,
+          naoLidas: c.nao_lidas || 0,
+          totalMensagens: c.total_mensagens || 0,
+          avatar: nome
+            .split(' ')
+            .map((n: string) => n[0])
+            .join('')
+            .toUpperCase(),
+          prospect_id: c.prospect_id || undefined,
+        }
+      })
+
+      setConversas(conversasFormatadas)
+      setTotalCount(conversasFormatadas.length)
+      setTotalPages(1)
+      setCurrentPage(1)
+    } catch (error: any) {
+      console.error('Erro ao buscar conversas:', error)
+      alert('Erro ao buscar conversas: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [faculdadeSelecionada, filtroBusca, fetchConversas])
 
   // Buscar cursos da faculdade selecionada
   const fetchCursos = useCallback(async () => {
@@ -916,18 +1139,19 @@ export default function ConversasPage() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
-      if (!target.closest('.template-menu') && !target.closest('.anexo-menu') && !target.closest('.cursos-menu')) {
+      if (!target.closest('.template-menu') && !target.closest('.anexo-menu') && !target.closest('.cursos-menu') && !target.closest('.base-conhecimento-menu')) {
         setShowTemplates(false)
         setShowAnexos(false)
         setShowCursos(false)
+        setShowBaseConhecimento(false)
       }
     }
 
-    if (showTemplates || showAnexos || showCursos) {
+    if (showTemplates || showAnexos || showCursos || showBaseConhecimento) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showTemplates, showAnexos, showCursos])
+  }, [showTemplates, showAnexos, showCursos, showBaseConhecimento])
 
   if (loading) {
     return (
@@ -946,13 +1170,13 @@ export default function ConversasPage() {
   const conversaAtual = conversas.find(c => c.id === conversaSelecionada)
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
+    <div className="h-screen bg-white text-black flex flex-col overflow-hidden">
       <Header
         title="Conversas"
         subtitle="Atendimento e Mensagens"
       />
       
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* COLUNA 1: Lista de Conversas */}
         <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
           {/* Busca e Filtros */}
@@ -960,13 +1184,128 @@ export default function ConversasPage() {
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Buscar conversas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar conversas... (Ctrl+K)"
+                value={filtroBusca.query || searchTerm}
+                onChange={(e) => {
+                  setFiltroBusca({ ...filtroBusca, query: e.target.value })
+                  setSearchTerm(e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleBuscaAvancada()
+                  }
+                }}
                 className="pl-10 !bg-white !text-black"
               />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setBuscaAvancada(!buscaAvancada)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 !bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                title="Busca avançada"
+              >
+                <Search className="w-3 h-3" />
+              </Button>
             </div>
+            
+            {buscaAvancada && (
+              <Card className="p-3 mb-3 bg-white border border-gray-200">
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Buscar em mensagens</label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filtroBusca.buscaMensagens}
+                        onChange={(e) => setFiltroBusca({ ...filtroBusca, buscaMensagens: e.target.checked })}
+                        className="rounded"
+                      />
+                      <span className="text-xs text-gray-600">Buscar no conteúdo das mensagens</span>
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Setor</label>
+                      <select
+                        value={filtroBusca.setor}
+                        onChange={(e) => setFiltroBusca({ ...filtroBusca, setor: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border border-gray-300 rounded !bg-white !text-black"
+                      >
+                        <option value="">Todos</option>
+                        <option value="Vendas">Vendas</option>
+                        <option value="Suporte">Suporte</option>
+                        <option value="Atendimento">Atendimento</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        value={filtroBusca.status}
+                        onChange={(e) => setFiltroBusca({ ...filtroBusca, status: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border border-gray-300 rounded !bg-white !text-black"
+                      >
+                        <option value="">Todos</option>
+                        <option value="ativa">Ativa</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="encerrada">Encerrada</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Início</label>
+                      <Input
+                        type="date"
+                        value={filtroBusca.dataInicio}
+                        onChange={(e) => setFiltroBusca({ ...filtroBusca, dataInicio: e.target.value })}
+                        className="text-xs !bg-white !text-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim</label>
+                      <Input
+                        type="date"
+                        value={filtroBusca.dataFim}
+                        onChange={(e) => setFiltroBusca({ ...filtroBusca, dataFim: e.target.value })}
+                        className="text-xs !bg-white !text-black"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleBuscaAvancada}
+                      className="flex-1 !bg-gray-900 hover:!bg-gray-800"
+                    >
+                      Buscar
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setFiltroBusca({
+                          query: '',
+                          buscaMensagens: false,
+                          setor: '',
+                          status: '',
+                          dataInicio: '',
+                          dataFim: '',
+                          tags: [],
+                        })
+                        setSearchTerm('')
+                        fetchConversas()
+                      }}
+                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
             
             <div className="flex gap-2">
               <Button
@@ -1094,12 +1433,12 @@ export default function ConversasPage() {
         </div>
 
         {/* COLUNA 2: Área do Chat */}
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
           {conversaSelecionada && conversaAtual ? (
             <>
-              {/* Cabeçalho do Chat */}
-              <div className="border-b border-gray-200 p-4 bg-white">
-                <div className="flex items-center justify-between">
+              {/* Cabeçalho do Chat - FIXO */}
+              <div className="flex-shrink-0 border-b border-gray-200 p-4 bg-white">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center text-white font-semibold">
                       {/* Usar inicial do nome do prospect se disponível, senão usar da conversa */}
@@ -1122,14 +1461,199 @@ export default function ConversasPage() {
                       <p className="text-sm text-gray-600">{conversaAtual.telefone}</p>
                     </div>
                   </div>
-                  <Badge variant={getStatusColor(conversaAtual.status)}>
-                    {conversaAtual.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {conversaDetalhes?.bloqueado && (
+                      <Badge variant="danger" className="text-xs">
+                        <Ban className="w-3 h-3 inline mr-1" />
+                        Bloqueado
+                      </Badge>
+                    )}
+                    <Badge variant={getStatusColor(conversaAtual.status)}>
+                      {conversaAtual.status}
+                    </Badge>
+                  </div>
                 </div>
+
+                {/* Botões de Ação no Header */}
+                {conversaSelecionada && conversaDetalhes && (
+                  <div className="flex items-center gap-2">
+                    {/* Botão Transferir */}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowTransferirModal(true)}
+                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                      title="Transferir conversa"
+                    >
+                      <ArrowRightLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1">Transferir</span>
+                    </Button>
+
+                    {/* Botão Encerrar */}
+                    {conversaDetalhes.status_conversa !== 'encerrada' ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm('Tem certeza que deseja encerrar esta conversa?')) return
+
+                          try {
+                            const response = await fetch('/api/conversas/encerrar', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                conversa_id: conversaSelecionada,
+                              }),
+                            })
+
+                            const data = await response.json()
+
+                            if (!response.ok) {
+                              throw new Error(data.error || 'Erro ao encerrar conversa')
+                            }
+
+                            // Atualizar conversaDetalhes
+                            setConversaDetalhes({
+                              ...conversaDetalhes,
+                              status_conversa: 'encerrada',
+                            })
+
+                            // Recarregar conversas
+                            await fetchConversas()
+                          } catch (error: any) {
+                            console.error('Erro ao encerrar conversa:', error)
+                            alert('Erro ao encerrar conversa: ' + error.message)
+                          }
+                        }}
+                        className="!bg-orange-100 hover:!bg-orange-200 !text-orange-700"
+                        title="Encerrar conversa"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span className="hidden sm:inline ml-1">Encerrar</span>
+                      </Button>
+                    ) : (
+                      /* Botão Reabrir */
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm('Tem certeza que deseja reabrir esta conversa?')) return
+
+                          try {
+                            const response = await fetch('/api/conversas/reabrir', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                conversa_id: conversaSelecionada,
+                              }),
+                            })
+
+                            const data = await response.json()
+
+                            if (!response.ok) {
+                              throw new Error(data.error || 'Erro ao reabrir conversa')
+                            }
+
+                            // Atualizar conversaDetalhes
+                            setConversaDetalhes({
+                              ...conversaDetalhes,
+                              status_conversa: 'ativa',
+                            })
+
+                            // Recarregar conversas
+                            await fetchConversas()
+                          } catch (error: any) {
+                            console.error('Erro ao reabrir conversa:', error)
+                            alert('Erro ao reabrir conversa: ' + error.message)
+                          }
+                        }}
+                        className="!bg-green-100 hover:!bg-green-200 !text-green-700"
+                        title="Reabrir conversa"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span className="hidden sm:inline ml-1">Reabrir</span>
+                      </Button>
+                    )}
+
+                    {/* Botão Bloquear/Desbloquear */}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        const action = conversaDetalhes.bloqueado ? 'desbloquear' : 'bloquear'
+                        const confirmMessage = conversaDetalhes.bloqueado
+                          ? 'Tem certeza que deseja desbloquear este contato?'
+                          : 'Tem certeza que deseja bloquear este contato?\n\nAs mensagens bloqueadas não aparecerão nas filas.'
+
+                        if (!confirm(confirmMessage)) return
+
+                        try {
+                          const motivo = conversaDetalhes.bloqueado
+                            ? undefined
+                            : prompt('Motivo do bloqueio (opcional):') || undefined
+
+                          const response = await fetch(`/api/conversas/bloquear?action=${action}`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              conversa_id: conversaSelecionada,
+                              motivo,
+                            }),
+                          })
+
+                          const data = await response.json()
+
+                          if (!response.ok) {
+                            throw new Error(data.error || 'Erro ao bloquear/desbloquear')
+                          }
+
+                          // Atualizar conversaDetalhes
+                          setConversaDetalhes({
+                            ...conversaDetalhes,
+                            bloqueado: action === 'bloquear',
+                            motivo_bloqueio: action === 'bloquear' ? motivo : undefined,
+                            data_bloqueio: action === 'bloquear' ? new Date().toISOString() : undefined,
+                          })
+
+                          // Recarregar conversas e mensagens
+                          await fetchConversas()
+                          await refetchMensagens()
+                        } catch (error: any) {
+                          console.error('Erro ao bloquear/desbloquear:', error)
+                          alert('Erro ao bloquear/desbloquear: ' + error.message)
+                        }
+                      }}
+                      className={
+                        conversaDetalhes.bloqueado
+                          ? '!bg-green-100 hover:!bg-green-200 !text-green-700'
+                          : '!bg-red-100 hover:!bg-red-200 !text-red-700'
+                      }
+                      title={conversaDetalhes.bloqueado ? 'Desbloquear contato' : 'Bloquear contato'}
+                    >
+                      {conversaDetalhes.bloqueado ? (
+                        <>
+                          <Unlock className="w-4 h-4" />
+                          <span className="hidden sm:inline ml-1">Desbloquear</span>
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="w-4 h-4" />
+                          <span className="hidden sm:inline ml-1">Bloquear</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
               
-              {/* Mensagens */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              {/* Mensagens - ÁREA ROLÁVEL */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 min-h-0">
                 {loadingMensagens ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500"></div>
@@ -1252,11 +1776,57 @@ export default function ConversasPage() {
                     )
                   })
                 )}
+                
+                {/* Indicador de digitação */}
+                {clienteDigitando && (
+                  <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 italic">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                    <span>Atendente está digitando...</span>
+                  </div>
+                )}
+                
                 <div ref={messagesEndRef} />
               </div>
-              
-              {/* Campo de Envio Melhorado */}
-              <div className="border-t border-gray-200 bg-white">
+
+              {/* Respostas Automáticas Educacionais */}
+              {conversaSelecionada && faculdadeSelecionada && mensagens.length > 0 && (
+                <div className="px-4 pb-2">
+                  <RespostasAutomaticas
+                    ultimaMensagem={mensagens[mensagens.length - 1]?.conteudo || ''}
+                    remetente={mensagens[mensagens.length - 1]?.remetente || ''}
+                    prospect={prospectInfo}
+                    faculdadeId={faculdadeSelecionada.id}
+                    onSelecionarResposta={(resposta) => {
+                      setNovaMensagem(resposta)
+                      textareaRef.current?.focus()
+                    }}
+                    autoMostrar={!iaPausada} // Só mostrar se IA não estiver pausada
+                  />
+                </div>
+              )}
+
+              {/* Sugestões de Scripts Contextuais */}
+              {conversaSelecionada && faculdadeSelecionada && conversaDetalhes && mensagens.length > 0 && (
+                <div className="px-4 pb-2">
+                  <ScriptSuggestions
+                    ultimaMensagem={mensagens[mensagens.length - 1]?.conteudo || ''}
+                    faculdadeId={faculdadeSelecionada.id}
+                    setor={conversaDetalhes.setor}
+                    prospectInfo={prospectInfo}
+                    onSelecionarScript={(script) => {
+                      setNovaMensagem(script)
+                      textareaRef.current?.focus()
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Campo de Envio Melhorado - FIXO NO FINAL */}
+              <div className="flex-shrink-0 border-t border-gray-200 bg-white">
                 {/* Ações Rápidas */}
                 <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-gray-100">
                   <div className="flex items-center gap-2">
@@ -1283,6 +1853,7 @@ export default function ConversasPage() {
                         onClick={() => {
                           setShowCursos(!showCursos)
                           setShowTemplates(false)
+                          setShowBaseConhecimento(false)
                         }}
                         className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
                         title="Listar cursos"
@@ -1363,14 +1934,47 @@ export default function ConversasPage() {
                         </div>
                       )}
                     </div>
+
+                    <div className="relative base-conhecimento-menu">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setShowBaseConhecimento(!showBaseConhecimento)
+                          setShowTemplates(false)
+                          setShowCursos(false)
+                          setShowAnexos(false)
+                        }}
+                        className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                        title="Buscar na base de conhecimento"
+                        disabled={!faculdadeSelecionada}
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        <span className="hidden sm:inline ml-1">Base Conhecimento</span>
+                      </Button>
+
+                      {/* Dropdown Base de Conhecimento */}
+                      {showBaseConhecimento && faculdadeSelecionada && (
+                        <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-20 min-w-[400px] max-w-[500px] max-h-[500px] overflow-y-auto">
+                          <SugestoesBase
+                            query={mensagens.length > 0 ? mensagens[mensagens.length - 1]?.conteudo || '' : ''}
+                            faculdadeId={faculdadeSelecionada.id}
+                            onSelecionarSugestao={(resposta) => {
+                              setNovaMensagem(resposta)
+                              setShowBaseConhecimento(false)
+                              textareaRef.current?.focus()
+                            }}
+                            autoBuscar={false}
+                            limite={5}
+                          />
+                        </div>
+                      )}
+                    </div>
                     
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => {
-                        // Implementar marcar como lida
-                        alert('Marcar como lida - implementar...')
-                      }}
+                      onClick={handleMarcarComoLida}
                       className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
                       title="Marcar como lida"
                     >
@@ -1399,6 +2003,38 @@ export default function ConversasPage() {
                         </>
                       )}
                     </Button>
+
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowAgendarModal(true)}
+                        className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                        title="Agendar mensagem"
+                        disabled={!conversaSelecionada}
+                      >
+                        <Calendar className="w-4 h-4" />
+                        <span className="hidden sm:inline ml-1">Agendar</span>
+                      </Button>
+                      
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (conversaDetalhes) {
+                            exportarConversaTXT({
+                              conversa: conversaDetalhes,
+                              mensagens,
+                              prospect: prospectInfo,
+                            })
+                          }
+                        }}
+                        className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                        title="Exportar conversa"
+                        disabled={!conversaDetalhes}
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline ml-1">Exportar</span>
+                      </Button>
                   </div>
                   
                   <div className="text-xs text-gray-500">
@@ -1441,8 +2077,30 @@ export default function ConversasPage() {
                       <textarea
                         ref={textareaRef}
                         value={novaMensagem}
-                        onChange={(e) => setNovaMensagem(e.target.value)}
-                        onKeyDown={handleKeyPress}
+                        onChange={(e) => {
+                          setNovaMensagem(e.target.value)
+                          // Indicar que está digitando
+                          if (!isTypingLocal && e.target.value.trim()) {
+                            setIsTypingLocal(true)
+                            setClienteDigitando(true)
+                          } else if (isTypingLocal && !e.target.value.trim()) {
+                            setIsTypingLocal(false)
+                            setClienteDigitando(false)
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          handleKeyPress(e)
+                          // Quando enviar, parar de indicar digitação
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            setIsTypingLocal(false)
+                            setClienteDigitando(false)
+                          }
+                        }}
+                        onBlur={() => {
+                          // Parar de indicar quando sair do campo
+                          setIsTypingLocal(false)
+                          setClienteDigitando(false)
+                        }}
                         placeholder="Digite sua mensagem... (Shift+Enter para nova linha)"
                         rows={1}
                         className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none overflow-y-auto !bg-white !text-black placeholder:text-gray-400 min-h-[60px] max-h-[200px]"
@@ -1469,21 +2127,8 @@ export default function ConversasPage() {
                   </div>
                   
                   {/* Dica de atalho */}
-                  <div className="mt-2 text-xs text-gray-400 flex items-center justify-between">
+                  <div className="mt-2 text-xs text-gray-400">
                     <span>💡 Pressione Enter para enviar, Shift+Enter para nova linha</span>
-                    {conversaAtual && (
-                      <button
-                        onClick={() => {
-                          // Implementar transferir conversa
-                          alert('Transferir conversa - implementar...')
-                        }}
-                        className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
-                        title="Transferir conversa"
-                      >
-                        <ArrowRight className="w-3 h-3" />
-                        <span>Transferir</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1503,11 +2148,22 @@ export default function ConversasPage() {
         <div className="w-80 border-l border-gray-200 bg-gray-50 flex flex-col">
           {conversaSelecionada && conversaAtual ? (
             <>
-              <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                   <User className="w-5 h-5" />
                   Informações do Lead
                 </h3>
+                {mensagens.length > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowMetricasModal(true)}
+                    className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                    title="Ver métricas da conversa"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
               
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -1672,6 +2328,45 @@ export default function ConversasPage() {
                         )}
                       </div>
                     </Card>
+
+                    {/* Tags */}
+                    {conversaDetalhes && faculdadeSelecionada && (
+                      <Card className="bg-white">
+                        <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
+                          <Zap className="w-4 h-4" />
+                          Tags
+                        </h4>
+                        <TagsManager
+                          tagsAtuais={conversaDetalhes.tags || []}
+                          conversaId={conversaSelecionada}
+                          faculdadeId={faculdadeSelecionada.id}
+                          setor={conversaDetalhes.setor}
+                          onTagsChanged={async (novasTags) => {
+                            // Atualizar conversaDetalhes localmente
+                            if (conversaDetalhes) {
+                              setConversaDetalhes({
+                                ...conversaDetalhes,
+                                tags: novasTags,
+                              })
+                            }
+                            // Recarregar lista de conversas para atualizar tags na lista
+                            await fetchConversas()
+                          }}
+                        />
+                      </Card>
+                    )}
+
+                    {/* Anotações Internas */}
+                    {conversaSelecionada && faculdadeSelecionada && (
+                      <AnotacoesPanel
+                        conversaId={conversaSelecionada}
+                        faculdadeId={faculdadeSelecionada.id}
+                        usuarioAtual={{
+                          id: 'current-user-id', // TODO: Obter do contexto de autenticação
+                          nome: 'Atendente', // TODO: Obter do contexto de autenticação
+                        }}
+                      />
+                    )}
                   </>
                 ) : (
                   <div className="text-center py-12 px-4">
@@ -1681,6 +2376,52 @@ export default function ConversasPage() {
                       Este contato ainda não possui cadastro como prospect
                     </p>
                   </div>
+                )}
+
+                {/* Tags e Anotações mesmo sem prospect */}
+                {conversaSelecionada && conversaDetalhes && faculdadeSelecionada && !prospectInfo && (
+                  <>
+                    <Card className="bg-white">
+                      <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Tags
+                      </h4>
+                      <TagsManager
+                        tagsAtuais={conversaDetalhes.tags || []}
+                        conversaId={conversaSelecionada}
+                        faculdadeId={faculdadeSelecionada.id}
+                        setor={conversaDetalhes.setor}
+                        onTagsChanged={async (novasTags) => {
+                          if (conversaDetalhes) {
+                            setConversaDetalhes({
+                              ...conversaDetalhes,
+                              tags: novasTags,
+                            })
+                          }
+                          await fetchConversas()
+                        }}
+                      />
+                    </Card>
+
+                    {/* Timeline de Interações */}
+                    {conversaDetalhes && (
+                      <TimelineProspect
+                        prospectId={conversaDetalhes.prospect_id || null}
+                        telefone={conversaDetalhes.telefone || null}
+                        faculdadeId={faculdadeSelecionada.id}
+                        conversaAtualId={conversaSelecionada}
+                      />
+                    )}
+
+                    <AnotacoesPanel
+                      conversaId={conversaSelecionada}
+                      faculdadeId={faculdadeSelecionada.id}
+                      usuarioAtual={{
+                        id: 'current-user-id',
+                        nome: 'Atendente',
+                      }}
+                    />
+                  </>
                 )}
               </div>
             </>
@@ -1694,6 +2435,43 @@ export default function ConversasPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Transferência */}
+      {faculdadeSelecionada && conversaSelecionada && conversaDetalhes && (
+        <TransferirModal
+          isOpen={showTransferirModal}
+          onClose={() => setShowTransferirModal(false)}
+          conversaId={conversaSelecionada}
+          faculdadeId={faculdadeSelecionada.id}
+          setorAtual={conversaDetalhes.setor}
+          atendenteAtual={conversaDetalhes.atendente}
+          onTransferir={handleTransferirSucesso}
+        />
+      )}
+
+      {/* Modal de Métricas */}
+      {conversaSelecionada && (
+        <MetricasModal
+          isOpen={showMetricasModal}
+          onClose={() => setShowMetricasModal(false)}
+          conversaId={conversaSelecionada}
+          mensagens={mensagens}
+          conversaDetalhes={conversaDetalhes}
+        />
+      )}
+
+      {/* Modal de Agendar Mensagem */}
+      {faculdadeSelecionada && conversaSelecionada && conversaDetalhes && (
+        <AgendarMensagem
+          isOpen={showAgendarModal}
+          onClose={() => setShowAgendarModal(false)}
+          conversaId={conversaSelecionada}
+          telefone={conversaDetalhes.telefone}
+          nomeContato={conversaAtual?.nome || conversaDetalhes.nome}
+          faculdadeId={faculdadeSelecionada.id}
+          onAgendar={handleAgendarMensagem}
+        />
+      )}
     </div>
   )
 }

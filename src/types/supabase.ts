@@ -30,10 +30,15 @@ export interface ConversaWhatsApp {
   departamento: string
   setor?: string
   atendente?: string
+  atendente_id?: string
   prospect_id?: string
   duracao_segundos?: number
   avaliacao_nota?: number
   tags?: string[]
+  anotacoes?: any[] // JSONB array de anotações
+  bloqueado?: boolean
+  motivo_bloqueio?: string
+  data_bloqueio?: string
   created_at: string
   updated_at: string
 }
@@ -211,6 +216,45 @@ export interface BaseConhecimento {
   visualizacoes: number
   util: number
   nao_util: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Usuario {
+  id: string
+  faculdade_id: string
+  nome: string
+  email: string
+  senha_hash?: string
+  setor?: 'Suporte' | 'Vendas' | 'Atendimento'
+  status: 'online' | 'offline' | 'ausente' | 'ocupado'
+  carga_trabalho_atual: number
+  carga_trabalho_maxima: number
+  horario_trabalho_inicio: string
+  horario_trabalho_fim: string
+  dias_trabalho: number[]
+  ultima_atividade: string
+  ativo: boolean
+  foto_url?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MensagemAgendada {
+  id: string
+  faculdade_id: string
+  conversa_id?: string
+  telefone: string
+  conteudo: string
+  tipo_mensagem: 'texto' | 'imagem' | 'documento' | 'audio' | 'video'
+  midia_url?: string
+  data_agendamento: string
+  status: 'pendente' | 'enviada' | 'cancelada' | 'falha'
+  remetente: 'usuario' | 'agente' | 'bot' | 'robo' | 'humano' | 'cliente'
+  atendente_id?: string
+  tentativas: number
+  erro_mensagem?: string
+  enviada_em?: string
   created_at: string
   updated_at: string
 }
