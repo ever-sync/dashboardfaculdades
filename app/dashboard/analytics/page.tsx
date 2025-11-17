@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
       const { data, error } = await supabase
         .from('metricas_diarias')
         .select('*')
-        .eq('cliente_id', faculdadeSelecionada?.id as string)
+        .eq('faculdade_id', faculdadeSelecionada?.id as string)
         .order('data', { ascending: false })
         .limit(30)
 

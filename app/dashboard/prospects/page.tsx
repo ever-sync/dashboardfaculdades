@@ -13,7 +13,14 @@ import {
   Calendar,
   TrendingUp,
   Filter,
-  Download
+  Download,
+  User,
+  MapPin,
+  GraduationCap,
+  Target,
+  DollarSign,
+  BarChart2,
+  Tag
 } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -27,10 +34,31 @@ interface ProspectView {
   telefone: string
   cursoInteresse: string
   status: 'novo' | 'contatado' | 'qualificado' | 'matriculado' | 'perdido' | 'em_contato'
+  vinculo?: 'aluno' | 'nao_aluno' | 'ex_aluno'
   dataCadastro: string
   ultimoContato: string
   valorEstimado?: number
   nota: number
+}
+
+interface ProspectDetalhado extends ProspectView {
+  // Campos extras que podem existir no banco e serão exibidos no pop-up
+  nome_completo?: string
+  cpf?: string
+  data_nascimento?: string
+  tipo_prospect?: 'aluno' | 'nao_aluno' | 'ex_aluno'
+  curso_pretendido?: string
+  cep?: string
+  endereco?: string
+  numero?: string
+  complemento?: string
+  bairro?: string
+  municipio?: string
+  cidade?: string
+  estado?: string
+  data_pagamento?: number // 5, 7 ou 10
+  turno?: string
+  origem_lead?: string
 }
 
 const mockProspects: ProspectView[] = [
@@ -125,10 +153,13 @@ export default function ProspectsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
   const [cursoFilter, setCursoFilter] = useState<string>('todos')
+   const [vinculoFilter, setVinculoFilter] = useState<string>('todos')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const itemsPerPage = 20
+
+  const [prospectSelecionado, setProspectSelecionado] = useState<ProspectDetalhado | null>(null)
 
   const fetchProspects = useCallback(async () => {
     if (!faculdadeSelecionada) {
@@ -144,7 +175,7 @@ export default function ProspectsPage() {
       const { count, error: countError } = await supabase
         .from('prospects_academicos')
         .select('*', { count: 'exact', head: true })
-        .eq('cliente_id', faculdadeSelecionada.id)
+        .eq('faculdade_id', faculdadeSelecionada.id)
 
       if (countError) {
         console.warn('Erro ao contar prospects:', countError.message)
@@ -153,18 +184,18 @@ export default function ProspectsPage() {
         setTotalPages(Math.ceil(count / itemsPerPage))
       }
 
-      // Buscar prospects paginados
+      // Buscar prospects paginados - usando campos corretos do banco
       const startIndex = (currentPage - 1) * itemsPerPage
       const { data, error } = await supabase
         .from('prospects_academicos')
-        .select('id, nome, email, telefone, curso_interesse, status_academico, created_at, ultimo_contato, valor_mensalidade, nota_qualificacao')
-        .eq('cliente_id', faculdadeSelecionada.id)
+        .select('*')
+        .eq('faculdade_id', faculdadeSelecionada.id)
         .order('created_at', { ascending: false })
         .range(startIndex, startIndex + itemsPerPage - 1)
 
       if (error) {
         // Log mais detalhado do erro
-        console.warn('Erro ao buscar prospects do Supabase:', {
+        console.error('Erro ao buscar prospects do Supabase:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -175,18 +206,35 @@ export default function ProspectsPage() {
         return
       }
 
-      const prospectsFormatados: ProspectView[] = (data || []).map((p: any) => ({
-        id: p.id,
-        nome: p.nome || 'Sem nome',
-        email: p.email || undefined,
-        telefone: p.telefone || 'Não informado',
-        cursoInteresse: p.curso_interesse || 'Não informado',
-        status: (p.status_academico || 'novo') as ProspectView['status'],
-        dataCadastro: p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : 'N/A',
-        ultimoContato: p.ultimo_contato ? new Date(p.ultimo_contato).toLocaleDateString('pt-BR') : 'N/A',
-        valorEstimado: p.valor_mensalidade ? Number(p.valor_mensalidade) : undefined,
-        nota: p.nota_qualificacao || 0
-      }))
+      // Mapear campos do banco para a interface ProspectView
+      const prospectsFormatados: ProspectView[] = (data || []).map((p: Prospect) => {
+        // Converter status_academico para status esperado (remover 'em_contato' se não existir)
+        let status: ProspectView['status'] = 'novo'
+        if (p.status_academico) {
+          const statusMap: Record<string, ProspectView['status']> = {
+            'novo': 'novo',
+            'contatado': 'contatado',
+            'qualificado': 'qualificado',
+            'matriculado': 'matriculado',
+            'perdido': 'perdido'
+          }
+          status = statusMap[p.status_academico] || 'novo'
+        }
+
+        return {
+          id: p.id,
+          nome: p.nome || 'Sem nome',
+          email: p.email || undefined,
+          telefone: p.telefone || 'Não informado',
+          cursoInteresse: p.curso || 'Não informado',
+          status,
+          vinculo: undefined, // Campo não existe na tabela
+          dataCadastro: p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : 'N/A',
+          ultimoContato: p.ultimo_contato ? new Date(p.ultimo_contato).toLocaleDateString('pt-BR') : 'N/A',
+          valorEstimado: p.valor_mensalidade ? Number(p.valor_mensalidade) : undefined,
+          nota: p.nota_qualificacao || 0
+        }
+      })
 
       setProspects(prospectsFormatados)
     } catch (error: any) {
@@ -211,13 +259,22 @@ export default function ProspectsPage() {
                          (prospect.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          prospect.telefone.includes(searchTerm)
       const matchStatus = statusFilter === 'todos' || prospect.status === statusFilter
+      // Vínculo não existe mais, mas mantemos o filtro para não quebrar a UI
+      const matchVinculo = vinculoFilter === 'todos' // Sempre true por enquanto
       const matchCurso = cursoFilter === 'todos' || prospect.cursoInteresse === cursoFilter
-      return matchSearch && matchStatus && matchCurso
+      return matchSearch && matchStatus && matchCurso && matchVinculo
     })
-  }, [prospects, searchTerm, statusFilter, cursoFilter])
+  }, [prospects, searchTerm, statusFilter, cursoFilter, vinculoFilter])
 
   const totalValor = useMemo(() => prospectsFiltrados.reduce((sum, p) => sum + (p.valorEstimado || 0), 0), [prospectsFiltrados])
   const mediaNota = useMemo(() => prospectsFiltrados.reduce((sum, p) => sum + p.nota, 0) / (prospectsFiltrados.length || 1), [prospectsFiltrados])
+  const taxaConversao = useMemo(() => {
+    if (!prospectsFiltrados.length) return 0
+    const convertidos = prospectsFiltrados.filter(
+      (p) => p.status === 'matriculado' || p.vinculo === 'aluno'
+    ).length
+    return Math.round((convertidos / prospectsFiltrados.length) * 100)
+  }, [prospectsFiltrados])
 
   if (loading) {
     return (
@@ -252,7 +309,7 @@ export default function ProspectsPage() {
           <Card className="text-center">
             <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
             <h3 className="text-lg font-semibold">Taxa de Conversão</h3>
-            <p className="text-2xl font-bold text-green-500">23%</p>
+            <p className="text-2xl font-bold text-green-500">{taxaConversao}%</p>
           </Card>
           
           <Card className="text-center">
@@ -269,16 +326,17 @@ export default function ProspectsPage() {
         </div>
 
         {/* Filtros */}
-        <Card className="border border-gray-200">
+        <Card className="border border-gray-200 bg-white">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
+            <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Buscar prospects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white text-gray-800"
+                className="pl-10 !bg-white !text-black !border-gray-300"
+                containerClassName="mb-0 md:mt-6"
               />
             </div>
             
@@ -311,15 +369,19 @@ export default function ProspectsPage() {
                 ))}
               </select>
             </div>
-            
-            <div className="flex items-end">
-              <Button
-                variant="secondary"
-                className="w-full bg-black text-white hover:bg-gray-800 border border-gray-900"
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vínculo</label>
+              <select
+                value={vinculoFilter}
+                onChange={(e) => setVinculoFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar
-              </Button>
+                <option value="todos">Todos</option>
+                <option value="aluno">Aluno</option>
+                <option value="nao_aluno">Não aluno</option>
+                <option value="ex_aluno">Ex-aluno</option>
+              </select>
             </div>
           </div>
         </Card>
@@ -330,10 +392,10 @@ export default function ProspectsPage() {
             {prospectsFiltrados.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   {searchTerm || statusFilter !== 'todos' || cursoFilter !== 'todos' ? 'Nenhum prospect encontrado' : 'Nenhum prospect disponível'}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-600">
                   {searchTerm || statusFilter !== 'todos' || cursoFilter !== 'todos' 
                     ? 'Tente ajustar seus filtros de busca' 
                     : 'Os prospects aparecerão aqui assim que forem cadastrados'}
@@ -342,40 +404,39 @@ export default function ProspectsPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-800">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Nome</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Contato</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Curso</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Status</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Nota</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Valor</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Último Contato</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-800 dark:text-white">Ações</th>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Nome</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Contato</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Curso</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Nota</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Valor</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Último Contato</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {prospectsFiltrados.map((prospect) => (
-                    <tr key={prospect.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">
+                    <tr key={prospect.id} className="border-b border-gray-200 hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div>
-                          <div className="font-semibold text-gray-800 dark:text-white">{prospect.nome}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">ID: {prospect.id}</div>
+                          <div className="font-semibold text-gray-900">{prospect.nome}</div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
-                            <Phone className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                          <div className="flex items-center gap-1 text-sm text-gray-700">
+                            <Phone className="w-3 h-3 text-gray-500" />
                             {prospect.telefone}
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
-                            <Mail className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                          <div className="flex items-center gap-1 text-sm text-gray-700">
+                            <Mail className="w-3 h-3 text-gray-500" />
                             {prospect.email || 'N/A'}
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-sm text-gray-800 dark:text-gray-200">{prospect.cursoInteresse}</div>
+                        <div className="text-sm text-gray-800">{prospect.cursoInteresse}</div>
                       </td>
                       <td className="py-3 px-4">
                         <Badge variant={getStatusColor(prospect.status)}>
@@ -384,7 +445,7 @@ export default function ProspectsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center">
-                          <span className="font-semibold text-gray-800 dark:text-white">{prospect.nota.toFixed(1)}</span>
+                          <span className="font-semibold text-gray-900">{prospect.nota.toFixed(1)}</span>
                           <span className="text-yellow-400 ml-1">★</span>
                         </div>
                       </td>
@@ -394,14 +455,75 @@ export default function ProspectsPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                          <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Calendar className="w-3 h-3 text-gray-500" />
                           {prospect.ultimoContato}
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex gap-2">
-                          <Button variant="secondary" size="sm">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const { data } = await supabase
+                                  .from('prospects_academicos')
+                                  .select('*')
+                                  .eq('id', prospect.id)
+                                  .single()
+
+                                if (data) {
+                                  // Converter status_academico para status esperado
+                                  let status: ProspectView['status'] = 'novo'
+                                  if (data.status_academico) {
+                                    const statusMap: Record<string, ProspectView['status']> = {
+                                      'novo': 'novo',
+                                      'contatado': 'contatado',
+                                      'qualificado': 'qualificado',
+                                      'matriculado': 'matriculado',
+                                      'perdido': 'perdido'
+                                    }
+                                    status = statusMap[data.status_academico] || 'novo'
+                                  }
+
+                                  const detalhado: ProspectDetalhado = {
+                                    id: data.id,
+                                    nome: data.nome || '',
+                                    nome_completo: data.nome_completo || undefined,
+                                    email: data.email || undefined,
+                                    telefone: data.telefone || '',
+                                    cpf: data.cpf || undefined,
+                                    data_nascimento: data.data_nascimento || undefined,
+                                    tipo_prospect: data.tipo_prospect || undefined,
+                                    cursoInteresse: data.curso || '',
+                                    curso_pretendido: data.curso_pretendido || undefined,
+                                    status,
+                                    dataCadastro: data.created_at ? new Date(data.created_at).toLocaleDateString('pt-BR') : 'N/A',
+                                    ultimoContato: data.ultimo_contato ? new Date(data.ultimo_contato).toLocaleDateString('pt-BR') : 'N/A',
+                                    valorEstimado: data.valor_mensalidade ? Number(data.valor_mensalidade) : undefined,
+                                    nota: data.nota_qualificacao || 0,
+                                    vinculo: data.tipo_prospect || undefined,
+                                    cep: data.cep || undefined,
+                                    endereco: data.endereco || undefined,
+                                    numero: data.numero || undefined,
+                                    complemento: data.complemento || undefined,
+                                    bairro: data.bairro || undefined,
+                                    municipio: data.municipio || undefined,
+                                    cidade: data.cidade || undefined,
+                                    estado: data.estado || undefined,
+                                    data_pagamento: data.data_pagamento || undefined,
+                                    turno: data.turno || undefined,
+                                    origem_lead: data.origem || undefined,
+                                  }
+
+                                  setProspectSelecionado(detalhado)
+                                }
+                              } catch (error) {
+                                console.warn('Erro ao buscar detalhes do prospect:', error)
+                              }
+                            }}
+                          >
                             Ver
                           </Button>
                           <Button size="sm">
@@ -418,8 +540,8 @@ export default function ProspectsPage() {
           
           {/* Controles de Paginação */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 px-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 px-4">
+              <div className="text-sm text-gray-600">
                 Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} de {totalCount} prospects
               </div>
               <div className="flex gap-2">
@@ -447,6 +569,156 @@ export default function ProspectsPage() {
           )}
         </Card>
       </div>
+      {/* Pop-up de detalhes do prospect */}
+      {prospectSelecionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h2 className="text-xl font-semibold text-black">{prospectSelecionado.nome}</h2>
+                <p className="text-sm text-gray-500">Detalhes completos do lead</p>
+              </div>
+              <Button
+                variant="secondary"
+                className="bg-gray-100 text-gray-800 hover:bg-gray-200"
+                onClick={() => setProspectSelecionado(null)}
+              >
+                Fechar
+              </Button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Dados Pessoais */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-gray-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="w-4 h-4 text-blue-500" />
+                    <h3 className="text-sm font-semibold text-gray-700">Dados Pessoais</h3>
+                  </div>
+                  <p className="text-sm text-gray-800"><span className="font-medium">Nome:</span> {prospectSelecionado.nome}</p>
+                  {prospectSelecionado.nome_completo && (
+                    <p className="text-sm text-gray-800"><span className="font-medium">Nome completo:</span> {prospectSelecionado.nome_completo}</p>
+                  )}
+                  {prospectSelecionado.cpf && (
+                    <p className="text-sm text-gray-800"><span className="font-medium">CPF:</span> {prospectSelecionado.cpf}</p>
+                  )}
+                  {prospectSelecionado.data_nascimento && (
+                    <p className="text-sm text-gray-800">
+                      <span className="font-medium">Data de nascimento:</span>{' '}
+                      {new Date(prospectSelecionado.data_nascimento).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
+                  {prospectSelecionado.tipo_prospect && (
+                    <p className="text-sm text-gray-800">
+                      <span className="font-medium">Tipo:</span>{' '}
+                      {prospectSelecionado.tipo_prospect === 'aluno' ? 'Aluno' : 
+                       prospectSelecionado.tipo_prospect === 'nao_aluno' ? 'Não aluno' : 
+                       prospectSelecionado.tipo_prospect === 'ex_aluno' ? 'Ex-aluno' : 'N/A'}
+                    </p>
+                  )}
+                </Card>
+
+                <Card className="bg-gray-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Phone className="w-4 h-4 text-indigo-500" />
+                    <h3 className="text-sm font-semibold text-gray-700">Contato</h3>
+                  </div>
+                  <p className="text-sm text-gray-800"><span className="font-medium">Telefone:</span> {prospectSelecionado.telefone}</p>
+                  <p className="text-sm text-gray-800"><span className="font-medium">E-mail:</span> {prospectSelecionado.email || 'N/A'}</p>
+                </Card>
+              </div>
+
+              {/* Endereço */}
+              {(prospectSelecionado.cep || prospectSelecionado.endereco || prospectSelecionado.bairro || prospectSelecionado.cidade) && (
+                <Card className="bg-gray-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-red-500" />
+                    <h3 className="text-sm font-semibold text-gray-700">Endereço</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {prospectSelecionado.cep && (
+                      <p className="text-sm text-gray-800"><span className="font-medium">CEP:</span> {prospectSelecionado.cep}</p>
+                    )}
+                    {prospectSelecionado.endereco && (
+                      <p className="text-sm text-gray-800">
+                        <span className="font-medium">Endereço:</span> {prospectSelecionado.endereco}
+                        {prospectSelecionado.numero && `, ${prospectSelecionado.numero}`}
+                        {prospectSelecionado.complemento && ` - ${prospectSelecionado.complemento}`}
+                      </p>
+                    )}
+                    {prospectSelecionado.bairro && (
+                      <p className="text-sm text-gray-800"><span className="font-medium">Bairro:</span> {prospectSelecionado.bairro}</p>
+                    )}
+                    {prospectSelecionado.municipio && (
+                      <p className="text-sm text-gray-800"><span className="font-medium">Município:</span> {prospectSelecionado.municipio}</p>
+                    )}
+                    {prospectSelecionado.cidade && (
+                      <p className="text-sm text-gray-800"><span className="font-medium">Cidade:</span> {prospectSelecionado.cidade}</p>
+                    )}
+                    {prospectSelecionado.estado && (
+                      <p className="text-sm text-gray-800"><span className="font-medium">Estado:</span> {prospectSelecionado.estado}</p>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Curso e Funil */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-gray-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <GraduationCap className="w-4 h-4 text-purple-500" />
+                    <h3 className="text-sm font-semibold text-gray-700">Curso e Funil</h3>
+                  </div>
+                  <p className="text-sm text-gray-800"><span className="font-medium">Curso interesse:</span> {prospectSelecionado.cursoInteresse}</p>
+                  {prospectSelecionado.curso_pretendido && (
+                    <p className="text-sm text-gray-800"><span className="font-medium">Curso pretendido:</span> {prospectSelecionado.curso_pretendido}</p>
+                  )}
+                  {prospectSelecionado.turno && (
+                    <p className="text-sm text-gray-800"><span className="font-medium">Turno:</span> {prospectSelecionado.turno}</p>
+                  )}
+                  <p className="text-sm text-gray-800"><span className="font-medium">Status:</span> {getStatusLabel(prospectSelecionado.status)}</p>
+                  {prospectSelecionado.origem_lead && (
+                    <p className="text-sm text-gray-800"><span className="font-medium">Origem do lead:</span> {prospectSelecionado.origem_lead}</p>
+                  )}
+                </Card>
+
+                <Card className="bg-gray-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-4 h-4 text-green-500" />
+                    <h3 className="text-sm font-semibold text-gray-700">Financeiro e Qualificação</h3>
+                  </div>
+                  <p className="text-sm text-gray-800">
+                    <span className="font-medium">Valor mensalidade:</span>{' '}
+                    {prospectSelecionado.valorEstimado
+                      ? `R$ ${Number(prospectSelecionado.valorEstimado).toLocaleString('pt-BR')}`
+                      : 'N/A'}
+                  </p>
+                  {prospectSelecionado.data_pagamento && (
+                    <p className="text-sm text-gray-800">
+                      <span className="font-medium">Data de pagamento:</span>{' '}
+                      Dia {prospectSelecionado.data_pagamento} de cada mês
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-800"><span className="font-medium">Nota de qualificação:</span> {prospectSelecionado.nota}</p>
+                </Card>
+              </div>
+
+              {/* Datas */}
+              <Card className="bg-gray-50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-4 h-4 text-emerald-500" />
+                  <h3 className="text-sm font-semibold text-gray-700">Datas e Interações</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <p className="text-sm text-gray-800"><span className="font-medium">Data cadastro:</span> {prospectSelecionado.dataCadastro}</p>
+                  <p className="text-sm text-gray-800"><span className="font-medium">Último contato:</span> {prospectSelecionado.ultimoContato}</p>
+                </div>
+              </Card>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

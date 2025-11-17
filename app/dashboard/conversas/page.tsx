@@ -72,9 +72,9 @@ export default function ConversasPage() {
       const startIndex = (currentPage - 1) * itemsPerPage
       const { data, error } = await supabase
         .from('conversas_whatsapp')
-        .select('id, nome, telefone, ultima_mensagem, data_ultima_mensagem, status, nao_lidas, cliente_id')
+        .select('id, nome_contato, telefone, mensagem, data_hora, status_entrega, cliente_id')
         .eq('cliente_id', faculdadeSelecionada.id)
-        .order('data_ultima_mensagem', { ascending: false })
+        .order('data_hora', { ascending: false })
         .range(startIndex, startIndex + itemsPerPage - 1)
 
       if (error) {
@@ -88,19 +88,36 @@ export default function ConversasPage() {
         return
       }
 
-      const conversasFormatadas: Conversa[] = (data || []).map((c: ConversaWhatsApp) => ({
-        id: c.id,
-        nome: c.nome || 'Sem nome',
-        telefone: c.telefone || 'Não informado',
-        ultimaMensagem: c.ultima_mensagem || 'Sem mensagens',
-        hora: c.data_ultima_mensagem ? new Date(c.data_ultima_mensagem).toLocaleTimeString('pt-BR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }) : 'N/A',
-        status: (c.status === 'encerrado' ? 'finalizado' : (c.status || 'ativo')) as 'ativo' | 'pendente' | 'finalizado',
-        naoLidas: c.nao_lidas || 0,
-        avatar: c.nome ? c.nome.split(' ').map((n: string) => n[0]).join('').toUpperCase() : '?'
-      }))
+      const conversasFormatadas: Conversa[] = (data || []).map((c: any) => {
+        const nome = c.nome_contato || 'Sem nome'
+        const statusBruto = c.status_entrega || 'ativo'
+        const statusNormalizado: 'ativo' | 'pendente' | 'finalizado' =
+          statusBruto === 'encerrado'
+            ? 'finalizado'
+            : statusBruto === 'pendente'
+              ? 'pendente'
+              : 'ativo'
+
+        return {
+          id: c.id,
+          nome,
+          telefone: c.telefone || 'Não informado',
+          ultimaMensagem: c.mensagem || 'Sem mensagens',
+          hora: c.data_hora
+            ? new Date(c.data_hora).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'N/A',
+          status: statusNormalizado,
+          naoLidas: 0,
+          avatar: nome
+            .split(' ')
+            .map((n: string) => n[0])
+            .join('')
+            .toUpperCase(),
+        }
+      })
 
       setConversas(conversasFormatadas)
     } catch (error: any) {

@@ -41,16 +41,16 @@ export async function GET(request: NextRequest) {
     // Buscar matrículas do período
     const { data: matriculas } = await supabase
       .from('prospects_academicos')
-      .select('data_matricula, curso_interesse, valor_mensalidade')
-      .eq('cliente_id', faculdadeId)
-      .eq('status_academico', 'matriculado')
+      .select('data_matricula, curso_matriculado, valor_conversao, status')
+      .eq('faculdade_id', faculdadeId)
+      .eq('status', 'matriculado')
       .gte('data_matricula', dataInicio.toISOString())
 
     // Buscar prospects do período
     const { data: prospects } = await supabase
       .from('prospects_academicos')
-      .select('curso_interesse, status_academico, origem, created_at')
-      .eq('cliente_id', faculdadeId)
+      .select('curso_interesse, status, origem_lead, created_at')
+      .eq('faculdade_id', faculdadeId)
       .gte('created_at', dataInicio.toISOString())
 
     // Agrupar por mês
@@ -65,11 +65,11 @@ export async function GET(request: NextRequest) {
           matriculasPorMes[chave] = { matriculas: 0, receita: 0, prospects: 0 }
         }
         matriculasPorMes[chave].matriculas++
-        matriculasPorMes[chave].receita += Number(m.valor_mensalidade) || 0
+        matriculasPorMes[chave].receita += Number((m as any).valor_conversao) || 0
       }
     })
 
-    prospects?.forEach(p => {
+    prospects?.forEach((p: any) => {
       const data = new Date(p.created_at)
       const chave = `${data.getFullYear()}-${data.getMonth()}`
       if (!matriculasPorMes[chave]) {
@@ -93,11 +93,11 @@ export async function GET(request: NextRequest) {
 
     // Cursos mais procurados
     const cursosMap = new Map<string, { procuras: number; matriculas: number }>()
-    prospects?.forEach(p => {
-      const curso = (p as any).curso_interesse || 'Não informado'
+    prospects?.forEach((p: any) => {
+      const curso = p.curso_interesse || 'Não informado'
       const atual = cursosMap.get(curso) || { procuras: 0, matriculas: 0 }
       atual.procuras++
-      if (p.status_academico === 'matriculado') {
+      if (p.status === 'matriculado') {
         atual.matriculas++
       }
       cursosMap.set(curso, atual)
@@ -114,11 +114,11 @@ export async function GET(request: NextRequest) {
 
     // Fontes de leads
     const fontesMap = new Map<string, { leads: number; matriculados: number }>()
-    prospects?.forEach(p => {
-      const origem = p.origem || 'Não informado'
+    prospects?.forEach((p: any) => {
+      const origem = p.origem_lead || 'Não informado'
       const atual = fontesMap.get(origem) || { leads: 0, matriculados: 0 }
       atual.leads++
-      if (p.status_academico === 'matriculado') {
+      if (p.status === 'matriculado') {
         atual.matriculados++
       }
       fontesMap.set(origem, atual)
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
     // Calcular totais
     const totalMatriculas = matriculas?.length || 0
     const totalProspects = prospects?.length || 0
-    const totalReceita = matriculas?.reduce((sum, m) => sum + (Number(m.valor_mensalidade) || 0), 0) || 0
+    const totalReceita = matriculas?.reduce((sum, m: any) => sum + (Number(m.valor_conversao) || 0), 0) || 0
     const taxaConversao = totalProspects > 0 ? (totalMatriculas / totalProspects) * 100 : 0
 
     return NextResponse.json({
