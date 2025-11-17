@@ -9,10 +9,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 // GET - Buscar faculdade por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await context.params
     const { data, error } = await supabase
       .from('faculdades')
       .select('*')
@@ -41,10 +41,10 @@ export async function GET(
 // PUT - Atualizar faculdade
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await context.params
     const body = await request.json()
     const { nome, cnpj, telefone, email, endereco, cidade, estado, plano, status } = body
 
@@ -99,10 +99,10 @@ export async function PUT(
 // DELETE - Deletar faculdade
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await context.params
     const { error } = await supabase
       .from('faculdades')
       .delete()
