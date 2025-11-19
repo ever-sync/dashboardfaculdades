@@ -86,31 +86,31 @@ export async function GET(request: NextRequest) {
     const receitaMes = prospectsMatriculados?.reduce((sum, p) => sum + (Number(p.valor_mensalidade) || 0), 0) || 0
 
     // Get automation rate from metricas_diarias
-    const { data: metricsData } = await supabase
+    const { data: metricsData, error: metricsError } = await supabase
       .from('metricas_diarias')
       .select('taxa_automacao_percentual')
       .eq('faculdade_id', clienteId)
       .order('data', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     // Get average response time from metricas_diarias
-    const { data: responseTimeData } = await supabase
+    const { data: responseTimeData, error: responseTimeError } = await supabase
       .from('metricas_diarias')
       .select('tempo_medio_primeira_resposta_segundos')
       .eq('faculdade_id', clienteId)
       .order('data', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     // Get satisfaction score from metricas_diarias
-    const { data: satisfactionData } = await supabase
+    const { data: satisfactionData, error: satisfactionError } = await supabase
       .from('metricas_diarias')
       .select('nota_media')
       .eq('faculdade_id', clienteId)
       .order('data', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     const stats = {
       total_conversas: totalConversas || 0,

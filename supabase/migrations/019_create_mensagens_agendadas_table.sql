@@ -65,6 +65,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_atualizar_updated_at_mensagens_agendadas ON mensagens_agendadas;
 CREATE TRIGGER trigger_atualizar_updated_at_mensagens_agendadas
     BEFORE UPDATE ON mensagens_agendadas
     FOR EACH ROW

@@ -177,36 +177,43 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers para todas as tabelas
+DROP TRIGGER IF EXISTS trigger_update_etiquetas_updated_at ON public.etiquetas;
 CREATE TRIGGER trigger_update_etiquetas_updated_at
   BEFORE UPDATE ON public.etiquetas
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trigger_update_configuracoes_conversas_updated_at ON public.configuracoes_conversas;
 CREATE TRIGGER trigger_update_configuracoes_conversas_updated_at
   BEFORE UPDATE ON public.configuracoes_conversas
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trigger_update_funis_vendas_updated_at ON public.funis_vendas;
 CREATE TRIGGER trigger_update_funis_vendas_updated_at
   BEFORE UPDATE ON public.funis_vendas
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trigger_update_contatos_updated_at ON public.contatos;
 CREATE TRIGGER trigger_update_contatos_updated_at
   BEFORE UPDATE ON public.contatos
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trigger_update_empresas_updated_at ON public.empresas;
 CREATE TRIGGER trigger_update_empresas_updated_at
   BEFORE UPDATE ON public.empresas
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trigger_update_negociacoes_updated_at ON public.negociacoes;
 CREATE TRIGGER trigger_update_negociacoes_updated_at
   BEFORE UPDATE ON public.negociacoes
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trigger_update_tarefas_updated_at ON public.tarefas;
 CREATE TRIGGER trigger_update_tarefas_updated_at
   BEFORE UPDATE ON public.tarefas
   FOR EACH ROW

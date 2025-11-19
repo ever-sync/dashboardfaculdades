@@ -135,7 +135,6 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
           conteudo: conteudo.trim(),
           remetente,
           tipo_mensagem: 'texto',
-          lida: false,
         }
 
         // Adicionar timestamp se a coluna existir
@@ -162,14 +161,24 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
               .single()
 
             if (insertError2) {
-              console.error('Erro ao inserir mensagem (sem timestamp):', {
-                message: insertError2.message,
-                details: insertError2.details,
-                hint: insertError2.hint,
-                code: insertError2.code,
-                error: insertError2
-              })
-              throw new Error(insertError2.message || 'Erro ao enviar mensagem')
+              const errorMessage2 = insertError2?.message || 'Erro desconhecido ao inserir mensagem'
+              const errorCode2 = insertError2?.code || 'N/A'
+              const errorDetails2 = insertError2?.details || 'Sem detalhes'
+              const errorHint2 = insertError2?.hint || 'Sem hint'
+              
+              // Só logar se houver informações úteis
+              if (errorMessage2 !== 'Erro desconhecido ao inserir mensagem' || errorCode2 !== 'N/A') {
+                console.error('Erro ao inserir mensagem (sem timestamp):', {
+                  message: errorMessage2,
+                  code: errorCode2,
+                  details: errorDetails2,
+                  hint: errorHint2
+                })
+              } else {
+                console.error('Erro ao inserir mensagem (sem timestamp):', insertError2)
+              }
+              
+              throw new Error(errorMessage2)
             }
 
             // Atualizar a última mensagem na conversa
@@ -219,14 +228,25 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
           }
 
           // Se não for erro de timestamp, lançar o erro original
-          console.error('Erro ao inserir mensagem:', {
-            message: insertError.message,
-            details: insertError.details,
-            hint: insertError.hint,
-            code: insertError.code,
-            error: insertError
-          })
-          throw new Error(insertError.message || 'Erro ao enviar mensagem')
+          const errorMessage = insertError?.message || 'Erro desconhecido ao inserir mensagem'
+          const errorCode = insertError?.code || 'N/A'
+          const errorDetails = insertError?.details || 'Sem detalhes'
+          const errorHint = insertError?.hint || 'Sem hint'
+          
+          // Só logar se houver informações úteis
+          if (errorMessage !== 'Erro desconhecido ao inserir mensagem' || errorCode !== 'N/A') {
+            console.error('Erro ao inserir mensagem:', {
+              message: errorMessage,
+              code: errorCode,
+              details: errorDetails,
+              hint: errorHint
+            })
+          } else {
+            // Se não houver informações úteis, logar o erro completo de forma diferente
+            console.error('Erro ao inserir mensagem:', insertError)
+          }
+          
+          throw new Error(errorMessage)
         }
 
         // Atualizar a última mensagem na conversa

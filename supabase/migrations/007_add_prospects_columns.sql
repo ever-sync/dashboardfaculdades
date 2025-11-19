@@ -56,17 +56,12 @@ ON prospects_academicos(cep);
 -- CONSTRAINT: CPF único
 -- ========================================
 
-DO $$ 
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'prospects_cpf_unique'
-    ) THEN
-        CREATE UNIQUE INDEX prospects_cpf_unique 
-        ON prospects_academicos(cpf) 
-        WHERE cpf IS NOT NULL;
-    END IF;
-END $$;
+-- Remover índice se já existir e criar novamente
+DROP INDEX IF EXISTS prospects_cpf_unique;
+
+CREATE UNIQUE INDEX prospects_cpf_unique 
+ON prospects_academicos(cpf) 
+WHERE cpf IS NOT NULL;
 
 -- ========================================
 -- VALIDAR

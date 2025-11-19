@@ -1095,14 +1095,24 @@ export default function ConversasPage() {
         .single()
 
       if (error) {
-        console.error('Erro ao pausar IA:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          error: error
-        })
-        alert(`Erro ao ${novaEstado ? 'pausar' : 'retomar'} IA: ${error.message || 'Erro desconhecido'}`)
+        const errorMessage = error?.message || 'Erro desconhecido ao pausar/retomar IA'
+        const errorCode = error?.code || 'N/A'
+        const errorDetails = error?.details || 'Sem detalhes'
+        const errorHint = error?.hint || 'Sem hint'
+        
+        // Só logar se houver informações úteis
+        if (errorMessage !== 'Erro desconhecido ao pausar/retomar IA' || errorCode !== 'N/A') {
+          console.error('Erro ao pausar IA:', {
+            message: errorMessage,
+            code: errorCode,
+            details: errorDetails,
+            hint: errorHint
+          })
+        } else {
+          console.error('Erro ao pausar IA:', error)
+        }
+        
+        alert(`Erro ao ${novaEstado ? 'pausar' : 'retomar'} IA: ${errorMessage}`)
         return
       }
 
@@ -2292,8 +2302,12 @@ export default function ConversasPage() {
                     <Button 
                       onClick={handleEnviarMensagem}
                       disabled={!novaMensagem.trim() || isSending}
-                      className="!bg-gray-900 hover:!bg-gray-800 disabled:!bg-gray-300 disabled:!cursor-not-allowed h-[60px] px-6"
-                      title={isSending ? "Enviando..." : "Enviar mensagem (Enter)"}
+                      className={`h-[60px] px-6 ${
+                        novaMensagem.trim() && !isSending
+                          ? '!bg-green-600 hover:!bg-green-700 disabled:!bg-gray-300'
+                          : '!bg-gray-300 hover:!bg-gray-400'
+                      } disabled:!cursor-not-allowed transition-colors`}
+                      title={isSending ? "Enviando..." : novaMensagem.trim() ? "Enviar mensagem (Enter)" : "Digite uma mensagem para enviar"}
                     >
                       {isSending ? (
                         <Loader2 className="w-5 h-5 animate-spin" />

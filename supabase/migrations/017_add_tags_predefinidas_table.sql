@@ -80,5 +80,5 @@ DROP TRIGGER IF EXISTS trigger_update_tags_predefinidas_updated_at ON tags_prede
 CREATE TRIGGER trigger_update_tags_predefinidas_updated_at
     BEFORE UPDATE ON tags_predefinidas
     FOR EACH ROW
-    EXECUTE FUNCTION update_tags_predefinidas_updated_at;
+    EXECUTE FUNCTION update_tags_predefinidas_updated_at();
 

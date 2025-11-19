@@ -35,16 +35,20 @@ ALTER TABLE agentes_ia ENABLE ROW LEVEL SECURITY;
 -- ========================================
 -- POLÍTICAS RLS
 -- ========================================
-CREATE POLICY IF NOT EXISTS "rls_select_agentes" ON agentes_ia 
+DROP POLICY IF EXISTS "rls_select_agentes" ON agentes_ia;
+CREATE POLICY "rls_select_agentes" ON agentes_ia 
     FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_insert_agentes" ON agentes_ia 
+DROP POLICY IF EXISTS "rls_insert_agentes" ON agentes_ia;
+CREATE POLICY "rls_insert_agentes" ON agentes_ia 
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "rls_update_agentes" ON agentes_ia 
+DROP POLICY IF EXISTS "rls_update_agentes" ON agentes_ia;
+CREATE POLICY "rls_update_agentes" ON agentes_ia 
     FOR UPDATE USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_delete_agentes" ON agentes_ia 
+DROP POLICY IF EXISTS "rls_delete_agentes" ON agentes_ia;
+CREATE POLICY "rls_delete_agentes" ON agentes_ia 
     FOR DELETE USING (true);
 
 -- ========================================
@@ -63,6 +67,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_agentes_ia_updated_at ON agentes_ia;
 CREATE TRIGGER trigger_update_agentes_ia_updated_at
     BEFORE UPDATE ON agentes_ia
     FOR EACH ROW

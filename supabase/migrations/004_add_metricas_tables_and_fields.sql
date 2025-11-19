@@ -17,12 +17,117 @@ CREATE TABLE IF NOT EXISTS codigos_atendimento (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_codigos_atendimento_nome ON codigos_atendimento(nome);
-CREATE INDEX IF NOT EXISTS idx_codigos_atendimento_ativo ON codigos_atendimento(ativo);
+-- Adicionar colunas se a tabela já existir sem elas
+DO $$ 
+BEGIN
+    -- Adicionar coluna nome se não existir
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'codigos_atendimento'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'codigos_atendimento' 
+        AND column_name = 'nome'
+    ) THEN
+        ALTER TABLE codigos_atendimento 
+        ADD COLUMN nome VARCHAR(50) NOT NULL DEFAULT 'codigo_' || gen_random_uuid()::text;
+        -- Remover o default após adicionar
+        ALTER TABLE codigos_atendimento 
+        ALTER COLUMN nome DROP DEFAULT;
+        -- Adicionar constraint UNIQUE se não existir
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint 
+            WHERE conname = 'codigos_atendimento_nome_key'
+        ) THEN
+            ALTER TABLE codigos_atendimento 
+            ADD CONSTRAINT codigos_atendimento_nome_key UNIQUE (nome);
+        END IF;
+    END IF;
+    
+    -- Adicionar coluna descricao se não existir
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'codigos_atendimento'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'codigos_atendimento' 
+        AND column_name = 'descricao'
+    ) THEN
+        ALTER TABLE codigos_atendimento 
+        ADD COLUMN descricao TEXT;
+    END IF;
+    
+    -- Adicionar outras colunas que podem estar faltando
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'codigos_atendimento'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'codigos_atendimento' 
+        AND column_name = 'ativo'
+    ) THEN
+        ALTER TABLE codigos_atendimento 
+        ADD COLUMN ativo BOOLEAN DEFAULT true;
+    END IF;
+    
+    -- Adicionar coluna acao se não existir
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'codigos_atendimento'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'codigos_atendimento' 
+        AND column_name = 'acao'
+    ) THEN
+        ALTER TABLE codigos_atendimento 
+        ADD COLUMN acao VARCHAR(50) NOT NULL DEFAULT 'pausar_ia' CHECK (acao IN ('pausar_ia', 'ativar_ia', 'transferir', 'solicitar_humano'));
+    END IF;
+END $$;
+
+-- Criar índices apenas se as colunas existirem
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'codigos_atendimento' 
+        AND column_name = 'nome'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_codigos_atendimento_nome ON codigos_atendimento(nome);
+    END IF;
+    
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'codigos_atendimento' 
+        AND column_name = 'ativo'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_codigos_atendimento_ativo ON codigos_atendimento(ativo);
+    END IF;
+END $$;
 
 -- ========================================
 -- 2. ADICIONAR CAMPOS NA TABELA: conversas_whatsapp
 -- ========================================
+-- Adicionar coluna status se não existir (para compatibilidade)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'conversas_whatsapp' 
+        AND column_name = 'status'
+    ) THEN
+        ALTER TABLE conversas_whatsapp 
+        ADD COLUMN status VARCHAR(20) DEFAULT 'pendente' CHECK (status IN ('ativo', 'pendente', 'encerrado'));
+    END IF;
+END $$;
+
 -- Adicionar campos para suporte completo ao script de métricas
 ALTER TABLE conversas_whatsapp 
     ADD COLUMN IF NOT EXISTS status_conversa VARCHAR(20) CHECK (status_conversa IN ('ativa', 'pendente', 'encerrada')),
@@ -31,15 +136,31 @@ ALTER TABLE conversas_whatsapp
     ADD COLUMN IF NOT EXISTS setor VARCHAR(100),
     ADD COLUMN IF NOT EXISTS avaliacao_nota INTEGER CHECK (avaliacao_nota >= 0 AND avaliacao_nota <= 5);
 
--- Sincronizar status_conversa com status se status_conversa for NULL
-UPDATE conversas_whatsapp 
-SET status_conversa = CASE 
-    WHEN status = 'ativo' THEN 'ativa'
-    WHEN status = 'pendente' THEN 'pendente'
-    WHEN status = 'encerrado' THEN 'encerrada'
-    ELSE 'pendente'
-END
-WHERE status_conversa IS NULL;
+-- Sincronizar status_conversa com status se status_conversa for NULL e status existir
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'conversas_whatsapp' 
+        AND column_name = 'status'
+    ) THEN
+        UPDATE conversas_whatsapp 
+        SET status_conversa = CASE 
+            WHEN status = 'ativo' THEN 'ativa'
+            WHEN status = 'pendente' THEN 'pendente'
+            WHEN status = 'encerrado' THEN 'encerrada'
+            ELSE 'pendente'
+        END
+        WHERE status_conversa IS NULL;
+    ELSE
+        -- Se status não existe, definir status_conversa como 'pendente' por padrão
+        UPDATE conversas_whatsapp 
+        SET status_conversa = 'pendente'
+        WHERE status_conversa IS NULL;
+    END IF;
+END $$;
 
 -- Sincronizar setor com departamento se setor for NULL
 UPDATE conversas_whatsapp 
@@ -57,8 +178,27 @@ ALTER TABLE prospects_academicos
     ADD COLUMN IF NOT EXISTS cidade VARCHAR(100),
     ADD COLUMN IF NOT EXISTS estado VARCHAR(2);
 
-CREATE INDEX IF NOT EXISTS idx_prospects_cidade ON prospects_academicos(cidade);
-CREATE INDEX IF NOT EXISTS idx_prospects_estado ON prospects_academicos(estado);
+-- Criar índices apenas se as colunas existirem
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'prospects_academicos' 
+        AND column_name = 'cidade'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_prospects_cidade ON prospects_academicos(cidade);
+    END IF;
+    
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'prospects_academicos' 
+        AND column_name = 'estado'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_prospects_estado ON prospects_academicos(estado);
+    END IF;
+END $$;
 
 -- ========================================
 -- 4. ADICIONAR CAMPOS NA TABELA: metricas_diarias
@@ -69,12 +209,64 @@ ALTER TABLE metricas_diarias
     ADD COLUMN IF NOT EXISTS tempo_medio_resposta INTEGER DEFAULT 0;
 
 -- Sincronizar campos existentes com novos se necessário
-UPDATE metricas_diarias 
-SET 
-    total_mensagens = COALESCE(total_mensagens, mensagens_enviadas + mensagens_recebidas),
-    prospects_novos = COALESCE(prospects_novos, novos_prospects),
-    tempo_medio_resposta = COALESCE(tempo_medio_resposta, tempo_medio_primeira_resposta_segundos)
-WHERE total_mensagens = 0 OR prospects_novos = 0 OR tempo_medio_resposta = 0;
+DO $$ 
+BEGIN
+    -- Sincronizar total_mensagens
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'metricas_diarias' 
+        AND column_name = 'mensagens_enviadas'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'metricas_diarias' 
+        AND column_name = 'mensagens_recebidas'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'metricas_diarias' 
+        AND column_name = 'total_mensagens'
+    ) THEN
+        UPDATE metricas_diarias 
+        SET total_mensagens = COALESCE(total_mensagens, mensagens_enviadas + mensagens_recebidas)
+        WHERE total_mensagens = 0 OR total_mensagens IS NULL;
+    END IF;
+    
+    -- Sincronizar prospects_novos (copiar de novos_prospects se existir)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'metricas_diarias' 
+        AND column_name = 'novos_prospects'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'metricas_diarias' 
+        AND column_name = 'prospects_novos'
+    ) THEN
+        UPDATE metricas_diarias 
+        SET prospects_novos = COALESCE(prospects_novos, novos_prospects)
+        WHERE (prospects_novos = 0 OR prospects_novos IS NULL) AND novos_prospects > 0;
+    END IF;
+    
+    -- Sincronizar tempo_medio_resposta
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'metricas_diarias' 
+        AND column_name = 'tempo_medio_primeira_resposta_segundos'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'metricas_diarias' 
+        AND column_name = 'tempo_medio_resposta'
+    ) THEN
+        UPDATE metricas_diarias 
+        SET tempo_medio_resposta = COALESCE(tempo_medio_resposta, tempo_medio_primeira_resposta_segundos)
+        WHERE tempo_medio_resposta = 0 OR tempo_medio_resposta IS NULL;
+    END IF;
+END $$;
 
 -- Ajustar constraint UNIQUE para permitir sem departamento
 ALTER TABLE metricas_diarias 
@@ -100,10 +292,50 @@ CREATE TABLE IF NOT EXISTS metricas_demograficas (
     UNIQUE(faculdade_id, data, cidade, estado)
 );
 
-CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_faculdade ON metricas_demograficas(faculdade_id);
-CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_data ON metricas_demograficas(data);
-CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_cidade ON metricas_demograficas(cidade);
-CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_estado ON metricas_demograficas(estado);
+-- Criar índices apenas se as colunas existirem
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'metricas_demograficas'
+    ) THEN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'metricas_demograficas' 
+            AND column_name = 'faculdade_id'
+        ) THEN
+            CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_faculdade ON metricas_demograficas(faculdade_id);
+        END IF;
+        
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'metricas_demograficas' 
+            AND column_name = 'data'
+        ) THEN
+            CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_data ON metricas_demograficas(data);
+        END IF;
+        
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'metricas_demograficas' 
+            AND column_name = 'cidade'
+        ) THEN
+            CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_cidade ON metricas_demograficas(cidade);
+        END IF;
+        
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'metricas_demograficas' 
+            AND column_name = 'estado'
+        ) THEN
+            CREATE INDEX IF NOT EXISTS idx_metricas_demograficas_estado ON metricas_demograficas(estado);
+        END IF;
+    END IF;
+END $$;
 
 -- ========================================
 -- 6. CRIAR TABELA: metricas_por_setor
@@ -156,34 +388,44 @@ ALTER TABLE metricas_por_horario ENABLE ROW LEVEL SECURITY;
 -- ========================================
 -- 9. CRIAR POLÍTICAS RLS
 -- ========================================
-CREATE POLICY IF NOT EXISTS "rls_select_codigos_atendimento" ON codigos_atendimento 
+DROP POLICY IF EXISTS "rls_select_codigos_atendimento" ON codigos_atendimento;
+CREATE POLICY "rls_select_codigos_atendimento" ON codigos_atendimento 
     FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_select_metricas_demograficas" ON metricas_demograficas 
+DROP POLICY IF EXISTS "rls_select_metricas_demograficas" ON metricas_demograficas;
+CREATE POLICY "rls_select_metricas_demograficas" ON metricas_demograficas 
     FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_insert_metricas_demograficas" ON metricas_demograficas 
+DROP POLICY IF EXISTS "rls_insert_metricas_demograficas" ON metricas_demograficas;
+CREATE POLICY "rls_insert_metricas_demograficas" ON metricas_demograficas 
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "rls_update_metricas_demograficas" ON metricas_demograficas 
+DROP POLICY IF EXISTS "rls_update_metricas_demograficas" ON metricas_demograficas;
+CREATE POLICY "rls_update_metricas_demograficas" ON metricas_demograficas 
     FOR UPDATE USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_select_metricas_por_setor" ON metricas_por_setor 
+DROP POLICY IF EXISTS "rls_select_metricas_por_setor" ON metricas_por_setor;
+CREATE POLICY "rls_select_metricas_por_setor" ON metricas_por_setor 
     FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_insert_metricas_por_setor" ON metricas_por_setor 
+DROP POLICY IF EXISTS "rls_insert_metricas_por_setor" ON metricas_por_setor;
+CREATE POLICY "rls_insert_metricas_por_setor" ON metricas_por_setor 
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "rls_update_metricas_por_setor" ON metricas_por_setor 
+DROP POLICY IF EXISTS "rls_update_metricas_por_setor" ON metricas_por_setor;
+CREATE POLICY "rls_update_metricas_por_setor" ON metricas_por_setor 
     FOR UPDATE USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_select_metricas_por_horario" ON metricas_por_horario 
+DROP POLICY IF EXISTS "rls_select_metricas_por_horario" ON metricas_por_horario;
+CREATE POLICY "rls_select_metricas_por_horario" ON metricas_por_horario 
     FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "rls_insert_metricas_por_horario" ON metricas_por_horario 
+DROP POLICY IF EXISTS "rls_insert_metricas_por_horario" ON metricas_por_horario;
+CREATE POLICY "rls_insert_metricas_por_horario" ON metricas_por_horario 
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "rls_update_metricas_por_horario" ON metricas_por_horario 
+DROP POLICY IF EXISTS "rls_update_metricas_por_horario" ON metricas_por_horario;
+CREATE POLICY "rls_update_metricas_por_horario" ON metricas_por_horario 
     FOR UPDATE USING (true);
 
 -- ========================================

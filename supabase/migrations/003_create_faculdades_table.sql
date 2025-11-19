@@ -27,25 +27,34 @@ CREATE INDEX IF NOT EXISTS idx_faculdades_plano ON public.faculdades(plano);
 ALTER TABLE public.faculdades ENABLE ROW LEVEL SECURITY;
 
 -- Criar políticas de segurança
+DROP POLICY IF EXISTS "Permitir leitura para todos" ON public.faculdades;
 CREATE POLICY "Permitir leitura para todos" ON public.faculdades
     FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Permitir inserção para usuários autenticados" ON public.faculdades;
 CREATE POLICY "Permitir inserção para usuários autenticados" ON public.faculdades
     FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Permitir atualização para usuários autenticados" ON public.faculdades;
 CREATE POLICY "Permitir atualização para usuários autenticados" ON public.faculdades
     FOR UPDATE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Permitir exclusão para usuários autenticados" ON public.faculdades;
 CREATE POLICY "Permitir exclusão para usuários autenticados" ON public.faculdades
     FOR DELETE USING (auth.role() = 'authenticated');
 
--- Inserir dados de exemplo
-INSERT INTO public.faculdades (nome, cnpj, telefone, email, cidade, estado, plano, status) VALUES
+-- Inserir dados de exemplo (apenas se não existirem)
+INSERT INTO public.faculdades (nome, cnpj, telefone, email, cidade, estado, plano, status) 
+SELECT * FROM (VALUES
     ('Universidade Exemplo', '12.345.678/0001-90', '(11) 1234-5678', 'contato@universidadeexemplo.com', 'São Paulo', 'SP', 'enterprise', 'ativo'),
     ('Faculdade Tecnologia', '98.765.432/0001-10', '(21) 9876-5432', 'admin@faculdadetecnologia.com', 'Rio de Janeiro', 'RJ', 'pro', 'ativo'),
     ('Centro Universitário', '11.223.344/0001-55', '(31) 3333-4444', 'secretaria@centrouniversitario.com', 'Belo Horizonte', 'MG', 'basico', 'ativo'),
     ('Instituto Superior', '55.667.788/0001-20', '(41) 5555-6666', 'contato@institutosuperior.com', 'Curitiba', 'PR', 'pro', 'inativo'),
-    ('Faculdade Integrada', '77.889.900/0001-35', '(51) 7777-8888', 'admin@faculdadeintegrada.com', 'Porto Alegre', 'RS', 'enterprise', 'ativo');
+    ('Faculdade Integrada', '77.889.900/0001-35', '(51) 7777-8888', 'admin@faculdadeintegrada.com', 'Porto Alegre', 'RS', 'enterprise', 'ativo')
+) AS v(nome, cnpj, telefone, email, cidade, estado, plano, status)
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.faculdades WHERE faculdades.cnpj = v.cnpj
+);
 
 -- Conceder permissões
 GRANT SELECT ON public.faculdades TO anon;

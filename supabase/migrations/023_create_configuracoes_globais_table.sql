@@ -32,6 +32,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger para atualizar updated_at
+DROP TRIGGER IF EXISTS trigger_update_configuracoes_globais_updated_at ON public.configuracoes_globais;
 CREATE TRIGGER trigger_update_configuracoes_globais_updated_at
   BEFORE UPDATE ON public.configuracoes_globais
   FOR EACH ROW

@@ -96,7 +96,7 @@ DROP TRIGGER IF EXISTS trigger_update_usuarios_updated_at ON usuarios;
 CREATE TRIGGER trigger_update_usuarios_updated_at
     BEFORE UPDATE ON usuarios
     FOR EACH ROW
-    EXECUTE FUNCTION update_usuarios_updated_at;
+    EXECUTE FUNCTION update_usuarios_updated_at();
 
 -- Função para atualizar carga_trabalho_atual automaticamente
 CREATE OR REPLACE FUNCTION atualizar_carga_trabalho_atendente()
@@ -134,7 +134,7 @@ DROP TRIGGER IF EXISTS trigger_atualizar_carga_atendente ON conversas_whatsapp;
 CREATE TRIGGER trigger_atualizar_carga_atendente
     AFTER INSERT OR UPDATE OF atendente_id ON conversas_whatsapp
     FOR EACH ROW
-    EXECUTE FUNCTION atualizar_carga_trabalho_atendente;
+    EXECUTE FUNCTION atualizar_carga_trabalho_atendente();
 
 -- Função para buscar atendente disponível (round-robin)
 CREATE OR REPLACE FUNCTION buscar_atendente_disponivel(

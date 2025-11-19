@@ -359,27 +359,28 @@ export default function CRMDetalhesPage() {
             {etapasFormatadas.length > 0 && (
               <div className="flex items-center gap-1 overflow-x-auto pb-2">
                 {etapasFormatadas.map((etapa, idx) => (
-                <div
-                  key={etapa.id}
-                  className={`flex items-center gap-1 flex-shrink-0 ${
-                    etapa.ativo ? 'text-teal-600' : 'text-gray-400'
-                  }`}
-                >
                   <div
-                    className={`px-3 py-1 rounded text-xs font-medium ${
-                      etapa.ativo
-                        ? 'bg-teal-100 text-teal-700'
-                        : 'bg-gray-100 text-gray-500'
+                    key={etapa.id}
+                    className={`flex items-center gap-1 flex-shrink-0 ${
+                      etapa.ativo ? 'text-teal-600' : 'text-gray-400'
                     }`}
                   >
-                    {etapa.label} {etapa.dias > 0 && `(${etapa.dias} dias)`}
+                    <div
+                      className={`px-3 py-1 rounded text-xs font-medium ${
+                        etapa.ativo
+                          ? 'bg-teal-100 text-teal-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {etapa.label} {etapa.dias > 0 && `(${etapa.dias} dias)`}
+                    </div>
+                    {idx < etapasFormatadas.length - 1 && (
+                      <div className={`w-8 h-0.5 ${etapa.ativo ? 'bg-teal-600' : 'bg-gray-300'}`} />
+                    )}
                   </div>
-                  {idx < negociacao.etapas.length - 1 && (
-                    <div className={`w-8 h-0.5 ${etapa.ativo ? 'bg-teal-600' : 'bg-gray-300'}`} />
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Abas */}
@@ -403,7 +404,7 @@ export default function CRMDetalhesPage() {
 
           {/* Conteúdo da Aba */}
           <div className="flex-1 overflow-y-auto p-6">
-            {abaAtiva === 'histórico' && (
+            {abaAtiva === 'historico' && (
               <div className="space-y-4">
                 {/* Filtros */}
                 <div className="flex items-center gap-3 mb-4">
@@ -450,8 +451,7 @@ export default function CRMDetalhesPage() {
                     </div>
                   )}
                 </div>
-            )}
-          </div>
+              </div>
             )}
 
             {abaAtiva === 'tarefas' && (
