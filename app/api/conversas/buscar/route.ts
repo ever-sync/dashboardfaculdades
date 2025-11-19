@@ -11,7 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 // Schema de validação
 const buscarConversasSchema = z.object({
   query: z.string().min(1, 'Query é obrigatória').max(500, 'Query muito longa'),
-  faculdade_id: z.string().uuid('ID de faculdade inválido').optional(),
+  faculdade_id: z.string().uuid('ID de faculdade inválido'),
   setor: z.string().optional(),
   atendente_id: z.string().uuid().optional(),
   tags: z.array(z.string()).optional(),
@@ -90,11 +90,8 @@ export async function POST(request: NextRequest) {
           )
         `)
         .in('id', conversaIds)
+        .eq('faculdade_id', faculdade_id) // Sempre filtrar por faculdade
         .limit(limite)
-
-      if (faculdade_id) {
-        queryConversas = queryConversas.eq('faculdade_id', faculdade_id)
-      }
 
       if (setor) {
         queryConversas = queryConversas.eq('setor', setor)
@@ -146,11 +143,8 @@ export async function POST(request: NextRequest) {
           )
         `)
         .or(`nome.ilike.%${query}%,telefone.ilike.%${query}%,ultima_mensagem.ilike.%${query}%`)
+        .eq('faculdade_id', faculdade_id) // Sempre filtrar por faculdade
         .limit(limite)
-
-      if (faculdade_id) {
-        queryConversas = queryConversas.eq('faculdade_id', faculdade_id)
-      }
 
       if (setor) {
         queryConversas = queryConversas.eq('setor', setor)

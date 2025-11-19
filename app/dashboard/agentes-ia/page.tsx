@@ -38,16 +38,17 @@ export default function AgentesIAPage() {
     try {
       setLoading(true)
       
+      // Sempre filtrar pela faculdade selecionada (obrigatório)
+      if (!faculdadeSelecionada) {
+        setAgentes([])
+        setLoading(false)
+        return
+      }
+
       let query = supabase
         .from('agentes_ia')
         .select('*')
-
-      // Se há faculdade selecionada no contexto, usa ela, senão permite escolher
-      if (faculdadeSelecionada && !filtroFaculdade) {
-        query = query.eq('faculdade_id', faculdadeSelecionada.id)
-      } else if (filtroFaculdade) {
-        query = query.eq('faculdade_id', filtroFaculdade)
-      }
+        .eq('faculdade_id', faculdadeSelecionada.id) // Sempre filtrar por faculdade
 
       const { data, error } = await query.order('created_at', { ascending: false })
 

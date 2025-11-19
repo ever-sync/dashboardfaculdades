@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getUserFriendlyError } from '@/lib/errorMessages'
+import { validarConversaFaculdade } from '@/lib/faculdadeValidation'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,6 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 // Schema de validação
 const marcarLidaSchema = z.object({
   conversa_id: z.string().uuid('ID de conversa inválido'),
+  faculdade_id: z.string().uuid('ID de faculdade inválido'),
   marcar_mensagens_especificas: z.array(z.string().uuid()).optional(), // IDs de mensagens específicas para marcar
 })
 
@@ -27,7 +29,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { conversa_id, marcar_mensagens_especificas } = validation.data
+    const { conversa_id, faculdade_id, marcar_mensagens_especificas } = validation.data
+
+    // Validar que a conversa pertence à faculdade
+    const validacao = await validarConversaFaculdade(conversa_id, faculdade_id)
+    if (!validacao.valido) {
+      return NextResponse.json(
+        { error: validacao.erro || 'Conversa não pertence à faculdade' },
+        { status: 403 }
+      )
+    }
 
     // Verificar se a conversa existe
     const { data: conversa, error: conversaError } = await supabase

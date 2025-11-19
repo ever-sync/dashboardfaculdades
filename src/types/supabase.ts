@@ -13,6 +13,15 @@ export interface Faculdade {
   plano: 'basico' | 'pro' | 'enterprise'
   status: 'ativo' | 'inativo' | 'suspenso'
   data_contratacao?: string
+  // Campos Evolution API
+  // Nota: evolution_api_url e evolution_api_key são globais (variáveis de ambiente)
+  // Cada faculdade tem apenas sua própria instância
+  evolution_instance?: string
+  evolution_status?: 'conectado' | 'desconectado' | 'conectando' | 'erro' | 'nao_configurado'
+  evolution_qr_code?: string
+  evolution_qr_expires_at?: string
+  evolution_connected_at?: string
+  evolution_last_error?: string
   created_at: string
   updated_at: string
 }

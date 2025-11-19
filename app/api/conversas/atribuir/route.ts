@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getUserFriendlyError } from '@/lib/errorMessages'
+import { validarConversaFaculdade } from '@/lib/faculdadeValidation'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -30,6 +31,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { conversa_id, faculdade_id, setor, atendente_id } = validation.data
+
+    // Validar que a conversa pertence à faculdade
+    const validacaoConversa = await validarConversaFaculdade(conversa_id, faculdade_id)
+    if (!validacaoConversa.valido) {
+      return NextResponse.json(
+        { error: validacaoConversa.erro || 'Conversa não pertence à faculdade' },
+        { status: 403 }
+      )
+    }
 
     // Se atendente_id foi fornecido, verificar se está disponível
     if (atendente_id) {

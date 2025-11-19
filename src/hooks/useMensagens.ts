@@ -14,6 +14,7 @@ interface UseMensagensReturn {
   sendMessage: (conteudo: string, remetente: 'usuario' | 'agente' | 'bot') => Promise<void>
   isTyping: boolean
   setIsTyping: (typing: boolean) => void
+  isSending: boolean
 }
 
 export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensReturn {
@@ -22,6 +23,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
   const [error, setError] = useState<string | null>(null)
   const [isTyping, setIsTypingState] = useState(false)
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [isSending, setIsSending] = useState(false)
 
   const fetchMensagens = useCallback(async () => {
     if (!conversaId) {
@@ -182,6 +184,37 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
 
             // Recarregar mensagens
             await fetchMensagens()
+
+            // Enviar mensagem via WhatsApp API (apenas para mensagens de agente)
+            if (remetente === 'agente') {
+              try {
+                setIsSending(true)
+                const response = await fetch('/api/whatsapp/send', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    conversa_id: conversaId,
+                    conteudo: conteudo.trim(),
+                    remetente: 'agente',
+                    tipo_mensagem: 'texto',
+                  }),
+                })
+
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({}))
+                  console.warn('Erro ao enviar mensagem via WhatsApp:', errorData)
+                } else {
+                  const result = await response.json()
+                  console.log('Mensagem enviada via WhatsApp com sucesso:', result)
+                }
+              } catch (err: any) {
+                console.error('Erro ao chamar API de envio WhatsApp:', err)
+              } finally {
+                setIsSending(false)
+              }
+            }
             return
           }
 
@@ -208,6 +241,40 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
 
         // Recarregar mensagens
         await fetchMensagens()
+
+        // Enviar mensagem via WhatsApp API (apenas para mensagens de agente)
+        if (remetente === 'agente') {
+          try {
+            setIsSending(true)
+            const response = await fetch('/api/whatsapp/send', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                conversa_id: conversaId,
+                conteudo: conteudo.trim(),
+                remetente: 'agente',
+                tipo_mensagem: 'texto',
+              }),
+            })
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}))
+              console.warn('Erro ao enviar mensagem via WhatsApp:', errorData)
+              // Não lançar erro - mensagem já está salva no banco
+              // Apenas logar o erro para debug
+            } else {
+              const result = await response.json()
+              console.log('Mensagem enviada via WhatsApp com sucesso:', result)
+            }
+          } catch (err: any) {
+            console.error('Erro ao chamar API de envio WhatsApp:', err)
+            // Não lançar erro - mensagem já está salva no banco
+          } finally {
+            setIsSending(false)
+          }
+        }
       } catch (err: any) {
         console.error('Erro ao enviar mensagem:', {
           message: err?.message,
@@ -216,6 +283,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
           code: err?.code,
           error: err
         })
+        setIsSending(false)
         throw new Error(err?.message || 'Erro ao enviar mensagem')
       }
     },
@@ -377,6 +445,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
     sendMessage,
     isTyping,
     setIsTyping,
+    isSending,
   }
 }
 

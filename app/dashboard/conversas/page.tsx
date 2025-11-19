@@ -39,7 +39,9 @@ import {
   Unlock,
   ArrowRightLeft,
   XCircle,
-  RotateCcw
+  RotateCcw,
+  Loader2,
+  ChevronDown
 } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -56,20 +58,32 @@ import { RespostasAutomaticas } from '@/components/dashboard/RespostasAutomatica
 import { ScriptSuggestions } from '@/components/dashboard/ScriptSuggestions'
 import { SugestoesBase } from '@/components/dashboard/SugestoesBase'
 import { AgendarMensagem } from '@/components/dashboard/AgendarMensagem'
+import { InformacoesLeadModal } from '@/components/dashboard/InformacoesLeadModal'
+import { SidebarLeadInfo } from '@/components/dashboard/SidebarLeadInfo'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { exportarConversaTXT } from '@/lib/exportarConversa'
 
 interface ConversaWhatsApp {
   id: string
-  nome: string
+  faculdade_id: string
   telefone: string
+  nome: string
+  status: 'ativo' | 'pendente' | 'encerrado'
+  status_conversa?: 'ativa' | 'pendente' | 'encerrada'
   ultima_mensagem?: string
   data_ultima_mensagem: string
-  status: string
-  nao_lidas?: number
-  faculdade_id?: string
+  nao_lidas: number
+  departamento: string
+  setor?: string
+  atendente?: string
+  atendente_id?: string
   prospect_id?: string
   tags?: string[]
+  bloqueado?: boolean
+  motivo_bloqueio?: string
+  data_bloqueio?: string
+  created_at: string
+  updated_at: string
 }
 
 interface Conversa {
@@ -83,6 +97,8 @@ interface Conversa {
   totalMensagens: number // Quantidade total de mensagens vinculadas
   avatar: string
   prospect_id?: string
+  setor?: string
+  atendente?: string
 }
 
 // Funções helper para formatar datas (apenas no cliente)
@@ -117,6 +133,7 @@ export default function ConversasPage() {
   const [conversaDetalhes, setConversaDetalhes] = useState<ConversaWhatsApp | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
+  const [showListaMobile, setShowListaMobile] = useState(true)
   
   // Debounce do termo de busca
   const debouncedSearchTerm = useDebounce(searchTerm, 400)
@@ -138,6 +155,8 @@ export default function ConversasPage() {
   const [showTransferirModal, setShowTransferirModal] = useState(false)
   const [showMetricasModal, setShowMetricasModal] = useState(false)
   const [showAgendarModal, setShowAgendarModal] = useState(false)
+  const [showInformacoesLeadModal, setShowInformacoesLeadModal] = useState(false)
+  const [abaSelecionada, setAbaSelecionada] = useState<'perfil' | 'etiquetas' | 'atividades' | 'carteiras' | 'historico' | null>(null)
   const [buscaAvancada, setBuscaAvancada] = useState(false)
   const [filtroBusca, setFiltroBusca] = useState({
     query: '',
@@ -160,7 +179,7 @@ export default function ConversasPage() {
   }, [])
 
   // Hook para buscar mensagens
-  const { mensagens, loading: loadingMensagens, sendMessage, refetch: refetchMensagens, isTyping: clienteDigitando, setIsTyping: setClienteDigitando } = useMensagens({
+  const { mensagens, loading: loadingMensagens, sendMessage, refetch: refetchMensagens, isTyping: clienteDigitando, setIsTyping: setClienteDigitando, isSending } = useMensagens({
     conversaId: conversaSelecionada
   })
   const [isTypingLocal, setIsTypingLocal] = useState(false)
@@ -349,7 +368,9 @@ export default function ConversasPage() {
               .map((n: string) => n[0])
               .join('')
               .toUpperCase(),
-            prospect_id: c.prospect_id || undefined
+            prospect_id: c.prospect_id || undefined,
+            setor: c.setor || undefined,
+            atendente: c.atendente || undefined
           }
         })
 
@@ -495,7 +516,9 @@ export default function ConversasPage() {
             .map((n: string) => n[0])
             .join('')
             .toUpperCase(),
-          prospect_id: c.prospect_id || undefined
+          prospect_id: c.prospect_id || undefined,
+          setor: c.setor || undefined,
+          atendente: c.atendente || undefined
         }
       })
 
@@ -704,7 +727,7 @@ export default function ConversasPage() {
   ]
 
   const handleEnviarMensagem = async () => {
-    if (!novaMensagem.trim() || !conversaSelecionada) return
+    if (!novaMensagem.trim() || !conversaSelecionada || isSending) return
 
     try {
       // Parar indicador de digitação ao enviar
@@ -740,7 +763,11 @@ export default function ConversasPage() {
         errorMessage = error.error.message
       }
       
-      alert(errorMessage)
+      // Não mostrar alert se a mensagem foi salva mas falhou o envio via WhatsApp
+      // (o hook já trata isso e não lança erro)
+      if (!errorMessage.includes('WhatsApp')) {
+        alert(errorMessage)
+      }
     }
   }
 
@@ -1178,36 +1205,67 @@ export default function ConversasPage() {
       
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* COLUNA 1: Lista de Conversas */}
-        <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
+        <div className={`${showListaMobile ? 'flex' : 'hidden'} lg:flex w-full lg:w-80 border-r border-gray-200 flex-col bg-gray-50 absolute lg:relative inset-0 lg:inset-auto z-10 lg:z-auto`}>
           {/* Busca e Filtros */}
-          <div className="p-4 border-b border-gray-200 bg-white">
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Buscar conversas... (Ctrl+K)"
-                value={filtroBusca.query || searchTerm}
-                onChange={(e) => {
-                  setFiltroBusca({ ...filtroBusca, query: e.target.value })
-                  setSearchTerm(e.target.value)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleBuscaAvancada()
-                  }
-                }}
-                className="pl-10 !bg-white !text-black"
-              />
+          <div className="p-3 lg:p-4 border-b border-gray-200 bg-white">
+            {/* Título Mobile */}
+            <div className="lg:hidden mb-3">
+              <h2 className="font-semibold text-gray-900 text-center">Conversas</h2>
+            </div>
+
+            {/* Botão Meus Atendimentos */}
+            <div className="mb-3">
               <Button
-                variant="secondary"
+                variant="primary"
                 size="sm"
-                onClick={() => setBuscaAvancada(!buscaAvancada)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 !bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                title="Busca avançada"
+                className="w-full !bg-teal-600 hover:!bg-teal-700 !text-white justify-between text-sm lg:text-base"
               >
-                <Search className="w-3 h-3" />
+                <span className="truncate">Meus Atendimentos ({conversasFiltradas.length})</span>
+                <ChevronDown className="w-4 h-4 flex-shrink-0" />
               </Button>
+            </div>
+
+            {/* Filtros em linha */}
+            <div className="flex flex-col sm:flex-row gap-2 mb-3">
+              <select
+                value={filtroBusca.setor || ''}
+                onChange={(e) => {
+                  setFiltroBusca({ ...filtroBusca, setor: e.target.value })
+                  fetchConversas()
+                }}
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-gray-300 focus:border-transparent"
+              >
+                <option value="">Setores</option>
+                <option value="Vendas">Vendas</option>
+                <option value="Suporte">Suporte</option>
+                <option value="Atendimento">Atendimento</option>
+              </select>
+              
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-gray-300 focus:border-transparent"
+              >
+                <option value="todos">Todos</option>
+                <option value="ativo">Ativos</option>
+                <option value="pendente">Pendentes</option>
+                <option value="encerrado">Encerrados</option>
+              </select>
+              
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Buscar"
+                  value={filtroBusca.query || searchTerm}
+                  onChange={(e) => {
+                    setFiltroBusca({ ...filtroBusca, query: e.target.value })
+                    setSearchTerm(e.target.value)
+                  }}
+                  className="pl-8 !bg-white !text-black text-sm"
+                />
+              </div>
             </div>
             
             {buscaAvancada && (
@@ -1306,33 +1364,6 @@ export default function ConversasPage() {
                 </div>
               </Card>
             )}
-            
-            <div className="flex gap-2">
-              <Button
-                variant={statusFilter === 'todos' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setStatusFilter('todos')}
-                className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-              >
-                Todos
-              </Button>
-              <Button
-                variant={statusFilter === 'ativo' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setStatusFilter('ativo')}
-                className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-              >
-                Ativos
-              </Button>
-              <Button
-                variant={statusFilter === 'pendente' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setStatusFilter('pendente')}
-                className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-              >
-                Pendentes
-              </Button>
-            </div>
           </div>
           
           {/* Lista de Conversas */}
@@ -1354,8 +1385,11 @@ export default function ConversasPage() {
                 {conversasFiltradas.map((conversa) => (
                   <div
                     key={conversa.id}
-                    onClick={() => setConversaSelecionada(conversa.id)}
-                    className={`p-4 cursor-pointer transition-colors hover:bg-gray-100 ${
+                    onClick={() => {
+                      setConversaSelecionada(conversa.id)
+                      setShowListaMobile(false)
+                    }}
+                    className={`p-3 lg:p-4 cursor-pointer transition-colors hover:bg-gray-100 ${
                       conversaSelecionada === conversa.id ? 'bg-gray-50 border-l-4 border-gray-300' : 'bg-white'
                     }`}
                   >
@@ -1365,31 +1399,41 @@ export default function ConversasPage() {
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-semibold text-sm truncate text-gray-900">{conversa.nome}</h4>
-                          <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{conversa.hora}</span>
+                          <MessageSquare className="w-3 h-3 text-green-600 flex-shrink-0 hidden sm:block" />
+                          {conversa.ultimaMensagem && (
+                            <>
+                              <span className="text-gray-400 hidden sm:inline">|</span>
+                              <span className="text-xs text-green-600 truncate hidden sm:inline">{conversa.ultimaMensagem.substring(0, 20)}...</span>
+                            </>
+                          )}
+                          {conversa.naoLidas > 0 && (
+                            <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-auto"></div>
+                          )}
                         </div>
                         
                         <p className="text-xs text-gray-600 truncate mb-2">
-                          {conversa.ultimaMensagem}
+                          {conversa.ultimaMensagem || 'Sem mensagens'}
                         </p>
                         
                         <div className="flex items-center justify-between gap-2">
-                          <Badge variant={getStatusColor(conversa.status)} className="text-xs">
-                            {conversa.status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {conversa.setor && (
+                              <>
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs text-gray-700 font-medium">{conversa.setor}</span>
+                              </>
+                            )}
+                          </div>
                           
                           <div className="flex items-center gap-2">
-                            {/* Contagem total de mensagens */}
-                            <span className="text-xs text-gray-500" title={`${conversa.totalMensagens} mensagem(ns)`}>
-                              💬 {conversa.totalMensagens}
-                            </span>
-                            
-                            {/* Contador de não lidas */}
+                            <span className="text-xs text-gray-500">{conversa.hora}</span>
+                            {conversa.atendente && (
+                              <span className="text-xs text-teal-600">{conversa.atendente}</span>
+                            )}
                             {conversa.naoLidas > 0 && (
-                              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                                {conversa.naoLidas}
-                              </span>
+                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             )}
                           </div>
                         </div>
@@ -1433,14 +1477,29 @@ export default function ConversasPage() {
         </div>
 
         {/* COLUNA 2: Área do Chat */}
-        <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
+        <div className={`${showListaMobile ? 'hidden' : 'flex'} lg:flex flex-1 flex-col bg-white min-h-0 overflow-hidden`}>
           {conversaSelecionada && conversaAtual ? (
             <>
               {/* Cabeçalho do Chat - FIXO */}
-              <div className="flex-shrink-0 border-b border-gray-200 p-4 bg-white">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="flex-shrink-0 border-b border-gray-200 p-3 lg:p-4 bg-white">
+                {/* Botão Voltar (Mobile) */}
+                <div className="lg:hidden mb-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setShowListaMobile(true)
+                      setConversaSelecionada(null)
+                    }}
+                    className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                  >
+                    <ArrowRight className="w-4 h-4 rotate-180 mr-2" />
+                    Voltar
+                  </Button>
+                </div>
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0 w-full lg:w-auto">
+                    <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
                       {/* Usar inicial do nome do prospect se disponível, senão usar da conversa */}
                       {prospectInfo && (prospectInfo.nome || prospectInfo.nome_completo)
                         ? (prospectInfo.nome || prospectInfo.nome_completo || 'SN')
@@ -1451,43 +1510,99 @@ export default function ConversasPage() {
                             .slice(0, 2)
                         : conversaAtual.avatar}
                     </div>
-                    <div>
-                      {/* Priorizar nome do prospect sobre o nome da conversa */}
-                      <h3 className="font-semibold text-gray-900">
-                        {prospectInfo && (prospectInfo.nome || prospectInfo.nome_completo)
-                          ? prospectInfo.nome || prospectInfo.nome_completo
-                          : conversaAtual.nome}
+                    <div className="flex items-center gap-1 lg:gap-2 flex-1 min-w-0">
+                      {/* Nome (primeiro nome) */}
+                      <h3 className="font-semibold text-sm lg:text-base text-gray-900 truncate">
+                        {(() => {
+                          const nomeCompleto = prospectInfo && (prospectInfo.nome || prospectInfo.nome_completo)
+                            ? prospectInfo.nome || prospectInfo.nome_completo
+                            : conversaAtual.nome
+                          return nomeCompleto?.split(' ')[0] || nomeCompleto || 'Sem nome'
+                        })()}
                       </h3>
-                      <p className="text-sm text-gray-600">{conversaAtual.telefone}</p>
+                      
+                      {/* Canal de Atendimento (WhatsApp) */}
+                      <div className="flex items-center gap-1 text-green-600 flex-shrink-0">
+                        <MessageSquare className="w-3 h-3 lg:w-4 lg:h-4" />
+                      </div>
+                      
+                      {/* Faculdade */}
+                      {faculdadeSelecionada && (
+                        <>
+                          <span className="text-gray-400 hidden md:inline">|</span>
+                          <span className="text-xs lg:text-sm text-gray-600 truncate hidden md:inline">{faculdadeSelecionada.nome}</span>
+                        </>
+                      )}
+                      
+                      {/* Setor */}
+                      {conversaDetalhes?.setor && (
+                        <>
+                          <span className="text-gray-400 hidden lg:inline">|</span>
+                          <span className="text-xs lg:text-sm text-gray-600 truncate hidden lg:inline">{conversaDetalhes.setor}</span>
+                        </>
+                      )}
+                      
+                      {/* Função do Atendente */}
+                      {conversaDetalhes?.atendente && (
+                        <>
+                          <span className="text-gray-400 hidden xl:inline">|</span>
+                          <span className="text-xs lg:text-sm text-gray-600 truncate hidden xl:inline">{conversaDetalhes.atendente}</span>
+                        </>
+                      )}
+                      
+                      {/* Spacer para empurrar horário e indicador para a direita */}
+                      <div className="flex-1"></div>
+                      
+                      {/* Horário da última mensagem */}
+                      {conversaAtual.hora && (
+                        <span className="text-xs lg:text-sm text-gray-500 flex-shrink-0">{conversaAtual.hora}</span>
+                      )}
+                      
+                      {/* Indicador de lida/não lida */}
+                      {conversaAtual.naoLidas > 0 ? (
+                        <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-1"></div>
+                      ) : (
+                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0 ml-1"></div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  
+                  <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 w-full lg:w-auto justify-end lg:justify-start">
                     {conversaDetalhes?.bloqueado && (
-                      <Badge variant="danger" className="text-xs">
+                      <Badge variant="danger" className="text-xs hidden sm:inline-flex">
                         <Ban className="w-3 h-3 inline mr-1" />
-                        Bloqueado
+                        <span className="hidden md:inline">Bloqueado</span>
                       </Badge>
                     )}
-                    <Badge variant={getStatusColor(conversaAtual.status)}>
-                      {conversaAtual.status}
+                    <Badge variant={getStatusColor(conversaAtual.status)} className="text-xs">
+                      <span className="hidden sm:inline">{conversaAtual.status}</span>
+                      <span className="sm:hidden">{conversaAtual.status.charAt(0).toUpperCase()}</span>
                     </Badge>
-                  </div>
-                </div>
-
-                {/* Botões de Ação no Header */}
-                {conversaSelecionada && conversaDetalhes && (
-                  <div className="flex items-center gap-2">
-                    {/* Botão Transferir */}
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setShowTransferirModal(true)}
-                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                      title="Transferir conversa"
-                    >
-                      <ArrowRightLeft className="w-4 h-4" />
-                      <span className="hidden sm:inline ml-1">Transferir</span>
-                    </Button>
+                    
+                    {/* Botões de Ação */}
+                    {conversaSelecionada && conversaDetalhes && (
+                      <>
+                        {/* Botão Informações do Lead */}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowInformacoesLeadModal(true)}
+                          className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                          title="Ver informações do lead"
+                        >
+                          <User className="w-4 h-4" />
+                        </Button>
+                        {/* Botão Transferir */}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowTransferirModal(true)}
+                          className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                          title="Transferir conversa"
+                        >
+                          <ArrowRightLeft className="w-4 h-4" />
+                          <span className="hidden sm:inline ml-1">Transferir</span>
+                        </Button>
 
                     {/* Botão Encerrar */}
                     {conversaDetalhes.status_conversa !== 'encerrada' ? (
@@ -1648,6 +1763,64 @@ export default function ConversasPage() {
                         </>
                       )}
                     </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Abas de Navegação */}
+                {conversaSelecionada && conversaAtual && (
+                  <div className="flex items-center gap-1 border-t border-gray-200 pt-3 mt-3">
+                    <button
+                      onClick={() => setAbaSelecionada(abaSelecionada === 'perfil' ? null : 'perfil')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        abaSelecionada === 'perfil'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Perfil
+                    </button>
+                    <button
+                      onClick={() => setAbaSelecionada(abaSelecionada === 'etiquetas' ? null : 'etiquetas')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        abaSelecionada === 'etiquetas'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Etiquetas
+                    </button>
+                    <button
+                      onClick={() => setAbaSelecionada(abaSelecionada === 'atividades' ? null : 'atividades')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        abaSelecionada === 'atividades'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Atividades
+                    </button>
+                    <button
+                      onClick={() => setAbaSelecionada(abaSelecionada === 'carteiras' ? null : 'carteiras')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        abaSelecionada === 'carteiras'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Carteiras
+                    </button>
+                    <button
+                      onClick={() => setAbaSelecionada(abaSelecionada === 'historico' ? null : 'historico')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        abaSelecionada === 'historico'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Histórico
+                    </button>
                   </div>
                 )}
               </div>
@@ -2004,37 +2177,37 @@ export default function ConversasPage() {
                       )}
                     </Button>
 
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setShowAgendarModal(true)}
-                        className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                        title="Agendar mensagem"
-                        disabled={!conversaSelecionada}
-                      >
-                        <Calendar className="w-4 h-4" />
-                        <span className="hidden sm:inline ml-1">Agendar</span>
-                      </Button>
-                      
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          if (conversaDetalhes) {
-                            exportarConversaTXT({
-                              conversa: conversaDetalhes,
-                              mensagens,
-                              prospect: prospectInfo,
-                            })
-                          }
-                        }}
-                        className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                        title="Exportar conversa"
-                        disabled={!conversaDetalhes}
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="hidden sm:inline ml-1">Exportar</span>
-                      </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowAgendarModal(true)}
+                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                      title="Agendar mensagem"
+                      disabled={!conversaSelecionada}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1">Agendar</span>
+                    </Button>
+                    
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (conversaDetalhes) {
+                          exportarConversaTXT({
+                            conversa: conversaDetalhes,
+                            mensagens,
+                            prospect: prospectInfo,
+                          })
+                        }
+                      }}
+                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                      title="Exportar conversa"
+                      disabled={!conversaDetalhes}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1">Exportar</span>
+                    </Button>
                   </div>
                   
                   <div className="text-xs text-gray-500">
@@ -2118,11 +2291,15 @@ export default function ConversasPage() {
                     {/* Botão Enviar */}
                     <Button 
                       onClick={handleEnviarMensagem}
-                      disabled={!novaMensagem.trim()}
+                      disabled={!novaMensagem.trim() || isSending}
                       className="!bg-gray-900 hover:!bg-gray-800 disabled:!bg-gray-300 disabled:!cursor-not-allowed h-[60px] px-6"
-                      title="Enviar mensagem (Enter)"
+                      title={isSending ? "Enviando..." : "Enviar mensagem (Enter)"}
                     >
-                      <Send className="w-5 h-5" />
+                      {isSending ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
                     </Button>
                   </div>
                   
@@ -2134,306 +2311,16 @@ export default function ConversasPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">Selecione uma conversa</h3>
-                <p className="text-gray-600">Clique em uma conversa ao lado para começar</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* COLUNA 3: Informações do Lead */}
-        <div className="w-80 border-l border-gray-200 bg-gray-50 flex flex-col">
-          {conversaSelecionada && conversaAtual ? (
-            <>
-              <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Informações do Lead
-                </h3>
-                {mensagens.length > 0 && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setShowMetricasModal(true)}
-                    className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                    title="Ver métricas da conversa"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {loadingProspect ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
-                  </div>
-                ) : prospectInfo ? (
-                  <>
-                    {/* Dados Pessoais */}
-                    <Card className="bg-white">
-                      <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        Dados Pessoais
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="text-gray-600">Nome:</span>
-                          <p className="font-medium text-gray-900">{prospectInfo.nome || prospectInfo.nome_completo || 'N/A'}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-gray-500" />
-                          <span className="text-gray-900">{conversaAtual.telefone}</span>
-                        </div>
-                        {prospectInfo.email && (
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-gray-500" />
-                            <span className="text-gray-900">{prospectInfo.email}</span>
-                          </div>
-                        )}
-                        {prospectInfo.cpf && (
-                          <div>
-                            <span className="text-gray-600">CPF:</span>
-                            <p className="text-gray-900">{prospectInfo.cpf}</p>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-
-                    {/* Curso e Status */}
-                    <Card className="bg-white">
-                      <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                        <GraduationCap className="w-4 h-4" />
-                        Curso e Status
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        {prospectInfo.curso && (
-                          <div>
-                            <span className="text-gray-600">Curso:</span>
-                            <p className="font-medium text-gray-900">{prospectInfo.curso}</p>
-                          </div>
-                        )}
-                        {prospectInfo.curso_pretendido && (
-                          <div>
-                            <span className="text-gray-600">Pretendido:</span>
-                            <p className="text-gray-900">{prospectInfo.curso_pretendido}</p>
-                          </div>
-                        )}
-                        <div>
-                          <span className="text-gray-600">Status:</span>
-                          <div className="mt-1">
-                            <Badge variant={getStatusColor(prospectInfo.status_academico || 'novo')}>
-                              {prospectInfo.status_academico || 'Novo'}
-                            </Badge>
-                          </div>
-                        </div>
-                        {prospectInfo.turno && (
-                          <div>
-                            <span className="text-gray-600">Turno:</span>
-                            <p className="text-gray-900 capitalize">{prospectInfo.turno}</p>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-
-                    {/* Financeiro */}
-                    {(prospectInfo.valor_mensalidade || prospectInfo.nota_qualificacao) && (
-                      <Card className="bg-white">
-                        <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" />
-                          Financeiro
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          {prospectInfo.valor_mensalidade && (
-                            <div>
-                              <span className="text-gray-600">Mensalidade:</span>
-                              <p className="font-medium text-green-600">
-                                R$ {Number(prospectInfo.valor_mensalidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                          )}
-                          {prospectInfo.nota_qualificacao !== undefined && (
-                            <div>
-                              <span className="text-gray-600">Nota:</span>
-                              <p className="font-medium text-gray-900">{prospectInfo.nota_qualificacao}/100</p>
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* Endereço */}
-                    {(prospectInfo.cep || prospectInfo.cidade || prospectInfo.estado) && (
-                      <Card className="bg-white">
-                        <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          Localização
-                        </h4>
-                        <div className="space-y-1 text-sm">
-                          {prospectInfo.cep && (
-                            <p className="text-gray-900">CEP: {prospectInfo.cep}</p>
-                          )}
-                          {prospectInfo.endereco && (
-                            <p className="text-gray-900">
-                              {prospectInfo.endereco}
-                              {prospectInfo.numero && `, ${prospectInfo.numero}`}
-                              {prospectInfo.complemento && ` - ${prospectInfo.complemento}`}
-                            </p>
-                          )}
-                          {prospectInfo.bairro && (
-                            <p className="text-gray-900">Bairro: {prospectInfo.bairro}</p>
-                          )}
-                          {(prospectInfo.cidade || prospectInfo.estado) && (
-                            <p className="text-gray-900">
-                              {prospectInfo.cidade || ''}{prospectInfo.cidade && prospectInfo.estado ? ' - ' : ''}{prospectInfo.estado || ''}
-                            </p>
-                          )}
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* Datas */}
-                    <Card className="bg-white">
-                      <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Histórico
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        {prospectInfo.created_at && (
-                          <div>
-                            <span className="text-gray-600">Cadastro:</span>
-                            <p className="text-gray-900">
-                              {mounted ? formatDate(prospectInfo.created_at) : '...'}
-                            </p>
-                          </div>
-                        )}
-                        {prospectInfo.ultimo_contato && (
-                          <div>
-                            <span className="text-gray-600">Último contato:</span>
-                            <p className="text-gray-900">
-                              {mounted ? formatDate(prospectInfo.ultimo_contato) : '...'}
-                            </p>
-                          </div>
-                        )}
-                        {prospectInfo.data_matricula && (
-                          <div>
-                            <span className="text-gray-600">Matrícula:</span>
-                            <p className="font-medium text-green-600">
-                              {mounted ? formatDate(prospectInfo.data_matricula) : '...'}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-
-                    {/* Tags */}
-                    {conversaDetalhes && faculdadeSelecionada && (
-                      <Card className="bg-white">
-                        <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                          <Zap className="w-4 h-4" />
-                          Tags
-                        </h4>
-                        <TagsManager
-                          tagsAtuais={conversaDetalhes.tags || []}
-                          conversaId={conversaSelecionada}
-                          faculdadeId={faculdadeSelecionada.id}
-                          setor={conversaDetalhes.setor}
-                          onTagsChanged={async (novasTags) => {
-                            // Atualizar conversaDetalhes localmente
-                            if (conversaDetalhes) {
-                              setConversaDetalhes({
-                                ...conversaDetalhes,
-                                tags: novasTags,
-                              })
-                            }
-                            // Recarregar lista de conversas para atualizar tags na lista
-                            await fetchConversas()
-                          }}
-                        />
-                      </Card>
-                    )}
-
-                    {/* Anotações Internas */}
-                    {conversaSelecionada && faculdadeSelecionada && (
-                      <AnotacoesPanel
-                        conversaId={conversaSelecionada}
-                        faculdadeId={faculdadeSelecionada.id}
-                        usuarioAtual={{
-                          id: 'current-user-id', // TODO: Obter do contexto de autenticação
-                          nome: 'Atendente', // TODO: Obter do contexto de autenticação
-                        }}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-12 px-4">
-                    <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Lead não encontrado</h4>
-                    <p className="text-xs text-gray-600">
-                      Este contato ainda não possui cadastro como prospect
-                    </p>
-                  </div>
-                )}
-
-                {/* Tags e Anotações mesmo sem prospect */}
-                {conversaSelecionada && conversaDetalhes && faculdadeSelecionada && !prospectInfo && (
-                  <>
-                    <Card className="bg-white">
-                      <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                        <Zap className="w-4 h-4" />
-                        Tags
-                      </h4>
-                      <TagsManager
-                        tagsAtuais={conversaDetalhes.tags || []}
-                        conversaId={conversaSelecionada}
-                        faculdadeId={faculdadeSelecionada.id}
-                        setor={conversaDetalhes.setor}
-                        onTagsChanged={async (novasTags) => {
-                          if (conversaDetalhes) {
-                            setConversaDetalhes({
-                              ...conversaDetalhes,
-                              tags: novasTags,
-                            })
-                          }
-                          await fetchConversas()
-                        }}
-                      />
-                    </Card>
-
-                    {/* Timeline de Interações */}
-                    {conversaDetalhes && (
-                      <TimelineProspect
-                        prospectId={conversaDetalhes.prospect_id || null}
-                        telefone={conversaDetalhes.telefone || null}
-                        faculdadeId={faculdadeSelecionada.id}
-                        conversaAtualId={conversaSelecionada}
-                      />
-                    )}
-
-                    <AnotacoesPanel
-                      conversaId={conversaSelecionada}
-                      faculdadeId={faculdadeSelecionada.id}
-                      usuarioAtual={{
-                        id: 'current-user-id',
-                        nome: 'Atendente',
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-            </>
-          ) : (
             <div className="flex-1 flex items-center justify-center p-4">
               <div className="text-center">
-                <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-sm text-gray-600">Selecione uma conversa para ver as informações do lead</p>
+                <MessageSquare className="w-12 h-12 lg:w-16 lg:h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-base lg:text-lg font-semibold mb-2 text-gray-900">Selecione uma conversa</h3>
+                <p className="text-sm lg:text-base text-gray-600">Clique em uma conversa ao lado para começar</p>
               </div>
             </div>
           )}
         </div>
+
       </div>
 
       {/* Modal de Transferência */}
@@ -2470,6 +2357,60 @@ export default function ConversasPage() {
           nomeContato={conversaAtual?.nome || conversaDetalhes.nome}
           faculdadeId={faculdadeSelecionada.id}
           onAgendar={handleAgendarMensagem}
+        />
+      )}
+
+      {/* Modal de Informações do Lead */}
+      {conversaSelecionada && conversaAtual && faculdadeSelecionada && (
+        <InformacoesLeadModal
+          isOpen={showInformacoesLeadModal}
+          onClose={() => setShowInformacoesLeadModal(false)}
+          prospectInfo={prospectInfo}
+          loadingProspect={loadingProspect}
+          conversaDetalhes={conversaDetalhes}
+          conversaSelecionada={conversaSelecionada}
+          faculdadeId={faculdadeSelecionada.id}
+          telefone={conversaAtual.telefone}
+          mounted={mounted}
+          formatDate={formatDate}
+          getStatusColor={getStatusColor}
+          onTagsChanged={async (novasTags) => {
+            if (conversaDetalhes) {
+              setConversaDetalhes({
+                ...conversaDetalhes,
+                tags: novasTags,
+              })
+            }
+            await fetchConversas()
+          }}
+        />
+      )}
+
+      {/* Sidebar de Informações do Lead */}
+      {conversaSelecionada && conversaAtual && faculdadeSelecionada && (
+        <SidebarLeadInfo
+          isOpen={abaSelecionada !== null}
+          onClose={() => setAbaSelecionada(null)}
+          abaSelecionada={abaSelecionada}
+          prospectInfo={prospectInfo}
+          loadingProspect={loadingProspect}
+          conversaDetalhes={conversaDetalhes}
+          conversaSelecionada={conversaSelecionada}
+          faculdadeId={faculdadeSelecionada.id}
+          telefone={conversaAtual.telefone}
+          nome={prospectInfo?.nome || prospectInfo?.nome_completo || conversaAtual.nome}
+          mounted={mounted}
+          formatDate={formatDate}
+          getStatusColor={getStatusColor}
+          onTagsChanged={async (novasTags) => {
+            if (conversaDetalhes) {
+              setConversaDetalhes({
+                ...conversaDetalhes,
+                tags: novasTags,
+              })
+            }
+            await fetchConversas()
+          }}
         />
       )}
     </div>

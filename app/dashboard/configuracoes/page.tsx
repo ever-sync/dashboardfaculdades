@@ -27,6 +27,7 @@ import {
   Zap,
   TrendingUp
 } from 'lucide-react'
+import { EvolutionConfig } from '@/components/dashboard/EvolutionConfig'
 
 export default function ConfiguracoesPage() {
   const { faculdadeSelecionada } = useFaculdade()
@@ -88,8 +89,32 @@ export default function ConfiguracoesPage() {
 
   // Carregar configurações salvas
   useEffect(() => {
-    // Aqui você pode carregar as configurações do banco de dados
-    // Por enquanto, vamos usar valores padrão
+    const carregarConfiguracoes = async () => {
+      try {
+        // Carregar URL da Evolution API
+        const urlResponse = await fetch('/api/configuracoes-globais?chave=evolution_api_url')
+        if (urlResponse.ok) {
+          const urlData = await urlResponse.json()
+          if (urlData.valor && urlData.valor !== '***') {
+            setEvolutionUrl(urlData.valor)
+          }
+        }
+
+        // Carregar API Key da Evolution API (será mascarada se sensível)
+        const keyResponse = await fetch('/api/configuracoes-globais?chave=evolution_api_key')
+        if (keyResponse.ok) {
+          const keyData = await keyResponse.json()
+          // Se não for sensível ou se já tiver valor, carregar
+          if (keyData.valor && keyData.valor !== '***') {
+            setEvolutionKey(keyData.valor)
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar configurações:', error)
+      }
+    }
+
+    carregarConfiguracoes()
   }, [faculdadeSelecionada])
 
   // Verificar status da conexão WhatsApp
@@ -131,16 +156,68 @@ export default function ConfiguracoesPage() {
     setSalvo(false)
 
     try {
-      // Aqui você salvaria as configurações no banco de dados
-      // Por enquanto, vamos apenas simular
-      await new Promise(resolve => setTimeout(resolve, 500))
+      if (secao === 'whatsapp' && whatsappProvider === 'evolution') {
+        // Validar URL da Evolution API
+        if (evolutionUrl && !evolutionUrl.match(/^https?:\/\/.+/)) {
+          alert('URL inválida. Deve começar com http:// ou https://')
+          setLoading(false)
+          return
+        }
 
-      setSalvo(true)
-      setTimeout(() => setSalvo(false), 3000)
+        // Salvar URL da Evolution API
+        if (evolutionUrl) {
+          const urlResponse = await fetch('/api/configuracoes-globais', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chave: 'evolution_api_url',
+              valor: evolutionUrl.trim(),
+              descricao: 'URL base da Evolution API',
+              tipo: 'texto',
+              sensivel: false,
+            }),
+          })
 
-      // Se for configurações de WhatsApp, verificar conexão
-      if (secao === 'whatsapp') {
+          if (!urlResponse.ok) {
+            const errorData = await urlResponse.json()
+            throw new Error(errorData.error || 'Erro ao salvar URL da API')
+          }
+        }
+
+        // Salvar API Key da Evolution API
+        if (evolutionKey) {
+          const keyResponse = await fetch('/api/configuracoes-globais', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chave: 'evolution_api_key',
+              valor: evolutionKey.trim(),
+              descricao: 'Chave de autenticação da Evolution API',
+              tipo: 'texto',
+              sensivel: true, // Marcar como sensível
+            }),
+          })
+
+          if (!keyResponse.ok) {
+            const errorData = await keyResponse.json()
+            throw new Error(errorData.error || 'Erro ao salvar API Key')
+          }
+        }
+
+        setSalvo(true)
+        setTimeout(() => setSalvo(false), 3000)
+
+        // Verificar conexão após salvar
         await verificarStatusConexao()
+      } else {
+        // Para outras seções, apenas simular por enquanto
+        await new Promise(resolve => setTimeout(resolve, 500))
+        setSalvo(true)
+        setTimeout(() => setSalvo(false), 3000)
       }
     } catch (error: any) {
       console.error('Erro ao salvar configurações:', error)
@@ -245,7 +322,13 @@ export default function ConfiguracoesPage() {
                       placeholder="https://api.evolution.com"
                       value={evolutionUrl}
                       onChange={(e) => setEvolutionUrl(e.target.value)}
+                      type="url"
                     />
+                    {evolutionUrl && !evolutionUrl.match(/^https?:\/\/.+/) && (
+                      <p className="text-xs text-red-600 mt-1">
+                        ⚠️ URL inválida. Deve começar com http:// ou https://
+                      </p>
+                    )}
                     <Input
                       label="API Key"
                       type="password"
@@ -334,6 +417,9 @@ export default function ConfiguracoesPage() {
                 </div>
               </div>
             </Card>
+
+            {/* Seção: Instância Evolution (por Faculdade) */}
+            <EvolutionConfig />
 
             {/* Seção: IA e Automação */}
             <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -823,7 +909,7 @@ export default function ConfiguracoesPage() {
 
                 <Button
                   onClick={() => handleSalvar('perfil')}
-                  disabled={loading || (novaSenha && novaSenha !== confirmarSenha)}
+                  disabled={loading || !!(novaSenha && novaSenha !== confirmarSenha)}
                   variant="primary"
                   className="w-full"
                 >

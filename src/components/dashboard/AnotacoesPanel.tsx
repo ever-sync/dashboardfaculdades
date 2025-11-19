@@ -61,7 +61,7 @@ export function AnotacoesPanel({
       setLoading(true)
       setErro(null)
       
-      const response = await fetch(`/api/conversas/anotacoes?conversa_id=${conversaId}`)
+      const response = await fetch(`/api/conversas/anotacoes?conversa_id=${conversaId}&faculdade_id=${faculdadeId}`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -114,6 +114,7 @@ export function AnotacoesPanel({
         },
         body: JSON.stringify({
           conversa_id: conversaId,
+          faculdade_id: faculdadeId,
           texto: textoAnotacao.trim(),
           anotacao_id: editandoId || undefined,
           autor: usuarioAtual?.nome || 'Atendente',
@@ -160,6 +161,7 @@ export function AnotacoesPanel({
         },
         body: JSON.stringify({
           conversa_id: conversaId,
+          faculdade_id: faculdadeId,
           anotacao_id: id,
         }),
       })
@@ -187,25 +189,28 @@ export function AnotacoesPanel({
   }
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-gray-600" />
-          <h3 className="font-semibold text-gray-900">Anotações Internas</h3>
+    <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-red-50 rounded-lg">
+              <FileText className="w-4 h-4 text-red-600" />
+            </div>
+            <h3 className="font-semibold text-sm text-gray-900">Anotações Internas</h3>
+          </div>
+          {!mostrarFormulario && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setMostrarFormulario(true)}
+              className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+              disabled={loading}
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nova</span>
+            </Button>
+          )}
         </div>
-        {!mostrarFormulario && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setMostrarFormulario(true)}
-            className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-            disabled={loading}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nova Anotação</span>
-          </Button>
-        )}
-      </div>
 
       {/* Formulário */}
       {mostrarFormulario && (
@@ -319,6 +324,7 @@ export function AnotacoesPanel({
             ))}
         </div>
       )}
+      </div>
     </Card>
   )
 }

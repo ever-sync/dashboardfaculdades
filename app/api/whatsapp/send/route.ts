@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
+import { getEvolutionConfig } from '@/lib/evolutionConfig'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -19,10 +20,16 @@ const sendMessageSchema = z.object({
 /**
  * Função auxiliar para enviar mensagem via Evolution API
  */
-async function sendViaEvolutionAPI(phoneNumber: string, conteudo: string): Promise<{ success: boolean; message_id?: string; error?: string }> {
-  const evolutionApiUrl = process.env.EVOLUTION_API_URL
-  const evolutionApiKey = process.env.EVOLUTION_API_KEY
-  const evolutionInstance = process.env.EVOLUTION_API_INSTANCE
+async function sendViaEvolutionAPI(
+  phoneNumber: string, 
+  conteudo: string,
+  apiUrl?: string,
+  apiKey?: string,
+  instance?: string
+): Promise<{ success: boolean; message_id?: string; error?: string }> {
+  const evolutionApiUrl = apiUrl || process.env.EVOLUTION_API_URL
+  const evolutionApiKey = apiKey || process.env.EVOLUTION_API_KEY
+  const evolutionInstance = instance || process.env.EVOLUTION_API_INSTANCE
 
   if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
     return { success: false, error: 'Evolution API não configurada' }
@@ -164,10 +171,10 @@ export async function POST(request: NextRequest) {
     
     const { conversa_id, conteudo, remetente, tipo_mensagem } = validation.data
     
-    // Buscar informações da conversa para obter o número do telefone
+    // Buscar informações da conversa para obter o número do telefone e nome
     const { data: conversa, error: conversaError } = await supabase
       .from('conversas_whatsapp')
-      .select('telefone, faculdade_id')
+      .select('telefone, faculdade_id, nome')
       .eq('id', conversa_id)
       .single()
 
@@ -179,7 +186,24 @@ export async function POST(request: NextRequest) {
     }
 
     const phoneNumber = conversa.telefone
+    const nomeCliente = conversa.nome || phoneNumber
     
+    // Normalizar telefone para diferentes formatos
+    // Formato para Evolution API: apenas números (ex: 5512981092776)
+    const phoneForEvolution = phoneNumber.replace('@s.whatsapp.net', '').replace(/\D/g, '')
+    
+    // Formato para tabelas n8n: com sufixo @s.whatsapp.net (ex: 5512981092776@s.whatsapp.net)
+    const phoneWithSuffix = phoneNumber.includes('@') 
+      ? phoneNumber 
+      : `${phoneNumber.replace(/\D/g, '')}@s.whatsapp.net`
+    
+    // Buscar configuração da faculdade (instância Evolution)
+    const { data: faculdade, error: faculdadeError } = await supabase
+      .from('faculdades')
+      .select('evolution_instance, evolution_status')
+      .eq('id', conversa.faculdade_id)
+      .single()
+
     // Determinar provedor (prioridade: Evolution > Twilio > Baileys)
     const provider = process.env.WHATSAPP_PROVIDER || 'evolution' // ou 'twilio', 'baileys'
     
@@ -187,7 +211,29 @@ export async function POST(request: NextRequest) {
 
     switch (provider.toLowerCase()) {
       case 'evolution':
-        sendResult = await sendViaEvolutionAPI(phoneNumber, conteudo)
+        // Buscar configuração global (banco de dados ou variáveis de ambiente)
+        const config = await getEvolutionConfig()
+        const evolutionApiUrl = config.apiUrl
+        const evolutionApiKey = config.apiKey
+        // Instância é única por faculdade
+        const evolutionInstance = faculdade?.evolution_instance || process.env.EVOLUTION_API_INSTANCE
+
+        if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+          return NextResponse.json(
+            { error: 'Evolution API não configurada. Configure no banco de dados (tabela configuracoes_globais) ou nas variáveis de ambiente EVOLUTION_API_URL, EVOLUTION_API_KEY e crie uma instância para esta faculdade.' },
+            { status: 500 }
+          )
+        }
+
+        // Verificar se instância está conectada
+        if (faculdade?.evolution_status !== 'conectado') {
+          return NextResponse.json(
+            { error: `Instância Evolution não está conectada. Status: ${faculdade?.evolution_status || 'desconectado'}` },
+            { status: 503 }
+          )
+        }
+
+        sendResult = await sendViaEvolutionAPI(phoneForEvolution, conteudo, evolutionApiUrl, evolutionApiKey, evolutionInstance)
         break
       case 'twilio':
         sendResult = await sendViaTwilio(phoneNumber, conteudo)
@@ -234,6 +280,58 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', conversa_id)
+
+    // Sincronizar com tabelas do n8n (opcional - apenas se as tabelas existirem)
+    // Esta sincronização garante que mensagens do app apareçam no histórico do n8n
+    try {
+      const timestamp = new Date().toISOString()
+      
+      // Atualizar ou criar registro na tabela chats (formato n8n)
+      // Esta tabela mantém o registro de conversas ativas
+      const { error: chatError } = await supabase
+        .from('chats')
+        .upsert({
+          phone: phoneWithSuffix, // Formato: 5512981092776@s.whatsapp.net
+          updated_at: timestamp,
+          created_at: timestamp, // Garantir que created_at seja definido na criação
+        }, {
+          onConflict: 'phone',
+        })
+
+      if (chatError) {
+        // Verificar se é erro de tabela não existir (código 42P01) ou outro erro
+        if (chatError.code === '42P01' || chatError.message?.includes('does not exist')) {
+          console.warn('Tabela chats não existe no banco de dados. Sincronização com n8n desabilitada.')
+        } else {
+          console.warn('Erro ao sincronizar tabela chats:', chatError.message)
+        }
+      }
+
+      // Salvar mensagem na tabela chat_messages (formato n8n)
+      // Esta tabela mantém o histórico completo de mensagens
+      const { error: chatMessageError } = await supabase
+        .from('chat_messages')
+        .insert({
+          phone: phoneWithSuffix,
+          nomewpp: nomeCliente,
+          user_message: null, // Mensagem do cliente (não aplicável aqui, é mensagem do app)
+          bot_message: conteudo.trim(), // Mensagem do atendente/bot enviada pelo app
+          created_at: timestamp,
+        })
+
+      if (chatMessageError) {
+        // Verificar se é erro de tabela não existir (código 42P01) ou outro erro
+        if (chatMessageError.code === '42P01' || chatMessageError.message?.includes('does not exist')) {
+          console.warn('Tabela chat_messages não existe no banco de dados. Sincronização com n8n desabilitada.')
+        } else {
+          console.warn('Erro ao sincronizar tabela chat_messages:', chatMessageError.message)
+        }
+      }
+    } catch (syncError: any) {
+      // Não falhar o envio se a sincronização com n8n falhar
+      // A sincronização é opcional e não deve bloquear o envio de mensagens
+      console.warn('Erro ao sincronizar com tabelas do n8n:', syncError.message)
+    }
 
     return NextResponse.json({
       success: true,

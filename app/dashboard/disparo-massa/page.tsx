@@ -26,8 +26,10 @@ import {
   Calendar,
   Zap
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
+import { useToast } from '@/contexts/ToastContext'
+import { supabase } from '@/lib/supabase'
 
 interface Destinatario {
   id: string
@@ -40,6 +42,7 @@ interface Destinatario {
 
 export default function DisparoMassaPage() {
   const { faculdadeSelecionada } = useFaculdade()
+  const { showToast } = useToast()
   const [mensagem, setMensagem] = useState('')
   const [buscaDestinatarios, setBuscaDestinatarios] = useState('')
   const [intervalo, setIntervalo] = useState(1)
@@ -47,12 +50,84 @@ export default function DisparoMassaPage() {
   const [personalizar, setPersonalizar] = useState(false)
   const [mostrarPreview, setMostrarPreview] = useState(false)
   
-  // Mock de destinatários
-  const [destinatarios, setDestinatarios] = useState<Destinatario[]>([
-    { id: '1', nome: 'João Silva', telefone: '(11) 98765-4321', email: 'joao@email.com', curso: 'Engenharia', selecionado: false },
-    { id: '2', nome: 'Maria Santos', telefone: '(11) 97654-3210', email: 'maria@email.com', curso: 'Administração', selecionado: false },
-    { id: '3', nome: 'Pedro Costa', telefone: '(11) 96543-2109', curso: 'Medicina', selecionado: false },
-  ])
+  const [destinatarios, setDestinatarios] = useState<Destinatario[]>([])
+  const [loading, setLoading] = useState(true)
+  const [enviando, setEnviando] = useState(false)
+
+  // Buscar destinatários do banco
+  const fetchDestinatarios = useCallback(async () => {
+    if (!faculdadeSelecionada) {
+      setDestinatarios([])
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Buscar prospects
+      const { data: prospects } = await supabase
+        .from('prospects_academicos')
+        .select('id, nome, telefone, email, curso')
+        .eq('faculdade_id', faculdadeSelecionada.id)
+        .not('telefone', 'is', null)
+
+      // Buscar conversas
+      const { data: conversas } = await supabase
+        .from('conversas_whatsapp')
+        .select('id, nome, telefone')
+        .eq('faculdade_id', faculdadeSelecionada.id)
+        .not('telefone', 'is', null)
+
+      const destinatariosUnicos: Destinatario[] = []
+      const telefonesProcessados = new Set<string>()
+
+      // Adicionar prospects
+      if (prospects) {
+        prospects.forEach((p: any) => {
+          const telefoneLimpo = p.telefone?.replace(/\D/g, '')
+          if (telefoneLimpo && !telefonesProcessados.has(telefoneLimpo)) {
+            telefonesProcessados.add(telefoneLimpo)
+            destinatariosUnicos.push({
+              id: `prospect-${p.id}`,
+              nome: p.nome,
+              telefone: p.telefone,
+              email: p.email,
+              curso: p.curso,
+              selecionado: false
+            })
+          }
+        })
+      }
+
+      // Adicionar conversas (evitando duplicatas)
+      if (conversas) {
+        conversas.forEach((c: any) => {
+          const telefoneLimpo = c.telefone?.replace(/\D/g, '')
+          if (telefoneLimpo && !telefonesProcessados.has(telefoneLimpo)) {
+            telefonesProcessados.add(telefoneLimpo)
+            destinatariosUnicos.push({
+              id: `conversa-${c.id}`,
+              nome: c.nome,
+              telefone: c.telefone,
+              selecionado: false
+            })
+          }
+        })
+      }
+
+      setDestinatarios(destinatariosUnicos)
+    } catch (error) {
+      console.error('Erro ao buscar destinatários:', error)
+      setDestinatarios([])
+    } finally {
+      setLoading(false)
+    }
+  }, [faculdadeSelecionada])
+
+  useEffect(() => {
+    fetchDestinatarios()
+  }, [fetchDestinatarios])
 
   const destinatariosSelecionados = destinatarios.filter(d => d.selecionado).length
   const destinatariosFiltrados = destinatarios.filter(d => 
@@ -85,6 +160,116 @@ export default function DisparoMassaPage() {
   const caracteres = mensagem.length
   const palavras = mensagem.trim() ? mensagem.trim().split(/\s+/).length : 0
   const tempoEstimado = destinatariosSelecionados * intervalo
+
+  const handleEnviar = async () => {
+    if (!mensagem.trim() || destinatariosSelecionados === 0 || !faculdadeSelecionada) {
+      return
+    }
+
+    const confirmacao = confirm(
+      `Tem certeza que deseja enviar esta mensagem para ${destinatariosSelecionados} destinatário(s)?`
+    )
+    if (!confirmacao) return
+
+    try {
+      setEnviando(true)
+      const selecionados = destinatarios.filter(d => d.selecionado)
+      let sucessos = 0
+      let erros = 0
+
+      for (let i = 0; i < selecionados.length; i++) {
+        const destinatario = selecionados[i]
+        
+        try {
+          // Personalizar mensagem se necessário
+          let mensagemPersonalizada = mensagem
+          if (personalizar) {
+            mensagemPersonalizada = mensagem
+              .replace(/\{nome\}/g, destinatario.nome || '')
+              .replace(/\{telefone\}/g, destinatario.telefone || '')
+              .replace(/\{email\}/g, destinatario.email || '')
+              .replace(/\{curso\}/g, destinatario.curso || '')
+          }
+
+          // Buscar ou criar conversa
+          let conversaId = null
+          if (destinatario.id.startsWith('conversa-')) {
+            conversaId = destinatario.id.replace('conversa-', '')
+          } else {
+            // Buscar conversa existente ou criar nova
+            const { data: conversaExistente } = await supabase
+              .from('conversas_whatsapp')
+              .select('id')
+              .eq('faculdade_id', faculdadeSelecionada.id)
+              .eq('telefone', destinatario.telefone)
+              .single()
+
+            if (conversaExistente) {
+              conversaId = conversaExistente.id
+            } else {
+              // Criar nova conversa
+              const { data: novaConversa } = await supabase
+                .from('conversas_whatsapp')
+                .insert({
+                  faculdade_id: faculdadeSelecionada.id,
+                  telefone: destinatario.telefone,
+                  nome: destinatario.nome,
+                  status: 'ativo',
+                  departamento: 'Disparo em Massa',
+                  ultima_mensagem: mensagemPersonalizada.substring(0, 100)
+                })
+                .select()
+                .single()
+
+              if (novaConversa) {
+                conversaId = novaConversa.id
+              }
+            }
+          }
+
+          // Enviar mensagem via API
+          if (conversaId) {
+            const response = await fetch('/api/whatsapp/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversa_id: conversaId,
+                conteudo: mensagemPersonalizada,
+                remetente: 'agente'
+              })
+            })
+
+            if (response.ok) {
+              sucessos++
+            } else {
+              erros++
+            }
+          } else {
+            erros++
+          }
+
+          // Aguardar intervalo entre envios
+          if (i < selecionados.length - 1 && intervalo > 0) {
+            await new Promise(resolve => setTimeout(resolve, intervalo * 1000))
+          }
+        } catch (error) {
+          console.error(`Erro ao enviar para ${destinatario.nome}:`, error)
+          erros++
+        }
+      }
+
+      showToast(`Envio concluído! Sucessos: ${sucessos}, Erros: ${erros}`, sucessos > 0 ? 'success' : 'warning')
+      
+      // Limpar seleção e mensagem
+      setDestinatarios(prev => prev.map(d => ({ ...d, selecionado: false })))
+      setMensagem('')
+    } catch (error) {
+      console.error('Erro ao enviar mensagens:', error)
+      showToast('Erro ao enviar mensagens. Tente novamente.', 'error')
+    } finally {
+      setEnviando(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
@@ -379,7 +564,11 @@ export default function DisparoMassaPage() {
 
                 {/* Lista de destinatários */}
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {destinatariosFiltrados.length === 0 ? (
+                  {loading ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <p className="text-sm font-medium">Carregando destinatários...</p>
+                    </div>
+                  ) : destinatariosFiltrados.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                       <p className="text-sm font-medium">Nenhum destinatário encontrado</p>
@@ -434,10 +623,14 @@ export default function DisparoMassaPage() {
                 <div className="pt-4 border-t border-gray-200">
                   <Button
                     className="w-full"
-                    disabled={!mensagem.trim() || destinatariosSelecionados === 0}
+                    disabled={!mensagem.trim() || destinatariosSelecionados === 0 || enviando || loading}
+                    onClick={handleEnviar}
                   >
                     <Send className="w-4 h-4 mr-2" />
-                    Enviar para {destinatariosSelecionados} destinatário{destinatariosSelecionados !== 1 ? 's' : ''}
+                    {enviando 
+                      ? `Enviando... (${destinatariosSelecionados} destinatários)`
+                      : `Enviar para ${destinatariosSelecionados} destinatário${destinatariosSelecionados !== 1 ? 's' : ''}`
+                    }
                   </Button>
                   {(!mensagem.trim() || destinatariosSelecionados === 0) && (
                     <p className="text-xs text-gray-500 mt-2 text-center">

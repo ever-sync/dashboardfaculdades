@@ -11,7 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 // Schema de validação
 const buscarBaseSchema = z.object({
   query: z.string().min(1, 'Query é obrigatória').max(500, 'Query muito longa'),
-  faculdade_id: z.string().uuid('ID de faculdade inválido').optional(),
+  faculdade_id: z.string().uuid('ID de faculdade inválido'),
   categoria: z.string().optional(),
   limite: z.number().int().min(1).max(20).optional().default(5),
 })
@@ -47,12 +47,8 @@ export async function GET(request: NextRequest) {
       .from('base_conhecimento')
       .select('id, pergunta, resposta, categoria, tags, visualizacoes, util, nao_util')
       .eq('ativo', true)
+      .eq('faculdade_id', faculdade_id) // Sempre filtrar por faculdade (obrigatório)
       .limit(limiteValidado)
-
-    // Filtrar por faculdade se fornecido
-    if (faculdade_id) {
-      querySupabase = querySupabase.eq('faculdade_id', faculdade_id)
-    }
 
     // Filtrar por categoria se fornecido
     if (categoriaValidada) {

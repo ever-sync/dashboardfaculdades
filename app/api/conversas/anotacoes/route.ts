@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getUserFriendlyError } from '@/lib/errorMessages'
+import { validarConversaFaculdade } from '@/lib/faculdadeValidation'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,6 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 // Schema de validação para POST (criar)
 const criarAnotacaoSchema = z.object({
   conversa_id: z.string().uuid('ID de conversa inválido'),
+  faculdade_id: z.string().uuid('ID de faculdade inválido'),
   texto: z.string().min(1, 'Texto da anotação é obrigatório').max(2000, 'Anotação muito longa'),
   autor: z.string().min(1, 'Nome do autor é obrigatório'),
   autor_id: z.string().uuid('ID do autor inválido').optional(),
@@ -19,6 +21,7 @@ const criarAnotacaoSchema = z.object({
 // Schema de validação para PUT (editar)
 const editarAnotacaoSchema = z.object({
   conversa_id: z.string().uuid('ID de conversa inválido'),
+  faculdade_id: z.string().uuid('ID de faculdade inválido'),
   anotacao_id: z.string().uuid('ID de anotação inválido'),
   texto: z.string().min(1, 'Texto da anotação é obrigatório').max(2000, 'Anotação muito longa'),
 })
@@ -26,6 +29,7 @@ const editarAnotacaoSchema = z.object({
 // Schema de validação para DELETE
 const deletarAnotacaoSchema = z.object({
   conversa_id: z.string().uuid('ID de conversa inválido'),
+  faculdade_id: z.string().uuid('ID de faculdade inválido'),
   anotacao_id: z.string().uuid('ID de anotação inválido'),
 })
 
@@ -34,11 +38,28 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const conversaId = searchParams.get('conversa_id')
+    const faculdadeId = searchParams.get('faculdade_id')
 
     if (!conversaId) {
       return NextResponse.json(
         { error: 'ID de conversa é obrigatório' },
         { status: 400 }
+      )
+    }
+
+    if (!faculdadeId) {
+      return NextResponse.json(
+        { error: 'ID de faculdade é obrigatório' },
+        { status: 400 }
+      )
+    }
+
+    // Validar que a conversa pertence à faculdade
+    const validacao = await validarConversaFaculdade(conversaId, faculdadeId)
+    if (!validacao.valido) {
+      return NextResponse.json(
+        { error: validacao.erro || 'Conversa não pertence à faculdade' },
+        { status: 403 }
       )
     }
 
@@ -86,7 +107,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { conversa_id, texto, autor, autor_id } = validation.data
+    const { conversa_id, faculdade_id, texto, autor, autor_id } = validation.data
+
+    // Validar que a conversa pertence à faculdade
+    const validacao = await validarConversaFaculdade(conversa_id, faculdade_id)
+    if (!validacao.valido) {
+      return NextResponse.json(
+        { error: validacao.erro || 'Conversa não pertence à faculdade' },
+        { status: 403 }
+      )
+    }
 
     // Buscar anotações atuais
     const { data: conversa, error: conversaError } = await supabase
@@ -160,7 +190,16 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { conversa_id, anotacao_id, texto } = validation.data
+    const { conversa_id, faculdade_id, anotacao_id, texto } = validation.data
+
+    // Validar que a conversa pertence à faculdade
+    const validacao = await validarConversaFaculdade(conversa_id, faculdade_id)
+    if (!validacao.valido) {
+      return NextResponse.json(
+        { error: validacao.erro || 'Conversa não pertence à faculdade' },
+        { status: 403 }
+      )
+    }
 
     // Buscar anotações atuais
     const { data: conversa, error: conversaError } = await supabase
@@ -241,7 +280,16 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const { conversa_id, anotacao_id } = validation.data
+    const { conversa_id, faculdade_id, anotacao_id } = validation.data
+
+    // Validar que a conversa pertence à faculdade
+    const validacao = await validarConversaFaculdade(conversa_id, faculdade_id)
+    if (!validacao.valido) {
+      return NextResponse.json(
+        { error: validacao.erro || 'Conversa não pertence à faculdade' },
+        { status: 403 }
+      )
+    }
 
     // Buscar anotações atuais
     const { data: conversa, error: conversaError } = await supabase

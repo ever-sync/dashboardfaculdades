@@ -284,10 +284,10 @@ export default function FilasPage() {
     return `${horas}h ${mins}min`
   }
 
-  const getBadgeColor = (minutos: number): 'success' | 'warning' | 'destructive' => {
+  const getBadgeColor = (minutos: number): 'success' | 'warning' | 'danger' => {
     if (minutos < 5) return 'success'
     if (minutos < 15) return 'warning'
-    return 'destructive'
+    return 'danger'
   }
 
   if (!faculdadeSelecionada) {

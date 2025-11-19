@@ -38,13 +38,20 @@ export default function CursosPage() {
   const [importando, setImportando] = useState(false)
 
   const fetchCursos = useCallback(async () => {
+    if (!faculdadeSelecionada) {
+      setCursos([])
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
 
-      // Buscar todos os cursos ativos (removido filtro de faculdade para permitir ver todos)
+      // Buscar cursos apenas da faculdade selecionada
       const { data, error } = await supabase
         .from('cursos')
         .select('*')
+        .eq('faculdade_id', faculdadeSelecionada.id)
         .eq('ativo', true)
         .order('curso', { ascending: true })
 
@@ -76,7 +83,7 @@ export default function CursosPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [faculdadeSelecionada])
 
   // Criar mapa de faculdades para busca rápida
   useEffect(() => {
@@ -1149,28 +1156,28 @@ export default function CursosPage() {
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${cursoVisualizando.pratica ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <span className="text-sm text-gray-700">Prática</span>
-                    <Badge variant={cursoVisualizando.pratica ? 'success' : 'secondary'} className="ml-auto">
+                    <Badge variant={cursoVisualizando.pratica ? 'success' : 'info'} className="ml-auto">
                       {cursoVisualizando.pratica ? 'Sim' : 'Não'}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${cursoVisualizando.laboratorio ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <span className="text-sm text-gray-700">Laboratório</span>
-                    <Badge variant={cursoVisualizando.laboratorio ? 'success' : 'secondary'} className="ml-auto">
+                    <Badge variant={cursoVisualizando.laboratorio ? 'success' : 'info'} className="ml-auto">
                       {cursoVisualizando.laboratorio ? 'Sim' : 'Não'}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${cursoVisualizando.estagio ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <span className="text-sm text-gray-700">Estágio</span>
-                    <Badge variant={cursoVisualizando.estagio ? 'success' : 'secondary'} className="ml-auto">
+                    <Badge variant={cursoVisualizando.estagio ? 'success' : 'info'} className="ml-auto">
                       {cursoVisualizando.estagio ? 'Sim' : 'Não'}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${cursoVisualizando.tcc ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <span className="text-sm text-gray-700">TCC</span>
-                    <Badge variant={cursoVisualizando.tcc ? 'success' : 'secondary'} className="ml-auto">
+                    <Badge variant={cursoVisualizando.tcc ? 'success' : 'info'} className="ml-auto">
                       {cursoVisualizando.tcc ? 'Sim' : 'Não'}
                     </Badge>
                   </div>
@@ -1180,7 +1187,7 @@ export default function CursosPage() {
               {/* Informações Adicionais */}
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>Status: <Badge variant={cursoVisualizando.ativo ? 'success' : 'secondary'}>
+                  <span>Status: <Badge variant={cursoVisualizando.ativo ? 'success' : 'info'}>
                     {cursoVisualizando.ativo ? 'Ativo' : 'Inativo'}
                   </Badge></span>
                   <span>Criado em: {new Date(cursoVisualizando.created_at).toLocaleDateString('pt-BR')}</span>

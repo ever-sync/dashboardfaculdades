@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/exportRelatorio'
 import { formatCurrency } from '@/lib/utils'
+import { useToast } from '@/contexts/ToastContext'
 
 interface RelatorioData {
   relatorioMensal: Array<{
@@ -27,6 +28,12 @@ interface RelatorioData {
     leads: number
     conversao: number
   }>
+  desempenhoEquipe?: Array<{
+    nome: string
+    atendimentos: number
+    conversao: number
+    nota: number
+  }>
   totais: {
     matriculas: number
     prospects: number
@@ -35,15 +42,16 @@ interface RelatorioData {
   }
 }
 
-const desempenhoEquipeMock = [
-  { nome: 'Ana Silva', atendimentos: 120, conversao: 32, nota: 4.8 },
-  { nome: 'Carlos Oliveira', atendimentos: 98, conversao: 28, nota: 4.5 },
-  { nome: 'Beatriz Santos', atendimentos: 85, conversao: 25, nota: 4.6 },
-  { nome: 'Diego Ferreira', atendimentos: 60, conversao: 20, nota: 4.2 },
-]
+interface DesempenhoEquipe {
+  nome: string
+  atendimentos: number
+  conversao: number
+  nota: number
+}
 
 export default function RelatoriosPage() {
   const { faculdadeSelecionada } = useFaculdade()
+  const { showToast } = useToast()
   const [periodoSelecionado, setPeriodoSelecionado] = useState('mes')
   const [tipoRelatorio, setTipoRelatorio] = useState('completo')
   const [relatorioData, setRelatorioData] = useState<RelatorioData | null>(null)
@@ -70,7 +78,7 @@ export default function RelatoriosPage() {
 
   const handleExportar = (formato: 'pdf' | 'excel' | 'csv') => {
     if (!relatorioData) {
-      alert('Nenhum dado disponível para exportar')
+      showToast('Nenhum dado disponível para exportar', 'warning')
       return
     }
 
@@ -93,7 +101,7 @@ export default function RelatoriosPage() {
   }
 
   const handleVisualizar = (relatorio: string) => {
-    alert(`Visualizando ${relatorio}...`)
+    showToast(`Visualizando ${relatorio}...`, 'info')
   }
 
   return (
@@ -315,7 +323,8 @@ export default function RelatoriosPage() {
                 </tr>
               </thead>
               <tbody>
-                {desempenhoEquipeMock.map((membro, index) => (
+                {relatorioData?.desempenhoEquipe && relatorioData.desempenhoEquipe.length > 0 ? (
+                  relatorioData.desempenhoEquipe.map((membro, index) => (
                   <tr key={membro.nome} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -349,7 +358,14 @@ export default function RelatoriosPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-gray-500">
+                      Nenhum dado de desempenho disponível
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
