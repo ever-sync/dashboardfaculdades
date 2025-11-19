@@ -62,8 +62,16 @@ export async function POST(request: NextRequest) {
     // Validar dados
     const validation = configSchema.safeParse(body)
     if (!validation.success) {
+      const firstError = validation.error.issues[0]
       return NextResponse.json(
-        { error: validation.error.issues[0]?.message || 'Erro de validação' },
+        { 
+          error: firstError?.message || 'Erro de validação',
+          details: `Campo inválido: ${firstError?.path?.join('.') || 'desconhecido'}`,
+          issues: validation.error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message
+          }))
+        },
         { status: 400 }
       )
     }

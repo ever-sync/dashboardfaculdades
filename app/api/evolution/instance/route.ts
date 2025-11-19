@@ -43,12 +43,56 @@ const createInstanceSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const faculdadeId = searchParams.get('faculdade_id')
+    // Tentar múltiplas formas de ler os parâmetros (para garantir compatibilidade)
+    const nextUrlSearchParams = request.nextUrl.searchParams
+    const urlFromRequest = new URL(request.url)
+    const urlSearchParams = urlFromRequest.searchParams
+    
+    // Tentar obter faculdade_id de ambas as fontes
+    const faculdadeId = nextUrlSearchParams.get('faculdade_id') || urlSearchParams.get('faculdade_id')
+    
+    // Log detalhado (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('GET /api/evolution/instance - Request details:', {
+        request_url: request.url,
+        nextUrl_pathname: request.nextUrl.pathname,
+        nextUrl_search: request.nextUrl.search,
+        nextUrl_href: request.nextUrl.href,
+        nextUrl_searchParams_keys: Array.from(nextUrlSearchParams.keys()),
+        nextUrl_searchParams_all: Object.fromEntries(nextUrlSearchParams.entries()),
+        url_searchParams_keys: Array.from(urlSearchParams.keys()),
+        url_searchParams_all: Object.fromEntries(urlSearchParams.entries()),
+        faculdade_id_from_nextUrl: nextUrlSearchParams.get('faculdade_id'),
+        faculdade_id_from_url: urlSearchParams.get('faculdade_id'),
+        faculdade_id_final: faculdadeId,
+      })
+    }
 
     if (!faculdadeId) {
+      // Log do erro
+      if (process.env.NODE_ENV === 'development') {
+        console.error('GET /api/evolution/instance - faculdade_id não encontrado:', {
+          request_url: request.url,
+          nextUrl_href: request.nextUrl.href,
+          nextUrl_search: request.nextUrl.search,
+          nextUrl_params: Object.fromEntries(nextUrlSearchParams.entries()),
+          url_params: Object.fromEntries(urlSearchParams.entries())
+        })
+      }
+      
       return NextResponse.json(
-        { error: 'faculdade_id é obrigatório' },
+        { 
+          error: 'faculdade_id é obrigatório',
+          details: `É necessário fornecer o ID da faculdade para buscar ou gerenciar a instância Evolution. URL recebida: ${request.nextUrl.href}`,
+          solution: 'Certifique-se de que o parâmetro faculdade_id está sendo enviado na requisição.',
+          debug: process.env.NODE_ENV === 'development' ? {
+            request_url: request.url,
+            nextUrl_href: request.nextUrl.href,
+            nextUrl_search: request.nextUrl.search,
+            nextUrl_params: Object.fromEntries(nextUrlSearchParams.entries()),
+            url_params: Object.fromEntries(urlSearchParams.entries())
+          } : undefined
+        },
         { status: 400 }
       )
     }
@@ -199,10 +243,183 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
+    // Log para debug (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('POST /api/evolution/instance - Body recebido:', {
+        faculdade_id: body.faculdade_id,
+        instance_name: body.instance_name,
+        action: body.action,
+        tipo_faculdade_id: typeof body.faculdade_id,
+        body_completo: body
+      })
+    }
+    
+    // Se action for 'delete', deletar a instância
+    if (body.action === 'delete' && body.faculdade_id) {
+      const faculdadeId = body.faculdade_id
+      
+      // Buscar faculdade
+      const { data: faculdade, error: faculdadeError } = await supabase
+        .from('faculdades')
+        .select('id, evolution_instance')
+        .eq('id', faculdadeId)
+        .single()
+
+      if (faculdadeError || !faculdade) {
+        return NextResponse.json(
+          { error: 'Faculdade não encontrada' },
+          { status: 404 }
+        )
+      }
+
+      // Se tem instância configurada, deletar na Evolution API
+      if (faculdade.evolution_instance) {
+        try {
+          const config = await getEvolutionConfig()
+          if (config.apiUrl && config.apiKey) {
+            const deleteResponse = await fetch(`${config.apiUrl}/instance/delete/${faculdade.evolution_instance}`, {
+              method: 'DELETE',
+              headers: {
+                'apikey': config.apiKey,
+                'Content-Type': 'application/json'
+              }
+            })
+
+            // Não falhar se a instância não existir na Evolution API
+            if (!deleteResponse.ok && deleteResponse.status !== 404) {
+              console.warn('Erro ao deletar instância na Evolution API:', deleteResponse.statusText)
+            }
+          }
+        } catch (error) {
+          console.warn('Erro ao deletar instância na Evolution API:', error)
+        }
+      }
+
+      // Limpar dados da instância no banco
+      const { error: updateError } = await supabase
+        .from('faculdades')
+        .update({
+          evolution_instance: null,
+          evolution_status: 'nao_configurado',
+          evolution_qr_code: null,
+          evolution_qr_expires_at: null,
+          evolution_connected_at: null,
+          evolution_last_error: null,
+        })
+        .eq('id', faculdadeId)
+
+      if (updateError) {
+        return NextResponse.json(
+          { error: 'Erro ao atualizar faculdade' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Instância deletada com sucesso'
+      })
+    }
+    
+    // Se action for 'get', apenas buscar a instância (mesmo comportamento do GET)
+    if (body.action === 'get' && body.faculdade_id) {
+      const faculdadeId = body.faculdade_id
+      
+      // Buscar faculdade
+      const { data: faculdade, error: faculdadeError } = await supabase
+        .from('faculdades')
+        .select('id, nome, evolution_instance, evolution_status, evolution_qr_code, evolution_qr_expires_at, evolution_connected_at, evolution_last_error')
+        .eq('id', faculdadeId)
+        .single()
+
+      if (faculdadeError || !faculdade) {
+        return NextResponse.json(
+          { error: 'Faculdade não encontrada' },
+          { status: 404 }
+        )
+      }
+
+      // Retornar dados da instância (mesma lógica do GET)
+      let status = faculdade.evolution_status || 'nao_configurado'
+      let qrCode = faculdade.evolution_qr_code || null
+      let qrExpiresAt = faculdade.evolution_qr_expires_at || null
+      let connectedAt = faculdade.evolution_connected_at || null
+
+      // Se tem instância configurada, verificar status na Evolution API
+      if (faculdade.evolution_instance) {
+        try {
+          const config = await getEvolutionConfig()
+          if (config.apiUrl && config.apiKey) {
+            const instanceResponse = await fetch(`${config.apiUrl}/instance/fetchInstances`, {
+              headers: {
+                'apikey': config.apiKey,
+                'Content-Type': 'application/json'
+              }
+            })
+
+            if (instanceResponse.ok) {
+              const instances = await instanceResponse.json()
+              const instance = Array.isArray(instances) 
+                ? instances.find((inst: any) => inst.instanceName === faculdade.evolution_instance)
+                : instances[faculdade.evolution_instance]
+
+              if (instance) {
+                const instanceStatus = instance.instance?.status || instance.status
+                status = instanceStatus === 'open' ? 'conectado' : 'desconectado'
+                
+                if (status === 'conectado' && !connectedAt) {
+                  connectedAt = new Date().toISOString()
+                }
+
+                // Atualizar status no banco
+                await supabase
+                  .from('faculdades')
+                  .update({
+                    evolution_status: status,
+                    evolution_connected_at: status === 'conectado' ? connectedAt : faculdade.evolution_connected_at,
+                  })
+                  .eq('id', faculdadeId)
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Erro ao verificar status:', error)
+        }
+      }
+
+      return NextResponse.json({
+        faculdade_id: faculdade.id,
+        instance_name: faculdade.evolution_instance,
+        status,
+        qr_code: qrCode,
+        qr_expires_at: qrExpiresAt,
+        connected_at: connectedAt,
+        last_error: faculdade.evolution_last_error,
+      })
+    }
+    
     const validation = createInstanceSchema.safeParse(body)
     if (!validation.success) {
+      const firstError = validation.error.issues[0]
+      
+      // Log detalhado do erro de validação
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro de validação:', {
+          issues: validation.error.issues,
+          body_recebido: body
+        })
+      }
+      
       return NextResponse.json(
-        { error: validation.error.issues[0]?.message || 'Erro de validação' },
+        { 
+          error: firstError?.message || 'Erro de validação',
+          details: `Campo inválido: ${firstError?.path?.join('.') || 'desconhecido'}. Valor recebido: ${JSON.stringify(body[firstError?.path?.[0] || ''])}`,
+          issues: validation.error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+            received_value: body[issue.path[0]]
+          }))
+        },
         { status: 400 }
       )
     }
@@ -327,12 +544,17 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    // Usar nextUrl que é a forma recomendada no Next.js 13+
+    const { searchParams } = request.nextUrl
     const faculdadeId = searchParams.get('faculdade_id')
 
     if (!faculdadeId) {
       return NextResponse.json(
-        { error: 'faculdade_id é obrigatório' },
+        { 
+          error: 'faculdade_id é obrigatório',
+          details: `É necessário fornecer o ID da faculdade para deletar a instância Evolution. URL recebida: ${request.nextUrl.href}`,
+          solution: 'Certifique-se de que o parâmetro faculdade_id está sendo enviado na requisição.'
+        },
         { status: 400 }
       )
     }

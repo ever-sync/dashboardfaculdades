@@ -163,8 +163,16 @@ export async function POST(request: NextRequest) {
     // Validar dados de entrada
     const validation = sendMessageSchema.safeParse(body)
     if (!validation.success) {
+      const firstError = validation.error.issues[0]
       return NextResponse.json(
-        { error: validation.error.issues[0]?.message || 'Erro de validação' },
+        { 
+          error: firstError?.message || 'Erro de validação',
+          details: `Campo inválido: ${firstError?.path?.join('.') || 'desconhecido'}`,
+          issues: validation.error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message
+          }))
+        },
         { status: 400 }
       )
     }
@@ -182,6 +190,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Conversa não encontrada' },
         { status: 404 }
+      )
+    }
+
+    // Validar se a conversa tem faculdade_id
+    if (!conversa.faculdade_id) {
+      return NextResponse.json(
+        { 
+          error: 'Conversa não possui faculdade associada.',
+          details: 'Esta conversa não está vinculada a nenhuma faculdade. É necessário associar uma faculdade à conversa antes de enviar mensagens.',
+          solution: 'Verifique se a conversa foi criada corretamente com um faculdade_id válido.'
+        },
+        { status: 400 }
       )
     }
 
@@ -204,6 +224,18 @@ export async function POST(request: NextRequest) {
       .eq('id', conversa.faculdade_id)
       .single()
 
+    // Verificar se a faculdade foi encontrada
+    if (faculdadeError || !faculdade) {
+      return NextResponse.json(
+        { 
+          error: 'Faculdade não encontrada.',
+          details: `A faculdade associada à conversa (ID: ${conversa.faculdade_id}) não foi encontrada no banco de dados.`,
+          solution: 'Verifique se a faculdade existe e está ativa no sistema.'
+        },
+        { status: 404 }
+      )
+    }
+
     // Determinar provedor (prioridade: Evolution > Twilio > Baileys)
     const provider = process.env.WHATSAPP_PROVIDER || 'evolution' // ou 'twilio', 'baileys'
     
@@ -218,17 +250,48 @@ export async function POST(request: NextRequest) {
         // Instância é única por faculdade
         const evolutionInstance = faculdade?.evolution_instance || process.env.EVOLUTION_API_INSTANCE
 
-        if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+        // Verificar configurações passo a passo
+        if (!evolutionApiUrl || !evolutionApiKey) {
           return NextResponse.json(
-            { error: 'Evolution API não configurada. Configure no banco de dados (tabela configuracoes_globais) ou nas variáveis de ambiente EVOLUTION_API_URL, EVOLUTION_API_KEY e crie uma instância para esta faculdade.' },
+            { 
+              error: 'Credenciais da Evolution API não configuradas.',
+              details: 'Configure a URL e a chave da API em: Dashboard → Conversas → Ajustes → Evolution API',
+              missing: {
+                url: !evolutionApiUrl,
+                key: !evolutionApiKey
+              }
+            },
+            { status: 500 }
+          )
+        }
+
+        if (!evolutionInstance) {
+          return NextResponse.json(
+            { 
+              error: 'Instância Evolution não configurada para esta faculdade.',
+              details: `A faculdade "${conversa.nome || 'N/A'}" não possui uma instância Evolution configurada.`,
+              solution: 'Acesse: Dashboard → Configurações → Seção "Instância Evolution API" e crie uma instância para esta faculdade.'
+            },
             { status: 500 }
           )
         }
 
         // Verificar se instância está conectada
         if (faculdade?.evolution_status !== 'conectado') {
+          const statusMessages: Record<string, string> = {
+            'desconectado': 'A instância está desconectada. Escaneie o QR code para conectar.',
+            'conectando': 'A instância está aguardando conexão. Escaneie o QR code no WhatsApp.',
+            'erro': 'Houve um erro na conexão. Tente recriar a instância.',
+            'nao_configurado': 'A instância não foi configurada ainda.'
+          }
+          
           return NextResponse.json(
-            { error: `Instância Evolution não está conectada. Status: ${faculdade?.evolution_status || 'desconectado'}` },
+            { 
+              error: `Instância Evolution não está conectada.`,
+              status: faculdade?.evolution_status || 'desconectado',
+              message: statusMessages[faculdade?.evolution_status || 'desconectado'] || 'Status desconhecido',
+              solution: 'Acesse: Dashboard → Configurações → Seção "Instância Evolution API" e escaneie o QR code para conectar.'
+            },
             { status: 503 }
           )
         }
@@ -364,11 +427,12 @@ export async function GET(request: NextRequest) {
     // Verificar status baseado no provedor
     switch (provider.toLowerCase()) {
       case 'evolution': {
-        const evolutionApiUrl = process.env.EVOLUTION_API_URL
-        const evolutionApiKey = process.env.EVOLUTION_API_KEY
-        const evolutionInstance = process.env.EVOLUTION_API_INSTANCE
+        // Buscar configuração global (banco de dados ou variáveis de ambiente)
+        const config = await getEvolutionConfig()
+        const evolutionApiUrl = config.apiUrl
+        const evolutionApiKey = config.apiKey
 
-        if (evolutionApiUrl && evolutionApiKey && evolutionInstance) {
+        if (evolutionApiUrl && evolutionApiKey) {
           try {
             const response = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, {
               method: 'GET',
@@ -379,15 +443,29 @@ export async function GET(request: NextRequest) {
 
             if (response.ok) {
               const data = await response.json()
-              const instance = data.find((inst: any) => inst.instance.instanceName === evolutionInstance)
-              connected = instance?.instance?.status === 'open'
+              const instances = Array.isArray(data) ? data : Object.values(data)
+              
+              // Verificar se há pelo menos uma instância conectada
+              const connectedInstances = instances.filter((inst: any) => {
+                const status = inst.instance?.status || inst.status
+                return status === 'open' || status === 'connected'
+              })
+              
+              connected = connectedInstances.length > 0
               statusMessage = connected 
-                ? `Evolution API conectado (${evolutionInstance})`
-                : `Evolution API não está conectado (${evolutionInstance})`
+                ? `Evolution API conectado (${connectedInstances.length} instância(s) ativa(s))`
+                : instances.length > 0
+                ? `Evolution API configurado mas nenhuma instância conectada (${instances.length} instância(s) encontrada(s))`
+                : 'Evolution API configurado mas nenhuma instância encontrada'
+            } else {
+              const errorData = await response.json().catch(() => ({}))
+              statusMessage = errorData.message || `Erro ${response.status}: ${response.statusText}`
             }
-          } catch (error) {
-            statusMessage = 'Erro ao verificar status do Evolution API'
+          } catch (error: any) {
+            statusMessage = `Erro ao verificar status do Evolution API: ${error.message || 'Erro desconhecido'}`
           }
+        } else {
+          statusMessage = 'Evolution API não configurada. Configure a URL e a chave da API.'
         }
         break
       }

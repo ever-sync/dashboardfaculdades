@@ -32,9 +32,36 @@ export function FaculdadeProvider({ children }: { children: React.ReactNode }) {
       
       if (error) throw error
       
-      setFaculdades(data || [])
-      if (data && data.length > 0 && !faculdadeSelecionada) {
-        setFaculdadeSelecionada(data[0])
+      const faculdadesData = data || []
+      setFaculdades(faculdadesData)
+      
+      // Log para debug (apenas em desenvolvimento)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Faculdades carregadas:', {
+          total: faculdadesData.length,
+          faculdades: faculdadesData.map((f: Faculdade) => ({
+            id: f.id,
+            nome: f.nome,
+            tem_id: !!f.id,
+            tipo_id: typeof f.id
+          }))
+        })
+      }
+      
+      if (faculdadesData.length > 0 && !faculdadeSelecionada) {
+        // Selecionar a primeira faculdade que tenha ID válido
+        const faculdadeValida = faculdadesData.find((f: Faculdade) => f.id && typeof f.id === 'string')
+        if (faculdadeValida) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Faculdade selecionada:', {
+              id: faculdadeValida.id,
+              nome: faculdadeValida.nome
+            })
+          }
+          setFaculdadeSelecionada(faculdadeValida)
+        } else {
+          console.warn('Nenhuma faculdade com ID válido encontrada. Faculdades:', faculdadesData)
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar faculdades:', error)

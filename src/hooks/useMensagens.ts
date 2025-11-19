@@ -214,6 +214,20 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
                 if (!response.ok) {
                   const errorData = await response.json().catch(() => ({}))
                   console.warn('Erro ao enviar mensagem via WhatsApp:', errorData)
+                  
+                  // Exibir mensagem de erro mais detalhada para o usuário
+                  const errorMessage = errorData.error || 'Erro ao enviar mensagem'
+                  const errorDetails = errorData.details || errorData.message || ''
+                  const errorSolution = errorData.solution || ''
+                  
+                  // Criar mensagem completa e formatada
+                  let fullMessage = `❌ ${errorMessage}`
+                  if (errorDetails) fullMessage += `\n\n📋 ${errorDetails}`
+                  if (errorSolution) fullMessage += `\n\n💡 Solução: ${errorSolution}`
+                  
+                  // Exibir alert com mensagem formatada
+                  // Nota: Em produção, considere usar um sistema de notificações toast
+                  alert(fullMessage)
                 } else {
                   const result = await response.json()
                   console.log('Mensagem enviada via WhatsApp com sucesso:', result)
@@ -282,6 +296,21 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({}))
               console.warn('Erro ao enviar mensagem via WhatsApp:', errorData)
+              
+              // Exibir mensagem de erro mais detalhada para o usuário
+              const errorMessage = errorData.error || 'Erro ao enviar mensagem'
+              const errorDetails = errorData.details || errorData.message || ''
+              const errorSolution = errorData.solution || ''
+              
+              // Criar mensagem completa e formatada
+              let fullMessage = `❌ ${errorMessage}`
+              if (errorDetails) fullMessage += `\n\n📋 ${errorDetails}`
+              if (errorSolution) fullMessage += `\n\n💡 Solução: ${errorSolution}`
+              
+              // Exibir alert com mensagem formatada
+              // Nota: Em produção, considere usar um sistema de notificações toast
+              alert(fullMessage)
+              
               // Não lançar erro - mensagem já está salva no banco
               // Apenas logar o erro para debug
             } else {
