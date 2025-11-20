@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { validateData } from '@/lib/schemas'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -25,12 +26,12 @@ const buscarConversasSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validar dados
-    const validation = buscarConversasSchema.safeParse(body)
+    const validation = validateData(buscarConversasSchema, body)
     if (!validation.success) {
       return NextResponse.json(
-        { error: getUserFriendlyError(validation.error.issues[0]?.message || 'Erro de validação') },
+        { error: validation.error },
         { status: 400 }
       )
     }
@@ -191,9 +192,9 @@ export async function POST(request: NextRequest) {
       .in('conversa_id', conversaIds)
 
     const mensagensPorConversa: Record<string, number> = {}
-    ;(mensagensCount || []).forEach((m: any) => {
-      mensagensPorConversa[m.conversa_id] = (mensagensPorConversa[m.conversa_id] || 0) + 1
-    })
+      ; (mensagensCount || []).forEach((m: any) => {
+        mensagensPorConversa[m.conversa_id] = (mensagensPorConversa[m.conversa_id] || 0) + 1
+      })
 
     // Adicionar contagem de mensagens
     const conversasComMensagens = conversas.map(c => ({

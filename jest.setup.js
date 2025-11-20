@@ -1,5 +1,6 @@
 // Configuração do Jest para testes
 // Este arquivo é executado antes de cada teste
+import '@testing-library/jest-dom'
 
 // Mock do Next.js router
 jest.mock('next/navigation', () => ({

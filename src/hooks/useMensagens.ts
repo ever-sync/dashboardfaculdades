@@ -129,7 +129,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
 
       try {
         const timestamp = new Date().toISOString()
-        
+
         const mensagemData: any = {
           conversa_id: conversaId,
           conteudo: conteudo.trim(),
@@ -153,7 +153,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
           // Verificar se o erro é relacionado a timestamp
           if (insertError.message?.includes('timestamp') || insertError.code === '42703' || insertError.code === '42883') {
             console.warn('Tentando inserir sem timestamp:', insertError.message)
-            
+
             const { data: dataWithoutTimestamp, error: insertError2 } = await supabase
               .from('mensagens')
               .insert(mensagemData)
@@ -161,24 +161,8 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
               .single()
 
             if (insertError2) {
-              const errorMessage2 = insertError2?.message || 'Erro desconhecido ao inserir mensagem'
-              const errorCode2 = insertError2?.code || 'N/A'
-              const errorDetails2 = insertError2?.details || 'Sem detalhes'
-              const errorHint2 = insertError2?.hint || 'Sem hint'
-              
-              // Só logar se houver informações úteis
-              if (errorMessage2 !== 'Erro desconhecido ao inserir mensagem' || errorCode2 !== 'N/A') {
-                console.error('Erro ao inserir mensagem (sem timestamp):', {
-                  message: errorMessage2,
-                  code: errorCode2,
-                  details: errorDetails2,
-                  hint: errorHint2
-                })
-              } else {
-                console.error('Erro ao inserir mensagem (sem timestamp):', insertError2)
-              }
-              
-              throw new Error(errorMessage2)
+              console.error('Erro ao inserir mensagem (sem timestamp):', insertError2)
+              throw new Error(insertError2?.message || 'Erro ao inserir mensagem')
             }
 
             // Atualizar a última mensagem na conversa
@@ -214,17 +198,17 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
                 if (!response.ok) {
                   const errorData = await response.json().catch(() => ({}))
                   console.warn('Erro ao enviar mensagem via WhatsApp:', errorData)
-                  
+
                   // Exibir mensagem de erro mais detalhada para o usuário
                   const errorMessage = errorData.error || 'Erro ao enviar mensagem'
                   const errorDetails = errorData.details || errorData.message || ''
                   const errorSolution = errorData.solution || ''
-                  
+
                   // Criar mensagem completa e formatada
                   let fullMessage = `❌ ${errorMessage}`
                   if (errorDetails) fullMessage += `\n\n📋 ${errorDetails}`
                   if (errorSolution) fullMessage += `\n\n💡 Solução: ${errorSolution}`
-                  
+
                   // Exibir alert com mensagem formatada
                   // Nota: Em produção, considere usar um sistema de notificações toast
                   alert(fullMessage)
@@ -242,25 +226,8 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
           }
 
           // Se não for erro de timestamp, lançar o erro original
-          const errorMessage = insertError?.message || 'Erro desconhecido ao inserir mensagem'
-          const errorCode = insertError?.code || 'N/A'
-          const errorDetails = insertError?.details || 'Sem detalhes'
-          const errorHint = insertError?.hint || 'Sem hint'
-          
-          // Só logar se houver informações úteis
-          if (errorMessage !== 'Erro desconhecido ao inserir mensagem' || errorCode !== 'N/A') {
-            console.error('Erro ao inserir mensagem:', {
-              message: errorMessage,
-              code: errorCode,
-              details: errorDetails,
-              hint: errorHint
-            })
-          } else {
-            // Se não houver informações úteis, logar o erro completo de forma diferente
-            console.error('Erro ao inserir mensagem:', insertError)
-          }
-          
-          throw new Error(errorMessage)
+          console.error('Erro ao inserir mensagem:', insertError)
+          throw new Error(insertError?.message || 'Erro ao inserir mensagem')
         }
 
         // Atualizar a última mensagem na conversa
@@ -296,21 +263,21 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({}))
               console.warn('Erro ao enviar mensagem via WhatsApp:', errorData)
-              
+
               // Exibir mensagem de erro mais detalhada para o usuário
               const errorMessage = errorData.error || 'Erro ao enviar mensagem'
               const errorDetails = errorData.details || errorData.message || ''
               const errorSolution = errorData.solution || ''
-              
+
               // Criar mensagem completa e formatada
               let fullMessage = `❌ ${errorMessage}`
               if (errorDetails) fullMessage += `\n\n📋 ${errorDetails}`
               if (errorSolution) fullMessage += `\n\n💡 Solução: ${errorSolution}`
-              
+
               // Exibir alert com mensagem formatada
               // Nota: Em produção, considere usar um sistema de notificações toast
               alert(fullMessage)
-              
+
               // Não lançar erro - mensagem já está salva no banco
               // Apenas logar o erro para debug
             } else {

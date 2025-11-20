@@ -3,6 +3,7 @@ import { getUserFriendlyError } from '@/lib/errorMessages'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 import { getEvolutionConfig } from '@/lib/evolutionConfig'
+import { validateData } from '@/lib/schemas'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -21,7 +22,7 @@ const sendMessageSchema = z.object({
  * Função auxiliar para enviar mensagem via Evolution API
  */
 async function sendViaEvolutionAPI(
-  phoneNumber: string, 
+  phoneNumber: string,
   conteudo: string,
   apiUrl?: string,
   apiKey?: string,
@@ -143,42 +144,21 @@ async function sendViaBaileys(phoneNumber: string, conteudo: string): Promise<{ 
   }
 }
 
-/**
- * API para envio de mensagens WhatsApp
- * 
- * Suporta múltiplos provedores:
- * - Evolution API (recomendado para self-hosted)
- * - Twilio WhatsApp (serviço gerenciado)
- * - Baileys (self-hosted alternativo)
- * 
- * Configure as variáveis de ambiente conforme o provedor escolhido:
- * - Evolution API: EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_API_INSTANCE
- * - Twilio: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSPP_FROM
- * - Baileys: BAILEYS_API_URL, BAILEYS_API_KEY
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validar dados de entrada
-    const validation = sendMessageSchema.safeParse(body)
+    const validation = validateData(sendMessageSchema, body)
     if (!validation.success) {
-      const firstError = validation.error.issues[0]
       return NextResponse.json(
-        { 
-          error: firstError?.message || 'Erro de validação',
-          details: `Campo inválido: ${firstError?.path?.join('.') || 'desconhecido'}`,
-          issues: validation.error.issues.map(issue => ({
-            path: issue.path.join('.'),
-            message: issue.message
-          }))
-        },
+        { error: validation.error },
         { status: 400 }
       )
     }
-    
+
     const { conversa_id, conteudo, remetente, tipo_mensagem } = validation.data
-    
+
     // Buscar informações da conversa para obter o número do telefone e nome
     const { data: conversa, error: conversaError } = await supabase
       .from('conversas_whatsapp')
@@ -196,7 +176,7 @@ export async function POST(request: NextRequest) {
     // Validar se a conversa tem faculdade_id
     if (!conversa.faculdade_id) {
       return NextResponse.json(
-        { 
+        {
           error: 'Conversa não possui faculdade associada.',
           details: 'Esta conversa não está vinculada a nenhuma faculdade. É necessário associar uma faculdade à conversa antes de enviar mensagens.',
           solution: 'Verifique se a conversa foi criada corretamente com um faculdade_id válido.'
@@ -207,16 +187,16 @@ export async function POST(request: NextRequest) {
 
     const phoneNumber = conversa.telefone
     const nomeCliente = conversa.nome || phoneNumber
-    
+
     // Normalizar telefone para diferentes formatos
     // Formato para Evolution API: apenas números (ex: 5512981092776)
     const phoneForEvolution = phoneNumber.replace('@s.whatsapp.net', '').replace(/\D/g, '')
-    
+
     // Formato para tabelas n8n: com sufixo @s.whatsapp.net (ex: 5512981092776@s.whatsapp.net)
-    const phoneWithSuffix = phoneNumber.includes('@') 
-      ? phoneNumber 
+    const phoneWithSuffix = phoneNumber.includes('@')
+      ? phoneNumber
       : `${phoneNumber.replace(/\D/g, '')}@s.whatsapp.net`
-    
+
     // Buscar configuração da faculdade (instância Evolution)
     const { data: faculdade, error: faculdadeError } = await supabase
       .from('faculdades')
@@ -227,7 +207,7 @@ export async function POST(request: NextRequest) {
     // Verificar se a faculdade foi encontrada
     if (faculdadeError || !faculdade) {
       return NextResponse.json(
-        { 
+        {
           error: 'Faculdade não encontrada.',
           details: `A faculdade associada à conversa (ID: ${conversa.faculdade_id}) não foi encontrada no banco de dados.`,
           solution: 'Verifique se a faculdade existe e está ativa no sistema.'
@@ -238,7 +218,7 @@ export async function POST(request: NextRequest) {
 
     // Determinar provedor (prioridade: Evolution > Twilio > Baileys)
     const provider = process.env.WHATSAPP_PROVIDER || 'evolution' // ou 'twilio', 'baileys'
-    
+
     let sendResult: { success: boolean; message_id?: string; error?: string }
 
     switch (provider.toLowerCase()) {
@@ -253,7 +233,7 @@ export async function POST(request: NextRequest) {
         // Verificar configurações passo a passo
         if (!evolutionApiUrl || !evolutionApiKey) {
           return NextResponse.json(
-            { 
+            {
               error: 'Credenciais da Evolution API não configuradas.',
               details: 'Configure a URL e a chave da API em: Dashboard → Conversas → Ajustes → Evolution API',
               missing: {
@@ -267,7 +247,7 @@ export async function POST(request: NextRequest) {
 
         if (!evolutionInstance) {
           return NextResponse.json(
-            { 
+            {
               error: 'Instância Evolution não configurada para esta faculdade.',
               details: `A faculdade "${conversa.nome || 'N/A'}" não possui uma instância Evolution configurada.`,
               solution: 'Acesse: Dashboard → Configurações → Seção "Instância Evolution API" e crie uma instância para esta faculdade.'
@@ -284,9 +264,9 @@ export async function POST(request: NextRequest) {
             'erro': 'Houve um erro na conexão. Tente recriar a instância.',
             'nao_configurado': 'A instância não foi configurada ainda.'
           }
-          
+
           return NextResponse.json(
-            { 
+            {
               error: `Instância Evolution não está conectada.`,
               status: faculdade?.evolution_status || 'desconectado',
               message: statusMessages[faculdade?.evolution_status || 'desconectado'] || 'Status desconhecido',
@@ -348,7 +328,7 @@ export async function POST(request: NextRequest) {
     // Esta sincronização garante que mensagens do app apareçam no histórico do n8n
     try {
       const timestamp = new Date().toISOString()
-      
+
       // Atualizar ou criar registro na tabela chats (formato n8n)
       // Esta tabela mantém o registro de conversas ativas
       const { error: chatError } = await supabase
@@ -407,7 +387,7 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       console.error('Erro ao enviar mensagem WhatsApp:', error)
     }
-    
+
     return NextResponse.json(
       { error: getUserFriendlyError(error) },
       { status: 500 }
@@ -444,19 +424,19 @@ export async function GET(request: NextRequest) {
             if (response.ok) {
               const data = await response.json()
               const instances = Array.isArray(data) ? data : Object.values(data)
-              
+
               // Verificar se há pelo menos uma instância conectada
               const connectedInstances = instances.filter((inst: any) => {
                 const status = inst.instance?.status || inst.status
                 return status === 'open' || status === 'connected'
               })
-              
+
               connected = connectedInstances.length > 0
-              statusMessage = connected 
+              statusMessage = connected
                 ? `Evolution API conectado (${connectedInstances.length} instância(s) ativa(s))`
                 : instances.length > 0
-                ? `Evolution API configurado mas nenhuma instância conectada (${instances.length} instância(s) encontrada(s))`
-                : 'Evolution API configurado mas nenhuma instância encontrada'
+                  ? `Evolution API configurado mas nenhuma instância conectada (${instances.length} instância(s) encontrada(s))`
+                  : 'Evolution API configurado mas nenhuma instância encontrada'
             } else {
               const errorData = await response.json().catch(() => ({}))
               statusMessage = errorData.message || `Erro ${response.status}: ${response.statusText}`
@@ -483,7 +463,7 @@ export async function GET(request: NextRequest) {
             })
 
             connected = response.ok
-            statusMessage = connected 
+            statusMessage = connected
               ? 'Twilio WhatsApp conectado'
               : 'Twilio WhatsApp não está conectado'
           } catch (error) {
@@ -506,7 +486,7 @@ export async function GET(request: NextRequest) {
             })
 
             connected = response.ok
-            statusMessage = connected 
+            statusMessage = connected
               ? 'Baileys API conectado'
               : 'Baileys API não está conectado'
           } catch (error) {
@@ -516,7 +496,7 @@ export async function GET(request: NextRequest) {
         break
       }
     }
-    
+
     return NextResponse.json({
       connected,
       provider,

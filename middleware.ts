@@ -61,15 +61,19 @@ export async function middleware(request: NextRequest) {
   const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
   const isLogin = request.nextUrl.pathname === '/login'
 
-  // Se tentar acessar dashboard sem estar logado, redirecionar para login
-  if (isDashboard && !user) {
+  // Verificar cookie de usuário demo (fallback)
+  const demoUserCookie = request.cookies.get('user')
+  const hasDemoUser = !!demoUserCookie
+
+  // Se tentar acessar dashboard sem estar logado (nem Supabase nem Demo), redirecionar para login
+  if (isDashboard && !user && !hasDemoUser) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Se estiver logado e tentar acessar login, redirecionar para dashboard
-  if (isLogin && user) {
+  // Se estiver logado (Supabase ou Demo) e tentar acessar login, redirecionar para dashboard
+  if (isLogin && (user || hasDemoUser)) {
     const redirect = request.nextUrl.searchParams.get('redirect')
     return NextResponse.redirect(new URL(redirect || '/dashboard', request.url))
   }

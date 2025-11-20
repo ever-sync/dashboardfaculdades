@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { validateData } from '@/lib/schemas'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 import { validarConversaFaculdade } from '@/lib/faculdadeValidation'
 
@@ -19,12 +20,12 @@ const encerrarConversaSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validar dados
-    const validation = encerrarConversaSchema.safeParse(body)
+    const validation = validateData(encerrarConversaSchema, body)
     if (!validation.success) {
       return NextResponse.json(
-        { error: getUserFriendlyError(validation.error.issues[0]?.message || 'Erro de validação') },
+        { error: validation.error },
         { status: 400 }
       )
     }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Faculdade } from '@/types/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { X } from 'lucide-react'
+import { X, Smartphone } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import {
   validateRequired,
@@ -28,6 +28,13 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Evolution API states
+  const [evolutionLoading, setEvolutionLoading] = useState(false)
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [instanceStatus, setInstanceStatus] = useState<string>('nao_configurado')
+  const [instanceName, setInstanceName] = useState('')
+
   const [formData, setFormData] = useState({
     nome: '',
     cnpj: '',
@@ -53,6 +60,17 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
         plano: faculdade.plano || 'basico',
         status: faculdade.status || 'ativo',
       })
+
+      // Se não tem evolution_instance, considera como não configurado
+      if (!faculdade.evolution_instance) {
+        setInstanceStatus('nao_configurado')
+        setQrCode(null)
+        setInstanceName('')
+      } else {
+        setInstanceStatus(faculdade.evolution_status || 'desconectado')
+        setQrCode(faculdade.evolution_qr_code || null)
+        setInstanceName(faculdade.evolution_instance || '')
+      }
     } else {
       setFormData({
         nome: '',
@@ -65,6 +83,9 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
         plano: 'basico',
         status: 'ativo',
       })
+      setInstanceStatus('nao_configurado')
+      setQrCode(null)
+      setInstanceName('')
     }
     setErrors({})
   }, [faculdade, isOpen])
@@ -176,6 +197,145 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
       setLoading(false)
     }
   }
+
+  const handleCreateInstance = async () => {
+    if (!faculdade?.id) {
+      showToast('Salve a faculdade primeiro antes de criar uma instância', 'warning')
+      return
+    }
+
+    if (!instanceName || !instanceName.trim()) {
+      showToast('Digite um nome para a instância', 'warning')
+      return
+    }
+
+    setEvolutionLoading(true)
+    try {
+      const payload = {
+        faculdade_id: faculdade.id,
+        instance_name: instanceName.trim()
+      }
+
+      console.log('Enviando para API:', payload)
+
+      const res = await fetch('/api/evolution/instance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json()
+
+      console.log('Resposta da API:', data)
+
+      if (!res.ok) {
+        showToast(data.error || 'Erro ao criar instância', 'error')
+        return
+      }
+
+      showToast('Instância criada com sucesso!', 'success')
+      setInstanceStatus('conectando')
+      setQrCode(data.qr_code || null)
+      onSave() // Recarregar dados
+    } catch (err) {
+      console.error('Erro ao criar instância:', err)
+      showToast('Erro ao criar instância', 'error')
+    } finally {
+      setEvolutionLoading(false)
+    }
+  }
+
+  const handleUpdateStatus = async () => {
+    if (!faculdade?.id) return
+
+    setEvolutionLoading(true)
+    try {
+      const res = await fetch(`/api/evolution/instance?faculdade_id=${faculdade.id}`, {
+        method: 'GET',
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        showToast(data.error || 'Erro ao atualizar status', 'error')
+        return
+      }
+
+      setInstanceStatus(data.status || 'nao_configurado')
+      setQrCode(data.qr_code || null)
+      showToast('Status atualizado!', 'success')
+      onSave() // Recarregar dados
+    } catch (err) {
+      showToast('Erro ao atualizar status', 'error')
+    } finally {
+      setEvolutionLoading(false)
+    }
+  }
+
+  const handleDeleteInstance = async () => {
+    if (!faculdade?.id) return
+
+    if (!confirm('Tem certeza que deseja deletar esta instância?')) {
+      return
+    }
+
+    setEvolutionLoading(true)
+    try {
+      const res = await fetch(`/api/evolution/instance?faculdade_id=${faculdade.id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        showToast(data.error || 'Erro ao deletar instância', 'error')
+        return
+      }
+
+      showToast('Instância deletada com sucesso!', 'success')
+      setInstanceStatus('nao_configurado')
+      setQrCode(null)
+      setInstanceName('')
+      onSave() // Recarregar dados
+    } catch (err) {
+      showToast('Erro ao deletar instância', 'error')
+    } finally {
+      setEvolutionLoading(false)
+    }
+  }
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'conectado':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      case 'desconectado':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+      case 'conectando':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+      case 'erro':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'conectado':
+        return 'Conectado'
+      case 'desconectado':
+        return 'Desconectado'
+      case 'conectando':
+        return 'Conectando'
+      case 'erro':
+        return 'Erro'
+      case 'nao_configurado':
+        return 'Não Configurado'
+      default:
+        return status
+    }
+  }
+
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
