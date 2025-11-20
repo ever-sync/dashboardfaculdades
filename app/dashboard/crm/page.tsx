@@ -701,7 +701,7 @@ export default function CRMPage() {
               <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-900">{coluna.label}</h3>
-                  <Badge variant="default" className="text-xs">
+                  <Badge variant="info" className="text-xs">
                     ({coluna.negociacoes.length})
                   </Badge>
                 </div>
@@ -793,7 +793,7 @@ export default function CRMPage() {
                           {negociacao.tags.slice(0, 2).map((tag, idx) => (
                             <Badge
                               key={idx}
-                              variant="default"
+                              variant="info"
                               className="text-xs px-2 py-0.5 bg-teal-100 text-teal-700"
                             >
                               {tag}
@@ -835,4 +835,5 @@ export default function CRMPage() {
     </div>
   )
 }
+
 

@@ -296,7 +296,7 @@ export default function CriarNegociacaoPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.tags.map((tag, idx) => (
-                    <Badge key={idx} variant="default" className="flex items-center gap-1">
+                    <Badge key={idx} variant="info" className="flex items-center gap-1">
                       {tag}
                       <button
                         type="button"
@@ -348,4 +348,5 @@ export default function CriarNegociacaoPage() {
     </div>
   )
 }
+
 

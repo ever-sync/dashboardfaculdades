@@ -438,7 +438,7 @@ export default function ConfigurarFunilPage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-gray-900">{etapa.nome}</h3>
-                              <Badge variant="default" className="text-xs">
+                              <Badge variant="info" className="text-xs">
                                 Sigla: {etapa.sigla}
                               </Badge>
                             </div>
@@ -537,4 +537,5 @@ export default function ConfigurarFunilPage() {
     </div>
   )
 }
+
 

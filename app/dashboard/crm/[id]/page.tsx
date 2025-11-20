@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { 
+import {
   ChevronLeft,
   ThumbsDown,
   ThumbsUp,
@@ -46,14 +46,14 @@ export default function CRMDetalhesPage() {
   const { faculdadeSelecionada } = useFaculdade()
   const { showToast } = useToast()
   const negociacaoId = params.id as string
-  
+
   const [loading, setLoading] = useState(true)
   const [mostrarSaldo, setMostrarSaldo] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState('historico')
   const [empresaExpandida, setEmpresaExpandida] = useState(false)
   const [responsavelExpandido, setResponsavelExpandido] = useState(false)
   const [saldoExpandido, setSaldoExpandido] = useState(false)
-  
+
   const [negociacao, setNegociacao] = useState<any>(null)
   const [empresa, setEmpresa] = useState<any>(null)
   const [contato, setContato] = useState<any>(null)
@@ -106,7 +106,7 @@ export default function CRMDetalhesPage() {
           .select('*')
           .eq('id', negData.funil_id)
           .single()
-        
+
         if (funilData) {
           setFunil(funilData)
         }
@@ -119,7 +119,7 @@ export default function CRMDetalhesPage() {
           .select('*')
           .eq('id', negData.empresa_id)
           .single()
-        
+
         if (empresaData) {
           setEmpresa(empresaData)
         }
@@ -132,7 +132,7 @@ export default function CRMDetalhesPage() {
           .select('*')
           .eq('id', negData.contato_id)
           .single()
-        
+
         if (contatoData) {
           setContato(contatoData)
         }
@@ -344,7 +344,7 @@ export default function CRMDetalhesPage() {
                 negociacao.tags.map((tag: string, idx: number) => (
                   <Badge
                     key={idx}
-                    variant={idx === 0 ? 'default' : 'info'}
+                    variant="info"
                     className={idx === 0 ? 'bg-purple-600 text-white' : 'bg-teal-600 text-white'}
                   >
                     {tag}
@@ -361,16 +361,14 @@ export default function CRMDetalhesPage() {
                 {etapasFormatadas.map((etapa, idx) => (
                   <div
                     key={etapa.id}
-                    className={`flex items-center gap-1 flex-shrink-0 ${
-                      etapa.ativo ? 'text-teal-600' : 'text-gray-400'
-                    }`}
+                    className={`flex items-center gap-1 flex-shrink-0 ${etapa.ativo ? 'text-teal-600' : 'text-gray-400'
+                      }`}
                   >
                     <div
-                      className={`px-3 py-1 rounded text-xs font-medium ${
-                        etapa.ativo
-                          ? 'bg-teal-100 text-teal-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
+                      className={`px-3 py-1 rounded text-xs font-medium ${etapa.ativo
+                        ? 'bg-teal-100 text-teal-700'
+                        : 'bg-gray-100 text-gray-500'
+                        }`}
                     >
                       {etapa.label} {etapa.dias > 0 && `(${etapa.dias} dias)`}
                     </div>
@@ -390,11 +388,10 @@ export default function CRMDetalhesPage() {
                 <button
                   key={aba}
                   onClick={() => setAbaAtiva(aba.toLowerCase())}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    abaAtiva === aba.toLowerCase()
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${abaAtiva === aba.toLowerCase()
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   {aba}
                 </button>
@@ -428,9 +425,8 @@ export default function CRMDetalhesPage() {
                 <div className="space-y-4">
                   {historico.length > 0 ? historico.map((evento) => (
                     <div key={evento.id} className="flex gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        evento.cor === 'pink' ? 'bg-pink-100' : 'bg-gray-100'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${evento.cor === 'pink' ? 'bg-pink-100' : 'bg-gray-100'
+                        }`}>
                         {evento.cor === 'pink' ? (
                           <Flag className="w-4 h-4 text-pink-600" />
                         ) : (
@@ -525,7 +521,7 @@ export default function CRMDetalhesPage() {
               </div>
               <div>
                 <span className="text-gray-500">Status:</span>
-                <Badge variant={negociacao.status === 'venda' ? 'success' : negociacao.status === 'perdida' ? 'danger' : 'default'}>
+                <Badge variant={negociacao.status === 'venda' ? 'success' : negociacao.status === 'perdida' ? 'danger' : 'info'}>
                   {negociacao.status}
                 </Badge>
               </div>
@@ -584,7 +580,7 @@ export default function CRMDetalhesPage() {
                   {contato.telefone && (
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-gray-400" />
-                      <MessageSquare 
+                      <MessageSquare
                         className="w-4 h-4 text-green-600 cursor-pointer hover:text-green-700"
                         onClick={() => router.push(`/dashboard/conversas?telefone=${contato.telefone}`)}
                       />
@@ -613,7 +609,7 @@ export default function CRMDetalhesPage() {
                   {negociacao.telefone && (
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-gray-400" />
-                      <MessageSquare 
+                      <MessageSquare
                         className="w-4 h-4 text-green-600 cursor-pointer hover:text-green-700"
                         onClick={() => router.push(`/dashboard/conversas?telefone=${negociacao.telefone}`)}
                       />

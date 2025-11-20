@@ -135,7 +135,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) {
       showToast('Por favor, corrija os erros no formulário', 'error')
       return
@@ -144,10 +144,10 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
     setLoading(true)
 
     try {
-      const url = faculdade 
+      const url = faculdade
         ? `/api/faculdades/${faculdade.id}`
         : '/api/faculdades'
-      
+
       const method = faculdade ? 'PUT' : 'POST'
 
       const res = await fetch(url, {
@@ -179,14 +179,14 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-200">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-black">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {faculdade ? 'Editar Faculdade' : 'Nova Faculdade'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <X className="w-6 h-6" />
           </button>
@@ -249,7 +249,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
               <select
                 value={formData.plano}
                 onChange={(e) => setFormData({ ...formData, plano: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-300 bg-white dark:bg-white text-black dark:text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="basico">Básico</option>
                 <option value="pro">Pro</option>
@@ -264,7 +264,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-300 bg-white dark:bg-white text-black dark:text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>
@@ -297,7 +297,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
             />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button
               type="button"
               variant="secondary"
@@ -319,4 +319,5 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
     </div>
   )
 }
+
 

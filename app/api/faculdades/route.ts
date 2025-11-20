@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { faculdadeSchema, validateData } from '@/lib/apiValidation'
+import { createFaculdadeSchema, validateData } from '@/lib/schemas'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       console.error('Erro ao buscar faculdades:', error)
     }
-    
+
     return NextResponse.json(
       { error: getUserFriendlyError(error) },
       { status: 500 }
@@ -50,31 +50,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validar dados de entrada
-    const validation = validateData(faculdadeSchema, body)
+    const validation = validateData(createFaculdadeSchema, body)
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error },
         { status: 400 }
       )
     }
-    
-    const { nome, cnpj, telefone, email, endereco, cidade, estado, plano, status } = validation.data
 
     const { data, error } = await supabase
       .from('faculdades')
-      .insert({
-        nome,
-        cnpj,
-        telefone,
-        email,
-        endereco,
-        cidade,
-        estado,
-        plano: plano || 'basico',
-        status: status || 'ativo',
-      })
+      .insert(validation.data)
       .select()
       .single()
 
@@ -86,11 +74,10 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       console.error('Erro ao criar faculdade:', error)
     }
-    
+
     return NextResponse.json(
       { error: getUserFriendlyError(error) },
       { status: error.code === '23505' ? 409 : 500 }
     )
   }
 }
-
