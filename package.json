@@ -18,12 +18,16 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.81.1",
     "@tanstack/react-query": "^5.90.10",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.460.0",
     "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-qr-code": "^2.0.18",
     "recharts": "^3.4.1",
     "use-debounce": "^10.0.6",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {

@@ -92,7 +92,7 @@ export async function middleware(request: NextRequest) {
     "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com http://fonts.googleapis.com https://use.typekit.net; " +
     "font-src 'self' data: https://fonts.gstatic.com http://fonts.gstatic.com https://use.typekit.net http://192.168.0.171:3000 https://192.168.0.171:3000; " +
     "img-src 'self' data: https:; " +
-    "connect-src 'self' https: http://192.168.0.171:3000 https://192.168.0.171:3000 https://use.typekit.net;"
+    "connect-src 'self' https: wss: http://192.168.0.171:3000 https://192.168.0.171:3000 https://use.typekit.net;"
   )
 
   return response

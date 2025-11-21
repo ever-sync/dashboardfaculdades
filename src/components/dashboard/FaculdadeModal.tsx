@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { Faculdade } from '@/types/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { X, Smartphone } from 'lucide-react'
+import { X, Smartphone, Building2, Phone, Mail, MapPin, Map, Hash, CreditCard, Activity, MessageSquare, QrCode, Zap, RotateCcw } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
+import QRCodeSVG from 'react-qr-code'
 import {
   validateRequired,
   validateEmail,
@@ -31,7 +32,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
   // Evolution API states
   const [evolutionLoading, setEvolutionLoading] = useState(false)
-  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null)
   const [instanceStatus, setInstanceStatus] = useState<string>('nao_configurado')
   const [instanceName, setInstanceName] = useState('')
 
@@ -64,11 +65,11 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
       // Se não tem evolution_instance, considera como não configurado
       if (!faculdade.evolution_instance) {
         setInstanceStatus('nao_configurado')
-        setQrCode(null)
+        setQrCodeData(null)
         setInstanceName('')
       } else {
         setInstanceStatus(faculdade.evolution_status || 'desconectado')
-        setQrCode(faculdade.evolution_qr_code || null)
+        setQrCodeData(faculdade.evolution_qr_code || null)
         setInstanceName(faculdade.evolution_instance || '')
       }
     } else {
@@ -84,7 +85,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
         status: 'ativo',
       })
       setInstanceStatus('nao_configurado')
-      setQrCode(null)
+      setQrCodeData(null)
       setInstanceName('')
     }
     setErrors({})
@@ -235,7 +236,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
       showToast('Instância criada com sucesso!', 'success')
       setInstanceStatus('conectando')
-      setQrCode(data.qr_code || null)
+      setQrCodeData(data.qr_code || null)
       onSave() // Recarregar dados
     } catch (err) {
       console.error('Erro ao criar instância:', err)
@@ -262,7 +263,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
       }
 
       setInstanceStatus(data.status || 'nao_configurado')
-      setQrCode(data.qr_code || null)
+      setQrCodeData(data.qr_code || null)
       showToast('Status atualizado!', 'success')
       onSave() // Recarregar dados
     } catch (err) {
@@ -294,11 +295,66 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
       showToast('Instância deletada com sucesso!', 'success')
       setInstanceStatus('nao_configurado')
-      setQrCode(null)
+      setQrCodeData(null)
       setInstanceName('')
       onSave() // Recarregar dados
     } catch (err) {
       showToast('Erro ao deletar instância', 'error')
+    } finally {
+      setEvolutionLoading(false)
+    }
+  }
+
+  const handleConfigureWebhook = async () => {
+    if (!faculdade?.id) return
+
+    setEvolutionLoading(true)
+    try {
+      const res = await fetch(`/api/evolution/instance?faculdade_id=${faculdade.id}`, {
+        method: 'PATCH',
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        showToast(data.error || 'Erro ao configurar webhook', 'error')
+        return
+      }
+
+      showToast('Webhook configurado com sucesso!', 'success')
+    } catch (err) {
+      showToast('Erro ao configurar webhook', 'error')
+    } finally {
+      setEvolutionLoading(false)
+    }
+  }
+
+  const handleSyncChats = async () => {
+    if (!faculdade?.id) return
+
+    setEvolutionLoading(true)
+    try {
+      const res = await fetch('/api/evolution/syncChats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ faculdade_id: faculdade.id }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        showToast(data.error || 'Erro ao sincronizar conversas', 'error')
+        return
+      }
+
+      showToast(
+        `Sincronização concluída! ${data.stats?.sincronizados || 0} novas conversas, ${data.stats?.atualizados || 0} atualizadas.`,
+        'success'
+      )
+      onSave() // Recarregar dados
+    } catch (err) {
+      console.error('Erro ao sincronizar chats:', err)
+      showToast('Erro ao sincronizar conversas', 'error')
     } finally {
       setEvolutionLoading(false)
     }
@@ -456,6 +512,123 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
               maxLength={2}
             />
           </div>
+
+          {/* Seção de Instância Evolution */}
+          {faculdade?.id && (
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Smartphone className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Instância Evolution API
+                </h3>
+              </div>
+
+              {instanceStatus === 'nao_configurado' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Nome da Instância
+                    </label>
+                    <Input
+                      value={instanceName}
+                      onChange={(e) => setInstanceName(e.target.value)}
+                      placeholder="ex: faculdade-centro-universitario"
+                      error={undefined}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Use apenas letras, números e hífens
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleCreateInstance}
+                    disabled={evolutionLoading || !instanceName.trim()}
+                    className="w-full"
+                  >
+                    {evolutionLoading ? 'Criando...' : 'Criar Instância'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Instância:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{instanceName}</p>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(instanceStatus)}`}
+                    >
+                      {getStatusText(instanceStatus)}
+                    </span>
+                  </div>
+
+                  {qrCodeData && instanceStatus !== 'conectado' && (
+                    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <div className="flex items-center gap-2 mb-2">
+                        <QrCode className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Escaneie o QR Code com o WhatsApp
+                        </p>
+                      </div>
+                      <div className="flex justify-center bg-white p-4 rounded">
+                        <QRCodeSVG value={qrCodeData} size={200} />
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                        O QR Code expira em alguns minutos
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleUpdateStatus}
+                      disabled={evolutionLoading}
+                      size="sm"
+                    >
+                      <Activity className="w-4 h-4 mr-1" />
+                      Atualizar Status
+                    </Button>
+                    {instanceStatus === 'conectado' && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleSyncChats}
+                        disabled={evolutionLoading}
+                        size="sm"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-1" />
+                        Sincronizar Conversas
+                      </Button>
+                    )}
+                    {instanceStatus !== 'conectado' && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleConfigureWebhook}
+                        disabled={evolutionLoading}
+                        size="sm"
+                      >
+                        <Zap className="w-4 h-4 mr-1" />
+                        Configurar Webhook
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleDeleteInstance}
+                      disabled={evolutionLoading}
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      Deletar Instância
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button

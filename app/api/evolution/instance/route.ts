@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
     const nextUrlSearchParams = request.nextUrl.searchParams
     const urlFromRequest = new URL(request.url)
     const urlSearchParams = urlFromRequest.searchParams
-    
+
     // Tentar obter faculdade_id de ambas as fontes
     const faculdadeId = nextUrlSearchParams.get('faculdade_id') || urlSearchParams.get('faculdade_id')
-    
+
     // Log detalhado (apenas em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
       console.log('GET /api/evolution/instance - Request details:', {
@@ -79,9 +79,9 @@ export async function GET(request: NextRequest) {
           url_params: Object.fromEntries(urlSearchParams.entries())
         })
       }
-      
+
       return NextResponse.json(
-        { 
+        {
           error: 'faculdade_id é obrigatório',
           details: `É necessário fornecer o ID da faculdade para buscar ou gerenciar a instância Evolution. URL recebida: ${request.nextUrl.href}`,
           solution: 'Certifique-se de que o parâmetro faculdade_id está sendo enviado na requisição.',
@@ -97,12 +97,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log('Buscando faculdade com ID:', faculdadeId)
+
     // Buscar faculdade
     const { data: faculdade, error: faculdadeError } = await supabase
       .from('faculdades')
       .select('id, nome, evolution_instance, evolution_status, evolution_qr_code, evolution_qr_expires_at, evolution_connected_at, evolution_last_error')
       .eq('id', faculdadeId)
       .single()
+
+    if (faculdadeError) {
+      console.error('Erro ao buscar faculdade:', faculdadeError)
+    }
+
+    if (!faculdade) {
+      console.warn('Faculdade não encontrada no banco de dados.')
+    }
 
     if (faculdadeError || !faculdade) {
       return NextResponse.json(
@@ -151,19 +161,32 @@ export async function GET(request: NextRequest) {
     // Se não tem QR code ou expirou, buscar novo
     if (!qrCode || !qrExpiresAt) {
       try {
-        const qrResponse = await fetch(`${apiUrl}/instance/connect/${faculdade.evolution_instance}`, {
+        const connectUrl = `${apiUrl}/instance/connect/${faculdade.evolution_instance}`
+        console.log('Buscando QR Code em:', connectUrl)
+
+        const qrResponse = await fetch(connectUrl, {
           method: 'GET',
           headers: {
             'apikey': apiKey,
           },
         })
 
+        console.log('Status da resposta do QR Code:', qrResponse.status)
+
         if (qrResponse.ok) {
           const qrData = await qrResponse.json()
-          if (qrData.qrcode) {
-            qrCode = qrData.qrcode.base64 || qrData.qrcode
+          console.log('Dados do QR Code recebidos:', JSON.stringify(qrData, null, 2))
+
+          // Evolution API v2 retorna o QR code no campo 'code' como data:image/png;base64,...
+          if (qrData.code) {
+            // Extrair apenas a parte base64 se vier como data URI
+            const base64Match = qrData.code.match(/^data:image\/png;base64,(.+)$/)
+            qrCode = base64Match ? base64Match[1] : qrData.code
+
             // QR code geralmente expira em 40 segundos
             qrExpiresAt = new Date(Date.now() + 40 * 1000).toISOString()
+
+            console.log('QR Code extraído com sucesso, tamanho:', qrCode.length)
 
             // Atualizar no banco
             await supabase
@@ -174,15 +197,21 @@ export async function GET(request: NextRequest) {
                 evolution_status: 'conectando',
               })
               .eq('id', faculdadeId)
+          } else {
+            console.warn('Campo code não encontrado na resposta:', qrData)
           }
+        } else {
+          const errorText = await qrResponse.text()
+          console.warn('Erro ao buscar QR Code (resposta não ok):', errorText)
         }
       } catch (error) {
-        console.warn('Erro ao buscar QR code:', error)
+        console.warn('Erro ao buscar QR code (exceção):', error)
       }
     }
 
     // Verificar status da instância
     try {
+      console.log('Verificando status da instância:', faculdade.evolution_instance)
       const statusResponse = await fetch(`${apiUrl}/instance/fetchInstances`, {
         method: 'GET',
         headers: {
@@ -190,29 +219,60 @@ export async function GET(request: NextRequest) {
         },
       })
 
+      console.log('Status response code:', statusResponse.status)
+
       if (statusResponse.ok) {
         const instances = await statusResponse.json()
-        const instance = Array.isArray(instances) 
-          ? instances.find((inst: any) => inst.instance?.instanceName === faculdade.evolution_instance)
-          : instances[faculdade.evolution_instance]
+        console.log('Full instances response:', JSON.stringify(instances, null, 2))
+
+        // Evolution API can return different formats:
+        // 1. Array of instances: [{ instance: { instanceName, state } }]
+        // 2. Object with instance names as keys: { "instanceName": { instance: { ... } } }
+        let instance = null
+
+        if (Array.isArray(instances)) {
+          console.log('Response is array, searching...')
+          instance = instances.find((inst: any) => {
+            // Evolution API v2 returns: { name: "instanceName", connectionStatus: "open", ... }
+            const name = inst.name || inst.instance?.instanceName || inst.instanceName
+            console.log('Checking instance:', name, 'against', faculdade.evolution_instance)
+            return name === faculdade.evolution_instance
+          })
+        } else if (typeof instances === 'object') {
+          console.log('Response is object, looking up by key...')
+          instance = instances[faculdade.evolution_instance]
+        }
+
+        console.log('Instância encontrada:', instance ? 'Sim' : 'Não')
+        console.log('Estrutura completa da instância:', JSON.stringify(instance, null, 2))
 
         if (instance) {
-          const instanceStatus = instance.instance?.status || instance.status
+          // Evolution API v2 uses 'connectionStatus' field
+          const instanceStatus = instance.connectionStatus || instance.instance?.status || instance.status
+          console.log('Status extraído:', instanceStatus)
+          console.log('Status será mapeado para:', instanceStatus === 'open' ? 'conectado' : 'desconectado')
+
           status = instanceStatus === 'open' ? 'conectado' : 'desconectado'
-          
+
           if (status === 'conectado' && !connectedAt) {
             connectedAt = new Date().toISOString()
           }
 
+          console.log('Atualizando banco com status:', status)
+
           // Atualizar status no banco
-          await supabase
+          const updateResult = await supabase
             .from('faculdades')
             .update({
               evolution_status: status,
               evolution_connected_at: status === 'conectado' ? connectedAt : faculdade.evolution_connected_at,
             })
             .eq('id', faculdadeId)
+
+          console.log('Resultado da atualização:', updateResult)
         }
+      } else {
+        console.warn('Erro ao buscar status (response not ok):', await statusResponse.text())
       }
     } catch (error) {
       console.warn('Erro ao verificar status:', error)
@@ -241,8 +301,18 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
+    let body: any = {}
+
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do body:', parseError)
+      return NextResponse.json(
+        { error: 'Body da requisição inválido. Esperado JSON válido.' },
+        { status: 400 }
+      )
+    }
+
     // Log para debug (apenas em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
       console.log('POST /api/evolution/instance - Body recebido:', {
@@ -253,11 +323,11 @@ export async function POST(request: NextRequest) {
         body_completo: body
       })
     }
-    
+
     // Se action for 'delete', deletar a instância
     if (body.action === 'delete' && body.faculdade_id) {
       const faculdadeId = body.faculdade_id
-      
+
       // Buscar faculdade
       const { data: faculdade, error: faculdadeError } = await supabase
         .from('faculdades')
@@ -320,11 +390,11 @@ export async function POST(request: NextRequest) {
         message: 'Instância deletada com sucesso'
       })
     }
-    
+
     // Se action for 'get', apenas buscar a instância (mesmo comportamento do GET)
     if (body.action === 'get' && body.faculdade_id) {
       const faculdadeId = body.faculdade_id
-      
+
       // Buscar faculdade
       const { data: faculdade, error: faculdadeError } = await supabase
         .from('faculdades')
@@ -359,14 +429,14 @@ export async function POST(request: NextRequest) {
 
             if (instanceResponse.ok) {
               const instances = await instanceResponse.json()
-              const instance = Array.isArray(instances) 
+              const instance = Array.isArray(instances)
                 ? instances.find((inst: any) => inst.instanceName === faculdade.evolution_instance)
                 : instances[faculdade.evolution_instance]
 
               if (instance) {
                 const instanceStatus = instance.instance?.status || instance.status
                 status = instanceStatus === 'open' ? 'conectado' : 'desconectado'
-                
+
                 if (status === 'conectado' && !connectedAt) {
                   connectedAt = new Date().toISOString()
                 }
@@ -397,31 +467,34 @@ export async function POST(request: NextRequest) {
         last_error: faculdade.evolution_last_error,
       })
     }
-    
+
     const validation = createInstanceSchema.safeParse(body)
     if (!validation.success) {
       const firstError = validation.error.issues[0]
-      
-      // Log detalhado do erro de validação
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro de validação:', {
-          issues: validation.error.issues,
-          body_recebido: body
-        })
+
+      // Log detalhado do erro de validação (sempre logar em desenvolvimento)
+      console.error('Erro de validação ao criar instância:', {
+        issues: validation.error.issues,
+        body_recebido: body,
+        faculdade_id_tipo: typeof body.faculdade_id,
+        faculdade_id_valor: body.faculdade_id,
+        instance_name_tipo: typeof body.instance_name,
+        instance_name_valor: body.instance_name
+      })
+
+      const errorResponse = {
+        error: firstError?.message || 'Erro de validação',
+        details: `Campo inválido: ${firstError?.path?.join('.') || 'desconhecido'}. Valor recebido: ${JSON.stringify(body[firstError?.path?.[0] || ''])}`,
+        issues: validation.error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+          received_value: body[issue.path[0]]
+        }))
       }
-      
-      return NextResponse.json(
-        { 
-          error: firstError?.message || 'Erro de validação',
-          details: `Campo inválido: ${firstError?.path?.join('.') || 'desconhecido'}. Valor recebido: ${JSON.stringify(body[firstError?.path?.[0] || ''])}`,
-          issues: validation.error.issues.map(issue => ({
-            path: issue.path.join('.'),
-            message: issue.message,
-            received_value: body[issue.path[0]]
-          }))
-        },
-        { status: 400 }
-      )
+
+      console.log('Retornando erro de validação:', errorResponse)
+
+      return NextResponse.json(errorResponse, { status: 400 })
     }
 
     const { faculdade_id, instance_name } = validation.data
@@ -464,14 +537,93 @@ export async function POST(request: NextRequest) {
           instanceName: instance_name,
           token: `${faculdade_id}_${instance_name}`, // Token único
           qrcode: true,
+          integration: 'WHATSAPP-BAILEYS',
         }),
       })
 
+      console.log('Evolution API Response Status:', createResponse.status)
+      console.log('Evolution API URL used:', apiUrl)
+
       if (!createResponse.ok) {
-        const errorData = await createResponse.json().catch(() => ({}))
+        let errorMessage = `Erro ao criar instância: ${createResponse.statusText}`
+        let errorDetails: any = {}
+        let rawErrorText = ''
+
+        try {
+          rawErrorText = await createResponse.text()
+          if (rawErrorText) {
+            try {
+              errorDetails = JSON.parse(rawErrorText)
+              // Tentar extrair mensagem de diferentes formatos possíveis
+              errorMessage = errorDetails.message ||
+                errorDetails.error ||
+                errorDetails.text ||
+                errorDetails.description ||
+                (typeof errorDetails === 'string' ? errorDetails : errorMessage)
+            } catch {
+              // Se não for JSON, usar o texto como mensagem
+              errorMessage = rawErrorText || errorMessage
+              errorDetails = { text: rawErrorText }
+            }
+          }
+        } catch (parseError) {
+          console.error('Erro ao fazer parse da resposta de erro da Evolution API:', parseError)
+          errorDetails = { parseError: String(parseError), rawText: rawErrorText }
+        }
+
+        // Log detalhado do erro
+        console.error('Erro ao criar instância na Evolution API:', {
+          status: createResponse.status,
+          statusText: createResponse.statusText,
+          errorDetails,
+          rawErrorText,
+          instanceName: instance_name,
+          apiUrl: apiUrl,
+          requestBody: {
+            instanceName: instance_name,
+            token: `${faculdade_id}_${instance_name}`,
+            qrcode: true
+          }
+        })
+
+        // Mensagens mais específicas baseadas no status e conteúdo do erro
+        const errorMessageLower = errorMessage.toLowerCase()
+        if (createResponse.status === 400) {
+          if (errorMessageLower.includes('already exists') ||
+            errorMessageLower.includes('já existe') ||
+            errorMessageLower.includes('duplicate') ||
+            errorMessageLower.includes('duplicado')) {
+            errorMessage = `O nome da instância "${instance_name}" já está em uso. Escolha outro nome.`
+          } else if (errorMessageLower.includes('invalid') ||
+            errorMessageLower.includes('inválido') ||
+            errorMessageLower.includes('not allowed') ||
+            errorMessageLower.includes('não permitido')) {
+            errorMessage = `Nome da instância inválido: "${instance_name}". Use apenas letras, números e hífens.`
+          } else if (errorMessageLower.includes('required') ||
+            errorMessageLower.includes('obrigatório')) {
+            errorMessage = `Campos obrigatórios faltando. Verifique os dados enviados.`
+          } else {
+            // Manter a mensagem original se não for um dos casos acima
+            errorMessage = errorMessage || `Dados inválidos. Verifique o nome da instância e tente novamente.`
+          }
+        } else if (createResponse.status === 401 || createResponse.status === 403) {
+          errorMessage = 'Erro de autenticação com a Evolution API. Verifique a chave de API.'
+        } else if (createResponse.status === 404) {
+          errorMessage = 'Endpoint da Evolution API não encontrado. Verifique a URL da API.'
+        }
+
         return NextResponse.json(
-          { error: errorData.message || `Erro ao criar instância: ${createResponse.statusText}` },
-          { status: createResponse.status }
+          {
+            error: errorMessage,
+            details: {
+              status: createResponse.status,
+              error: createResponse.statusText,
+              response: errorDetails,
+              rawText: rawErrorText
+            },
+            evolutionApiStatus: createResponse.status
+          },
+          { status: 400 }
         )
       }
 
@@ -492,6 +644,49 @@ export async function POST(request: NextRequest) {
           qrCode = qrData.qrcode.base64 || qrData.qrcode
           qrExpiresAt = new Date(Date.now() + 40 * 1000).toISOString()
         }
+      }
+
+      // Configurar webhook para receber mensagens
+      try {
+        const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/evolution`
+          : `${request.headers.get('origin') || 'http://localhost:3000'}/api/webhooks/evolution`
+
+        console.log('Configurando webhook para instância:', instance_name)
+        console.log('Webhook URL:', webhookUrl)
+
+        const webhookResponse = await fetch(`${apiUrl}/webhook/set/${instance_name}`, {
+          method: 'POST',
+          headers: {
+            'apikey': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            webhook: {
+              enabled: true,
+              url: webhookUrl,
+              webhookByEvents: true,
+              events: [
+                'MESSAGES_UPSERT',
+                'MESSAGES_UPDATE',
+                'CONNECTION_UPDATE',
+                'QRCODE_UPDATED'
+              ]
+            }
+          })
+        })
+
+        if (webhookResponse.ok) {
+          const webhookData = await webhookResponse.json()
+          console.log('Webhook configurado com sucesso:', webhookData)
+        } else {
+          const webhookError = await webhookResponse.text()
+          console.warn('Erro ao configurar webhook (não crítico):', webhookError)
+          // Não falhar a criação da instância se o webhook falhar
+        }
+      } catch (webhookError) {
+        console.warn('Erro ao configurar webhook (não crítico):', webhookError)
+        // Não falhar a criação da instância se o webhook falhar
       }
 
       // Atualizar faculdade com dados da instância (não atualizar api_url e api_key se não foram fornecidos)
@@ -549,8 +744,9 @@ export async function DELETE(request: NextRequest) {
     const faculdadeId = searchParams.get('faculdade_id')
 
     if (!faculdadeId) {
+      console.log('DELETE /api/evolution/instance - faculdade_id missing')
       return NextResponse.json(
-        { 
+        {
           error: 'faculdade_id é obrigatório',
           details: `É necessário fornecer o ID da faculdade para deletar a instância Evolution. URL recebida: ${request.nextUrl.href}`,
           solution: 'Certifique-se de que o parâmetro faculdade_id está sendo enviado na requisição.'
@@ -567,6 +763,7 @@ export async function DELETE(request: NextRequest) {
       .single()
 
     if (faculdadeError || !faculdade) {
+      console.log('DELETE /api/evolution/instance - Faculdade not found:', faculdadeId, faculdadeError)
       return NextResponse.json(
         { error: 'Faculdade não encontrada' },
         { status: 404 }
@@ -635,6 +832,132 @@ export async function DELETE(request: NextRequest) {
     })
   } catch (error) {
     console.error('Erro ao deletar instância:', error)
+    return NextResponse.json(
+      { error: getUserFriendlyError(error) },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * PATCH - Configurar webhook para instância existente
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl
+    const faculdadeId = searchParams.get('faculdade_id')
+
+    if (!faculdadeId) {
+      return NextResponse.json(
+        { error: 'ID da faculdade não fornecido' },
+        { status: 400 }
+      )
+    }
+
+    // Buscar faculdade
+    const { data: faculdade, error: faculdadeError } = await supabase
+      .from('faculdades')
+      .select('id, evolution_instance')
+      .eq('id', faculdadeId)
+      .single()
+
+    if (faculdadeError || !faculdade) {
+      return NextResponse.json(
+        { error: 'Faculdade não encontrada' },
+        { status: 404 }
+      )
+    }
+
+    if (!faculdade.evolution_instance) {
+      return NextResponse.json(
+        { error: 'Instância não configurada' },
+        { status: 400 }
+      )
+    }
+
+    // Buscar configuração global
+    const config = await getEvolutionConfig()
+    const apiUrl = config.apiUrl
+    const apiKey = config.apiKey
+
+    if (!apiUrl || !apiKey) {
+      return NextResponse.json(
+        { error: 'Evolution API não configurada' },
+        { status: 500 }
+      )
+    }
+
+    // Configurar webhook
+    const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/evolution`
+      : `${request.headers.get('origin') || 'http://localhost:3000'}/api/webhooks/evolution`
+
+    console.log('=== PATCH /api/evolution/instance - Configurar Webhook ===')
+    console.log('Faculdade ID:', faculdadeId)
+    console.log('Instância:', faculdade.evolution_instance)
+    console.log('Webhook URL:', webhookUrl)
+    console.log('API URL:', apiUrl)
+    console.log('API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'não configurada')
+
+    const webhookPayload = {
+      enabled: true,
+      url: webhookUrl,
+      webhookByEvents: true,
+      events: [
+        'MESSAGES_UPSERT',
+        'MESSAGES_UPDATE',
+        'CONNECTION_UPDATE',
+        'QRCODE_UPDATED'
+      ]
+    }
+
+    console.log('Payload do webhook:', JSON.stringify(webhookPayload, null, 2))
+
+    const webhookResponse = await fetch(`${apiUrl}/webhook/set/${faculdade.evolution_instance}`, {
+      method: 'POST',
+      headers: {
+        'apikey': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ webhook: webhookPayload })
+    })
+
+    console.log('Status da resposta:', webhookResponse.status)
+    console.log('Status text:', webhookResponse.statusText)
+
+    if (!webhookResponse.ok) {
+      const errorText = await webhookResponse.text()
+      console.error('Erro ao configurar webhook (Evolution API):', errorText)
+
+      let errorMessage = 'Erro ao configurar webhook'
+      try {
+        const errorJson = JSON.parse(errorText)
+        errorMessage = errorJson.message || errorJson.error || errorText
+      } catch {
+        errorMessage = errorText || 'Erro desconhecido'
+      }
+
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          details: errorText,
+          webhookUrl,
+          instanceName: faculdade.evolution_instance
+        },
+        { status: 400 }
+      )
+    }
+
+    const webhookData = await webhookResponse.json()
+    console.log('Webhook configurado com sucesso:', webhookData)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Webhook configurado com sucesso',
+      webhook: webhookData
+    })
+  } catch (error) {
+    console.error('Erro ao configurar webhook:', error)
     return NextResponse.json(
       { error: getUserFriendlyError(error) },
       { status: 500 }

@@ -27,14 +27,14 @@ export function FaculdadeProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from('faculdades')
         .select('*')
-        .eq('status', 'ativo')
+
         .order('nome')
-      
+
       if (error) throw error
-      
+
       const faculdadesData = data || []
       setFaculdades(faculdadesData)
-      
+
       // Log para debug (apenas em desenvolvimento)
       if (process.env.NODE_ENV === 'development') {
         console.log('Faculdades carregadas:', {
@@ -47,7 +47,7 @@ export function FaculdadeProvider({ children }: { children: React.ReactNode }) {
           }))
         })
       }
-      
+
       if (faculdadesData.length > 0 && !faculdadeSelecionada) {
         // Selecionar a primeira faculdade que tenha ID válido
         const faculdadeValida = faculdadesData.find((f: Faculdade) => f.id && typeof f.id === 'string')
@@ -83,7 +83,7 @@ export function useFaculdade() {
     ctx || {
       faculdadeSelecionada: null,
       faculdades: [],
-      setFaculdadeSelecionada: () => {},
+      setFaculdadeSelecionada: () => { },
       loading: false,
     }
   )

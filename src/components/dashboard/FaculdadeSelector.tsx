@@ -3,10 +3,13 @@
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { Building2, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function FaculdadeSelector() {
   const { faculdadeSelecionada, faculdades, setFaculdadeSelecionada } = useFaculdade()
   const [open, setOpen] = useState(false)
+  const router = useRouter()
+
   if (!faculdadeSelecionada) return null
   return (
     <div className="relative">
@@ -26,10 +29,10 @@ export default function FaculdadeSelector() {
               onClick={() => {
                 setFaculdadeSelecionada(f)
                 setOpen(false)
+                router.push('/dashboard')
               }}
-              className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors ${
-                f.id === faculdadeSelecionada.id ? 'bg-gray-100 dark:bg-gray-100' : ''
-              }`}
+              className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors ${f.id === faculdadeSelecionada.id ? 'bg-gray-100 dark:bg-gray-100' : ''
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-gray-500 flex-shrink-0" />
