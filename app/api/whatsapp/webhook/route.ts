@@ -20,11 +20,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Verificar assinatura do webhook (segurança)
     const signature = request.headers.get('x-signature') || request.headers.get('x-hub-signature-256')
     const webhookSecret = process.env.WHATSAPP_WEBHOOK_SECRET
-    
+
     if (webhookSecret && signature) {
       // TODO: Implementar verificação de assinatura HMAC
       // const isValid = verifySignature(body, signature, webhookSecret)
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // Detectar provedor baseado na estrutura do body
     const provider = detectProvider(body)
-    
+
     // Processar mensagem de acordo com o provedor
     let messageData: {
       phoneNumber: string
@@ -133,6 +133,13 @@ export async function POST(request: NextRequest) {
         .eq('id', conversa.id)
     }
 
+    if (!conversa) {
+      return NextResponse.json(
+        { error: 'Erro ao processar conversa' },
+        { status: 500 }
+      )
+    }
+
     // Inserir mensagem no banco
     const { error: messageError } = await supabase
       .from('mensagens')
@@ -157,7 +164,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Erro ao processar webhook:', error)
-    
+
     // Retornar 200 para evitar retry desnecessário do provedor
     return NextResponse.json({
       success: false,
@@ -174,17 +181,17 @@ function detectProvider(body: any): string {
   if (body.key || body.data?.key) {
     return 'evolution'
   }
-  
+
   // Twilio
   if (body.MessageSid || body.SmsMessageSid || body.AccountSid) {
     return 'twilio'
   }
-  
+
   // Baileys
   if (body.messages || body.messageId) {
     return 'baileys'
   }
-  
+
   return 'generic'
 }
 
@@ -194,7 +201,7 @@ function detectProvider(body: any): string {
 function parseEvolutionWebhook(body: any) {
   const message = body.data || body
   const key = message.key || message.data?.key
-  
+
   if (!key) return null
 
   return {
@@ -224,7 +231,7 @@ function parseTwilioWebhook(body: any) {
  */
 function parseBaileysWebhook(body: any) {
   const message = body.messages?.[0] || body
-  
+
   return {
     phoneNumber: message.from?.replace('@s.whatsapp.net', '') || message.key?.remoteJid?.replace('@s.whatsapp.net', '') || '',
     content: message.message?.conversation || message.message?.extendedTextMessage?.text || message.body || '',
