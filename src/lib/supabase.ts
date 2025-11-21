@@ -156,7 +156,35 @@ export type Database = {
     }
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const notConfiguredError = new Error('Supabase não configurado. Defina NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.')
+const builder: any = {
+  select: () => builder,
+  insert: () => builder,
+  update: () => builder,
+  delete: () => builder,
+  eq: () => builder,
+  order: () => builder,
+  single: () => builder,
+  maybeSingle: () => builder,
+  limit: () => builder,
+  range: () => builder,
+  then: (_: any, reject: any) => reject(notConfiguredError)
+}
+
+export const supabase: any = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : {
+      from: () => builder,
+      rpc: () => Promise.reject(notConfiguredError),
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: null })
+      },
+      channel: () => ({
+        on: () => ({ subscribe: () => ({}) }),
+        subscribe: () => ({})
+      }),
+      removeChannel: () => {}
+    }
