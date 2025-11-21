@@ -482,8 +482,9 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (faculdadeError || !faculdade) {
+        console.error('Sync-chats: Faculdade não encontrada. ID:', faculdadeId, 'Erro:', faculdadeError)
         return NextResponse.json(
-          { error: 'Faculdade não encontrada' },
+          { error: 'Faculdade não encontrada', details: faculdadeError, id_recebido: faculdadeId },
           { status: 404 }
         )
       }
@@ -511,11 +512,11 @@ export async function POST(request: NextRequest) {
 
       // Buscar chats da Evolution API
       console.log(`Sincronizando chats da instância: ${instanceName}`)
-      
+
       // Tentar diferentes endpoints da Evolution API
       let chatsResponse
       let chats: any = null
-      
+
       // Tentar endpoint /chat/fetchChats/{instance}
       try {
         chatsResponse = await fetch(`${apiUrl}/chat/fetchChats/${instanceName}`, {
@@ -589,7 +590,7 @@ export async function POST(request: NextRequest) {
           try {
             // Tentar diferentes formatos de endpoint
             let messagesResponse
-            
+
             // Formato 1: /message/fetchMessages/{instance}
             try {
               const queryParams = new URLSearchParams({
@@ -633,11 +634,11 @@ export async function POST(request: NextRequest) {
             if (messagesResponse?.ok) {
               const messages = await messagesResponse.json()
               const messagesArray = Array.isArray(messages) ? messages : Object.values(messages || {})
-              
+
               if (messagesArray.length > 0) {
                 const lastMessage = messagesArray[0]
                 ultimaMensagem = extractMessageContent(lastMessage) || ''
-                
+
                 if (lastMessage.messageTimestamp) {
                   dataUltimaMensagem = new Date(lastMessage.messageTimestamp * 1000).toISOString()
                 }

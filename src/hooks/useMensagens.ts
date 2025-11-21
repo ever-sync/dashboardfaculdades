@@ -135,6 +135,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
           conteudo: conteudo.trim(),
           remetente,
           tipo_mensagem: 'texto',
+          lida: false,
         }
 
         // Adicionar timestamp se a coluna existir
@@ -172,6 +173,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
                 ultima_mensagem: conteudo.trim(),
                 data_ultima_mensagem: timestamp,
                 updated_at: timestamp,
+                nao_lidas: 0,
               })
               .eq('id', conversaId)
 
@@ -237,6 +239,7 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
             ultima_mensagem: conteudo.trim(),
             data_ultima_mensagem: timestamp,
             updated_at: timestamp,
+            nao_lidas: 0,
           })
           .eq('id', conversaId)
 
@@ -317,10 +320,10 @@ export function useMensagens({ conversaId }: UseMensagensOptions): UseMensagensR
     try {
       await supabase.rpc('atualizar_typing_indicator', {
         p_conversa_id: conversaId,
-        p_usuario_id: null, // Pode ser obtido do contexto de autenticação
+        p_usuario_id: null,
         p_usuario_tipo: 'atendente',
         p_is_typing: typing
-      })
+      } as any)
     } catch (error) {
       console.warn('Erro ao atualizar indicador de digitação:', error)
     }

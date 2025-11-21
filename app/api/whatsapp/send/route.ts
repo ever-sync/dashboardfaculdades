@@ -314,13 +314,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Atualizar última mensagem na conversa
+    // Salvar mensagem no banco após envio bem-sucedido
+    await supabase
+      .from('mensagens')
+      .insert({
+        conversa_id,
+        conteudo,
+        remetente: 'agente',
+        tipo_mensagem: tipo_mensagem as any,
+        lida: true,
+        timestamp: new Date().toISOString(),
+        message_id: sendResult.message_id
+      })
+
+    // Atualizar última mensagem na conversa e zerar contador de não lidas
     await supabase
       .from('conversas_whatsapp')
       .update({
         ultima_mensagem: conteudo,
         data_ultima_mensagem: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        nao_lidas: 0,
       })
       .eq('id', conversa_id)
 

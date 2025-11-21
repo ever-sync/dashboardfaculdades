@@ -53,6 +53,7 @@ export type Database = {
                     atendente_id?: string
                     created_at: string
                     updated_at: string
+                    anotacoes?: any[]
                 }
                 Insert: {
                     id?: string
@@ -67,6 +68,7 @@ export type Database = {
                     atendente_id?: string
                     created_at?: string
                     updated_at?: string
+                    anotacoes?: any[]
                 }
                 Update: {
                     id?: string
@@ -81,6 +83,7 @@ export type Database = {
                     atendente_id?: string
                     created_at?: string
                     updated_at?: string
+                    anotacoes?: any[]
                 }
             }
             typing_indicators: {

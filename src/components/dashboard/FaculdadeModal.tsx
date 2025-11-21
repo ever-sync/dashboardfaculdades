@@ -337,7 +337,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
       const res = await fetch('/api/evolution/instance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           faculdade_id: faculdade.id,
           action: 'sync-chats'
         }),
@@ -605,18 +605,16 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
                         Sincronizar Conversas
                       </Button>
                     )}
-                    {instanceStatus !== 'conectado' && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={handleConfigureWebhook}
-                        disabled={evolutionLoading}
-                        size="sm"
-                      >
-                        <Zap className="w-4 h-4 mr-1" />
-                        Configurar Webhook
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleConfigureWebhook}
+                      disabled={evolutionLoading}
+                      size="sm"
+                    >
+                      <Zap className="w-4 h-4 mr-1" />
+                      Configurar Webhook
+                    </Button>
                     <Button
                       type="button"
                       variant="secondary"
