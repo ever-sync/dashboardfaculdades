@@ -390,22 +390,21 @@ export default function AtendentesPage() {
       const { data, error } = await query
 
       if (error) {
-        console.error('Erro ao buscar atendentes:', error)
-        console.error('Detalhes do erro:', {
-          message: error?.message || 'Sem mensagem',
-          details: error?.details || 'Sem detalhes',
-          hint: error?.hint || 'Sem hint',
-          code: error?.code || 'Sem código',
+        console.error('Erro ao buscar atendentes:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
         })
         
         // Se a tabela não existe, mostrar mensagem específica
-        if (error?.code === 'PGRST116' || error?.message?.includes('does not exist') || error?.message?.includes('não existe')) {
+        if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('não existe')) {
           console.error('⚠️ Tabela "usuarios" não encontrada. Execute a migração: supabase/migrations/014_create_usuarios_table.sql')
           setErroTabela(true)
         }
         
         setAtendentes([])
-        setLoading(false)
         return
       }
 
@@ -693,7 +692,7 @@ export default function AtendentesPage() {
                     {atendente.ativo ? (
                       <Badge variant="success">Ativo</Badge>
                     ) : (
-                      <Badge variant="danger">Inativo</Badge>
+                      <Badge variant="destructive">Inativo</Badge>
                     )}
                   </div>
                 </div>

@@ -93,7 +93,7 @@ export default function DashboardPage() {
             value={stats.total_conversas}
             icon={MessageSquare}
             trend={{ value: 12.5, isPositive: true }}
-            iconColor="blue"
+            iconColor="gray"
           />
           
           <StatsCard

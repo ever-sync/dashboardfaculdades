@@ -67,52 +67,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Identificar faculdade pela instância Evolution ou outros métodos
-    let faculdadeId: string | null = null
+    // Buscar ou criar conversa
+    const { data: faculdades } = await supabase
+      .from('faculdades')
+      .select('id')
+      .limit(1)
+      .single()
 
-    if (provider === 'evolution') {
-      // Evolution API geralmente envia o nome da instância no webhook
-      const instanceName = body.instance || body.data?.instance || body.instanceName
-      
-      if (instanceName) {
-        // Buscar faculdade pela instância
-        const { data: faculdade } = await supabase
-          .from('faculdades')
-          .select('id')
-          .eq('evolution_instance', instanceName)
-          .single()
-
-        if (faculdade) {
-          faculdadeId = faculdade.id
-        }
-      }
-    }
-
-    // Se não encontrou pela instância, tentar buscar pela conversa existente
-    if (!faculdadeId) {
-      const { data: conversaExistente } = await supabase
-        .from('conversas_whatsapp')
-        .select('faculdade_id')
-        .eq('telefone', messageData.phoneNumber)
-        .maybeSingle()
-
-      if (conversaExistente) {
-        faculdadeId = conversaExistente.faculdade_id
-      }
-    }
-
-    // Se ainda não encontrou, retornar erro (não criar conversa sem faculdade)
-    if (!faculdadeId) {
-      console.error('Não foi possível identificar a faculdade para o webhook:', {
-        provider,
-        phoneNumber: messageData.phoneNumber,
-        body: JSON.stringify(body).substring(0, 200),
-      })
+    if (!faculdades) {
       return NextResponse.json(
-        { error: 'Não foi possível identificar a faculdade. Verifique se a instância Evolution está configurada corretamente.' },
-        { status: 400 }
+        { error: 'Nenhuma faculdade encontrada' },
+        { status: 500 }
       )
     }
+
+    const faculdadeId = faculdades.id
 
     // Buscar conversa existente ou criar nova
     let { data: conversa, error: conversaError } = await supabase
@@ -162,14 +131,6 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', conversa.id)
-    }
-
-    // Verificar se conversa existe antes de inserir mensagem
-    if (!conversa) {
-      return NextResponse.json(
-        { error: 'Conversa não encontrada após criação/atualização' },
-        { status: 500 }
-      )
     }
 
     // Inserir mensagem no banco

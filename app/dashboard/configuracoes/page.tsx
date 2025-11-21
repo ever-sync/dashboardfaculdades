@@ -9,6 +9,7 @@ import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useState, useEffect } from 'react'
 import {
   Settings,
+  MessageSquare,
   Bot,
   Bell,
   Users,
@@ -20,19 +21,28 @@ import {
   X,
   Info,
   AlertCircle,
+  Phone,
   Mail,
   Clock,
   Zap,
   TrendingUp
 } from 'lucide-react'
-import { EvolutionConfig } from '@/components/dashboard/EvolutionConfig'
 
 export default function ConfiguracoesPage() {
   const { faculdadeSelecionada } = useFaculdade()
   const [loading, setLoading] = useState(false)
   const [salvo, setSalvo] = useState(false)
 
-  // Removido: Configurações de credenciais de API (agora configuradas manualmente no banco)
+  // Configurações de WhatsApp
+  const [whatsappProvider, setWhatsappProvider] = useState<'evolution' | 'twilio' | 'baileys'>('evolution')
+  const [evolutionUrl, setEvolutionUrl] = useState('')
+  const [evolutionKey, setEvolutionKey] = useState('')
+  const [evolutionInstance, setEvolutionInstance] = useState('')
+  const [twilioSid, setTwilioSid] = useState('')
+  const [twilioToken, setTwilioToken] = useState('')
+  const [twilioFrom, setTwilioFrom] = useState('')
+  const [baileysUrl, setBaileysUrl] = useState('')
+  const [baileysKey, setBaileysKey] = useState('')
 
   // Configurações de IA
   const [iaAtivaPorPadrao, setIaAtivaPorPadrao] = useState(true)
@@ -69,19 +79,69 @@ export default function ConfiguracoesPage() {
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
 
-  // Função para salvar configurações (exceto credenciais de API)
+  // Status de conexão WhatsApp
+  const [statusConexao, setStatusConexao] = useState<{
+    provider: string
+    status: 'conectado' | 'desconectado' | 'verificando'
+    message?: string
+  } | null>(null)
+
+  // Carregar configurações salvas
+  useEffect(() => {
+    // Aqui você pode carregar as configurações do banco de dados
+    // Por enquanto, vamos usar valores padrão
+  }, [faculdadeSelecionada])
+
+  // Verificar status da conexão WhatsApp
+  const verificarStatusConexao = async () => {
+    if (!faculdadeSelecionada) return
+
+    setStatusConexao({ provider: whatsappProvider, status: 'verificando' })
+
+    try {
+      const response = await fetch('/api/whatsapp/send')
+      const data = await response.json()
+
+      if (response.ok && data.status) {
+        const providerStatus = data.status[whatsappProvider]
+        setStatusConexao({
+          provider: whatsappProvider,
+          status: providerStatus?.connected ? 'conectado' : 'desconectado',
+          message: providerStatus?.message
+        })
+      } else {
+        setStatusConexao({
+          provider: whatsappProvider,
+          status: 'desconectado',
+          message: 'Não foi possível verificar a conexão'
+        })
+      }
+    } catch (error: any) {
+      setStatusConexao({
+        provider: whatsappProvider,
+        status: 'desconectado',
+        message: error.message || 'Erro ao verificar conexão'
+      })
+    }
+  }
+
+  // Salvar configurações
   const handleSalvar = async (secao: string) => {
     setLoading(true)
     setSalvo(false)
 
     try {
-      // Simular salvamento (implementar lógica real conforme necessário)
+      // Aqui você salvaria as configurações no banco de dados
+      // Por enquanto, vamos apenas simular
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       setSalvo(true)
       setTimeout(() => setSalvo(false), 3000)
-      
-      console.log(`Configurações de ${secao} salvas`)
+
+      // Se for configurações de WhatsApp, verificar conexão
+      if (secao === 'whatsapp') {
+        await verificarStatusConexao()
+      }
     } catch (error: any) {
       console.error('Erro ao salvar configurações:', error)
       alert('Erro ao salvar configurações: ' + error.message)
@@ -101,8 +161,179 @@ export default function ConfiguracoesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* COLUNA ESQUERDA */}
           <div className="space-y-6">
-            {/* Seção: Instância Evolution (por Faculdade) */}
-            <EvolutionConfig />
+            {/* Seção: WhatsApp */}
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <MessageSquare className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Integração WhatsApp</h2>
+                    <p className="text-xs text-gray-500">Configure o provedor de WhatsApp</p>
+                  </div>
+                </div>
+                {statusConexao && (
+                  <Badge
+                    variant={statusConexao.status === 'conectado' ? 'success' : statusConexao.status === 'verificando' ? 'info' : 'danger'}
+                    className="flex items-center gap-2"
+                  >
+                    {statusConexao.status === 'verificando' ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                        Verificando...
+                      </>
+                    ) : statusConexao.status === 'conectado' ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Conectado
+                      </>
+                    ) : (
+                      <>
+                        <X className="w-3 h-3" />
+                        Desconectado
+                      </>
+                    )}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Provedor WhatsApp
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button
+                      onClick={() => setWhatsappProvider('evolution')}
+                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${
+                        whatsappProvider === 'evolution'
+                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Evolution API
+                    </button>
+                    <button
+                      onClick={() => setWhatsappProvider('twilio')}
+                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${
+                        whatsappProvider === 'twilio'
+                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Twilio
+                    </button>
+                    <button
+                      onClick={() => setWhatsappProvider('baileys')}
+                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${
+                        whatsappProvider === 'baileys'
+                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Baileys
+                    </button>
+                  </div>
+                </div>
+
+                {/* Evolution API */}
+                {whatsappProvider === 'evolution' && (
+                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <Input
+                      label="URL da API"
+                      placeholder="https://api.evolution.com"
+                      value={evolutionUrl}
+                      onChange={(e) => setEvolutionUrl(e.target.value)}
+                    />
+                    <Input
+                      label="API Key"
+                      type="password"
+                      placeholder="Sua chave da API"
+                      value={evolutionKey}
+                      onChange={(e) => setEvolutionKey(e.target.value)}
+                    />
+                    <Input
+                      label="Nome da Instância"
+                      placeholder="minha-instancia"
+                      value={evolutionInstance}
+                      onChange={(e) => setEvolutionInstance(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Twilio */}
+                {whatsappProvider === 'twilio' && (
+                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <Input
+                      label="Account SID"
+                      placeholder="ACxxxxxxxxxxxxx"
+                      value={twilioSid}
+                      onChange={(e) => setTwilioSid(e.target.value)}
+                    />
+                    <Input
+                      label="Auth Token"
+                      type="password"
+                      placeholder="Seu token de autenticação"
+                      value={twilioToken}
+                      onChange={(e) => setTwilioToken(e.target.value)}
+                    />
+                    <Input
+                      label="Número WhatsApp (From)"
+                      placeholder="whatsapp:+5511999999999"
+                      value={twilioFrom}
+                      onChange={(e) => setTwilioFrom(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Baileys */}
+                {whatsappProvider === 'baileys' && (
+                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <Input
+                      label="URL da API"
+                      placeholder="http://localhost:3001"
+                      value={baileysUrl}
+                      onChange={(e) => setBaileysUrl(e.target.value)}
+                    />
+                    <Input
+                      label="API Key"
+                      type="password"
+                      placeholder="Sua chave da API"
+                      value={baileysKey}
+                      onChange={(e) => setBaileysKey(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                  <Button
+                    onClick={() => handleSalvar('whatsapp')}
+                    disabled={loading}
+                    variant="primary"
+                    className="flex-1"
+                  >
+                    <Save className="w-4 h-4" />
+                    Salvar Configurações
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={verificarStatusConexao}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span className="hidden sm:inline">Verificar</span>
+                    <span className="sm:hidden">Conexão</span>
+                  </Button>
+                  {salvo && (
+                    <Badge variant="success" className="flex items-center gap-2 px-3 py-2">
+                      <Check className="w-3 h-3" />
+                      Salvo!
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </Card>
 
             {/* Seção: IA e Automação */}
             <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -592,7 +823,7 @@ export default function ConfiguracoesPage() {
 
                 <Button
                   onClick={() => handleSalvar('perfil')}
-                  disabled={loading || !!(novaSenha && novaSenha !== confirmarSenha)}
+                  disabled={loading || (novaSenha && novaSenha !== confirmarSenha)}
                   variant="primary"
                   className="w-full"
                 >

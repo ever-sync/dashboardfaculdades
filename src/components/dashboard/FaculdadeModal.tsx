@@ -334,10 +334,13 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
     setEvolutionLoading(true)
     try {
-      const res = await fetch('/api/evolution/syncChats', {
+      const res = await fetch('/api/evolution/instance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faculdade_id: faculdade.id }),
+        body: JSON.stringify({ 
+          faculdade_id: faculdade.id,
+          action: 'sync-chats'
+        }),
       })
 
       const data = await res.json()

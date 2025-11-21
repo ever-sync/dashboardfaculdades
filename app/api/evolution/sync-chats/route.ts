@@ -34,11 +34,13 @@ const syncChatsSchema = z.object({
 
 /**
  * POST - Sincronizar conversas existentes da Evolution API
- * Rota: /api/evolution/syncChats
+ * Rota: /api/evolution/sync-chats
  */
 export async function POST(request: NextRequest) {
+  console.log('POST /api/evolution/sync-chats - Rota chamada')
   try {
     const body = await request.json()
+    console.log('POST /api/evolution/sync-chats - Body recebido:', body)
     const validation = syncChatsSchema.safeParse(body)
 
     if (!validation.success) {
