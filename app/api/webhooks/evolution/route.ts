@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
 
-        console.log('=== WEBHOOK EVOLUTION RECEBIDO ===')
-        console.log('Body completo:', JSON.stringify(body, null, 2))
+        console.error('=== WEBHOOK EVOLUTION RECEBIDO ===')
+        console.error('Body completo:', JSON.stringify(body, null, 2))
 
         // Evolution API envia o tipo do evento no campo 'type' ou 'event'
         const eventType = body.type || body.event
@@ -25,11 +25,6 @@ export async function POST(request: NextRequest) {
         if (!eventType) {
             console.error('❌ Tipo de evento não identificado')
             return NextResponse.json({ error: 'Tipo de evento não identificado' }, { status: 400 })
-        }
-
-        // Log para debug
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`Webhook Evolution [${eventType}] - Instância: ${instance}`)
         }
 
         switch (eventType) {
@@ -47,11 +42,9 @@ export async function POST(request: NextRequest) {
                 break
             case 'QRCODE_UPDATED':
                 console.log('📱 QR Code atualizado')
-                // Pode ser útil para atualizar o QR code no frontend em tempo real
                 break
             default:
                 console.log('⚠️ Evento ignorado:', eventType)
-                // Ignorar outros eventos
                 break
         }
 
@@ -67,15 +60,10 @@ async function handleConnectionUpdate(data: any, instance: string) {
     if (!instance) return
 
     const status = data.status || data.state
-    // Mapear status do Evolution para status do sistema
-    // Evolution: open, close, connecting, refuses
-    // Sistema: conectado, desconectado, conectando
-
     let systemStatus = 'desconectado'
     if (status === 'open' || status === 'connected') systemStatus = 'conectado'
     else if (status === 'connecting') systemStatus = 'conectando'
 
-    // Atualizar status na tabela faculdades
     const { error } = await supabase
         .from('faculdades')
         .update({ evolution_status: systemStatus })
@@ -108,11 +96,10 @@ async function handleMessageUpsert(data: any, instance: string) {
     console.log('📱 Telefone:', phoneNumber)
     console.log('👤 FromMe:', fromMe)
 
-    // Extrair conteúdo da mensagem
     const messageContent = extractMessageContent(data)
     if (!messageContent) {
         console.error('❌ Conteúdo da mensagem vazio')
-        return // Mensagem vazia ou tipo não suportado
+        return
     }
 
     console.log('💬 Conteúdo:', messageContent)
@@ -134,46 +121,135 @@ async function handleMessageUpsert(data: any, instance: string) {
 
     if (!faculdade) {
         console.error(`❌ Faculdade não encontrada para instância: ${instance}`)
-        // data.key.id: ID da mensagem
+        return
+    }
 
-        if (!data.key?.id || !data.status) return
+    console.log('✅ Faculdade encontrada:', faculdade.id)
 
-        if (data.status === 'READ') {
-            // Marcar mensagem como lida no banco
-            await supabase
-                .from('mensagens')
-                .update({ lida: true })
-                .eq('message_id', data.key.id)
+    // 2. Buscar ou Criar Conversa
+    console.log('🔍 Buscando conversa existente...')
+    let { data: conversa, error: conversaError } = await supabase
+        .from('conversas_whatsapp')
+        .select('id, nao_lidas')
+        .eq('telefone', phoneNumber)
+        .eq('faculdade_id', faculdade.id)
+        .maybeSingle()
+
+    if (conversaError) {
+        console.error('❌ Erro ao buscar conversa:', conversaError)
+    }
+
+    if (!conversa) {
+        console.log('➕ Criando nova conversa...')
+        const { data: novaConversa, error } = await supabase
+            .from('conversas_whatsapp')
+            .insert({
+                faculdade_id: faculdade.id,
+                telefone: phoneNumber,
+                nome: data.pushName || phoneNumber,
+                status: 'ativo',
+                status_conversa: 'ativa',
+                ultima_mensagem: messageContent,
+                data_ultima_mensagem: new Date().toISOString(),
+                nao_lidas: fromMe ? 0 : 1,
+                departamento: 'WhatsApp',
+                setor: 'Atendimento',
+            })
+            .select()
+            .single()
+
+        if (error) {
+            console.error('❌ Erro ao criar conversa:', error)
+            return
+        }
+        conversa = novaConversa
+        console.log('✅ Conversa criada:', conversa.id)
+    } else {
+        console.log('✅ Conversa encontrada:', conversa.id)
+        console.log('🔄 Atualizando conversa...')
+        const newUnreadCount = fromMe ? 0 : (conversa.nao_lidas || 0) + 1
+
+        const { error: updateError } = await supabase
+            .from('conversas_whatsapp')
+            .update({
+                ultima_mensagem: messageContent,
+                data_ultima_mensagem: new Date().toISOString(),
+                nao_lidas: newUnreadCount,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', conversa.id)
+
+        if (updateError) {
+            console.error('❌ Erro ao atualizar conversa:', updateError)
+        } else {
+            console.log('✅ Conversa atualizada')
         }
     }
 
-    // Helpers
-    function extractMessageContent(data: any): string {
-        const msg = data.message
-        if (!msg) return ''
-
-        return (
-            msg.conversation ||
-            msg.extendedTextMessage?.text ||
-            msg.imageMessage?.caption ||
-            msg.videoMessage?.caption ||
-            msg.documentMessage?.caption ||
-            (msg.imageMessage ? 'Imagem' : '') ||
-            (msg.videoMessage ? 'Vídeo' : '') ||
-            (msg.documentMessage ? 'Documento' : '') ||
-            (msg.audioMessage ? 'Áudio' : '') ||
-            ''
-        )
+    if (!conversa) {
+        console.error('❌ Erro: conversa não foi criada/encontrada')
+        return
     }
 
-    function getMessageType(data: any): 'texto' | 'imagem' | 'documento' | 'audio' | 'video' {
-        const msg = data.message
-        if (!msg) return 'texto'
+    // 3. Inserir Mensagem
+    console.log('💾 Inserindo mensagem no banco...')
+    const { error: msgError } = await supabase
+        .from('mensagens')
+        .insert({
+            conversa_id: conversa.id,
+            conteudo: messageContent,
+            remetente: fromMe ? 'agente' : 'usuario',
+            tipo_mensagem: messageType,
+            timestamp: new Date(data.messageTimestamp * 1000).toISOString(),
+            lida: fromMe ? true : false,
+            message_id: data.key.id
+        })
 
-        if (msg.imageMessage) return 'imagem'
-        if (msg.videoMessage) return 'video'
-        if (msg.documentMessage) return 'documento'
-        if (msg.audioMessage) return 'audio'
-
-        return 'texto'
+    if (msgError) {
+        console.error('❌ Erro ao inserir mensagem:', msgError)
+    } else {
+        console.log('✅ Mensagem inserida com sucesso!')
     }
+}
+
+async function handleMessageUpdate(data: any, instance: string) {
+    if (!data.key?.id || !data.status) return
+
+    if (data.status === 'READ') {
+        await supabase
+            .from('mensagens')
+            .update({ lida: true })
+            .eq('message_id', data.key.id)
+    }
+}
+
+// Helpers
+function extractMessageContent(data: any): string {
+    const msg = data.message
+    if (!msg) return ''
+
+    return (
+        msg.conversation ||
+        msg.extendedTextMessage?.text ||
+        msg.imageMessage?.caption ||
+        msg.videoMessage?.caption ||
+        msg.documentMessage?.caption ||
+        (msg.imageMessage ? 'Imagem' : '') ||
+        (msg.videoMessage ? 'Vídeo' : '') ||
+        (msg.documentMessage ? 'Documento' : '') ||
+        (msg.audioMessage ? 'Áudio' : '') ||
+        ''
+    )
+}
+
+function getMessageType(data: any): 'texto' | 'imagem' | 'documento' | 'audio' | 'video' {
+    const msg = data.message
+    if (!msg) return 'texto'
+
+    if (msg.imageMessage) return 'imagem'
+    if (msg.videoMessage) return 'video'
+    if (msg.documentMessage) return 'documento'
+    if (msg.audioMessage) return 'audio'
+
+    return 'texto'
+}
