@@ -163,7 +163,9 @@ async function handleMessageUpsert(data: any, instance: string) {
             return
         }
         conversa = novaConversa
-        console.log('✅ Conversa criada:', conversa.id)
+        if (conversa) {
+            console.log('✅ Conversa criada:', conversa.id)
+        }
     } else {
         console.log('✅ Conversa encontrada:', conversa.id)
         console.log('🔄 Atualizando conversa...')
