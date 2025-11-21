@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { 
-  Bot, 
-  Search, 
+import {
+  Bot,
+  Search,
   Plus,
   Edit,
   Trash2,
@@ -37,7 +37,7 @@ export default function AgentesIAPage() {
     // Buscar todos os agentes se não houver faculdade selecionada, ou filtrar por faculdade
     try {
       setLoading(true)
-      
+
       // Sempre filtrar pela faculdade selecionada (obrigatório)
       if (!faculdadeSelecionada) {
         setAgentes([])
@@ -59,7 +59,7 @@ export default function AgentesIAPage() {
           hint: error.hint,
           code: error.code
         })
-        
+
         // Se a tabela não existe (404 ou 42P01), mostrar mensagem específica
         if (error.code === '42P01' || error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('não existe')) {
           const mensagemErro = 'A tabela "agentes_ia" não existe no banco de dados. Execute a migração SQL: supabase/migrations/006_create_agentes_ia_table_complete.sql'
@@ -68,7 +68,7 @@ export default function AgentesIAPage() {
         } else {
           setErroTabela(error.message || 'Erro ao buscar agentes')
         }
-        
+
         setAgentes([])
         return
       }
@@ -83,14 +83,14 @@ export default function AgentesIAPage() {
         error: error
       })
       const mensagemErro = error?.message || 'Erro desconhecido ao buscar agentes'
-      
+
       // Verificar se é erro de tabela não encontrada
       if (mensagemErro.includes('does not exist') || mensagemErro.includes('relation') || mensagemErro.includes('não existe') || mensagemErro.includes('agentes_ia')) {
         setErroTabela('A tabela "agentes_ia" não existe no banco de dados. Execute a migração SQL: supabase/migrations/006_create_agentes_ia_table_complete.sql')
       } else {
         setErroTabela(mensagemErro)
       }
-      
+
       setAgentes([])
     } finally {
       setLoading(false)
@@ -135,6 +135,7 @@ export default function AgentesIAPage() {
 
   const handleToggleAtivo = async (agente: AgenteIA) => {
     try {
+      // @ts-ignore - Supabase type inference issue
       const { error } = await supabase
         .from('agentes_ia')
         .update({ ativo: !agente.ativo })
@@ -151,7 +152,7 @@ export default function AgentesIAPage() {
 
   const agentesFiltrados = agentes.filter(agente => {
     const matchSearch = agente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       (agente.descricao || '').toLowerCase().includes(searchTerm.toLowerCase())
+      (agente.descricao || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchSetor = !filtroSetor || agente.setor === filtroSetor
     return matchSearch && matchSetor
   })
@@ -176,7 +177,7 @@ export default function AgentesIAPage() {
         title="Agentes IA"
         subtitle="Gerencie seus agentes de inteligência artificial"
       />
-      
+
       <div className="p-8 space-y-6">
         {/* Ações e Busca */}
         <Card>
@@ -286,32 +287,32 @@ export default function AgentesIAPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {agentesFiltrados.map((agente) => (
               <Card key={agente.id} className="hover:shadow-lg transition-shadow">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
-                        <Bot className="w-6 h-6 text-cyan-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-gray-900">{agente.nome}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant={agente.ativo ? 'success' : 'danger'}>
-                            {agente.ativo ? 'Ativo' : 'Inativo'}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Bot className="w-6 h-6 text-cyan-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg text-gray-900">{agente.nome}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={agente.ativo ? 'success' : 'danger'}>
+                          {agente.ativo ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                        {agente.setor && (
+                          <Badge variant="info">
+                            {agente.setor}
                           </Badge>
-                          {agente.setor && (
-                            <Badge variant="info">
-                              {agente.setor}
-                            </Badge>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  {agente.descricao && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                      {agente.descricao}
-                    </p>
-                  )}
+                {agente.descricao && (
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    {agente.descricao}
+                  </p>
+                )}
 
                 <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
                   <FileText className="w-4 h-4" />
