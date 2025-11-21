@@ -97,15 +97,13 @@ function AtendenteModal({ isOpen, onClose, atendente, onSave, faculdadeId }: Ate
       }
 
       if (atendente) {
-        const { error: updateError } = await supabase
-          .from('usuarios')
+        const { error: updateError } = await (supabase.from('usuarios') as any)
           .update(dataToSave)
           .eq('id', atendente.id)
 
         if (updateError) throw updateError
       } else {
-        const { error: insertError } = await supabase
-          .from('usuarios')
+        const { error: insertError } = await (supabase.from('usuarios') as any)
           .insert(dataToSave)
 
         if (insertError) throw insertError
@@ -275,11 +273,10 @@ function AtendenteModal({ isOpen, onClose, atendente, onSave, faculdadeId }: Ate
                     key={dia.num}
                     type="button"
                     onClick={() => toggleDiaTrabalho(dia.num)}
-                    className={`px-3 py-2 rounded-lg border-2 transition-colors ${
-                      formData.dias_trabalho.includes(dia.num)
-                        ? 'border-gray-900 bg-gray-50 text-gray-900'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                    }`}
+                    className={`px-3 py-2 rounded-lg border-2 transition-colors ${formData.dias_trabalho.includes(dia.num)
+                      ? 'border-gray-900 bg-gray-50 text-gray-900'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
                     disabled={loading}
                   >
                     {dia.label}
@@ -397,13 +394,13 @@ export default function AtendentesPage() {
           code: error.code,
           fullError: error
         })
-        
+
         // Se a tabela não existe, mostrar mensagem específica
         if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('não existe')) {
           console.error('⚠️ Tabela "usuarios" não encontrada. Execute a migração: supabase/migrations/014_create_usuarios_table.sql')
           setErroTabela(true)
         }
-        
+
         setAtendentes([])
         return
       }
@@ -449,9 +446,9 @@ export default function AtendentesPage() {
 
   const handleToggleAtivo = async (atendente: Usuario) => {
     try {
-      const { error } = await supabase
-        .from('usuarios')
-        .update({ ativo: !atendente.ativo })
+      const updateData = { ativo: !atendente.ativo }
+      const { error } = await (supabase.from('usuarios') as any)
+        .update(updateData)
         .eq('id', atendente.id)
 
       if (error) throw error
@@ -473,7 +470,7 @@ export default function AtendentesPage() {
       online: { variant: 'success', icon: UserCheck, label: 'Online' },
       offline: { variant: 'secondary', icon: UserX, label: 'Offline' },
       ausente: { variant: 'warning', icon: Clock, label: 'Ausente' },
-      ocupado: { variant: 'destructive', icon: AlertCircle, label: 'Ocupado' },
+      ocupado: { variant: 'danger', icon: AlertCircle, label: 'Ocupado' },
     }
     return statusMap[status] || statusMap.offline
   }
@@ -692,7 +689,7 @@ export default function AtendentesPage() {
                     {atendente.ativo ? (
                       <Badge variant="success">Ativo</Badge>
                     ) : (
-                      <Badge variant="destructive">Inativo</Badge>
+                      <Badge variant="danger">Inativo</Badge>
                     )}
                   </div>
                 </div>
@@ -714,11 +711,10 @@ export default function AtendentesPage() {
                     variant="secondary"
                     size="sm"
                     onClick={() => handleToggleAtivo(atendente)}
-                    className={`flex-1 ${
-                      atendente.ativo
-                        ? '!bg-orange-100 hover:!bg-orange-200 !text-orange-700'
-                        : '!bg-green-100 hover:!bg-green-200 !text-green-700'
-                    }`}
+                    className={`flex-1 ${atendente.ativo
+                      ? '!bg-orange-100 hover:!bg-orange-200 !text-orange-700'
+                      : '!bg-green-100 hover:!bg-green-200 !text-green-700'
+                      }`}
                   >
                     {atendente.ativo ? (
                       <>

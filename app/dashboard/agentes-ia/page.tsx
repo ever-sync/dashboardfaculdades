@@ -135,10 +135,9 @@ export default function AgentesIAPage() {
 
   const handleToggleAtivo = async (agente: AgenteIA) => {
     try {
-      // @ts-ignore - Supabase type inference issue
-      const { error } = await supabase
-        .from('agentes_ia')
-        .update({ ativo: !agente.ativo })
+      const updateData = { ativo: !agente.ativo }
+      const { error } = await (supabase.from('agentes_ia') as any)
+        .update(updateData)
         .eq('id', agente.id)
 
       if (error) throw error

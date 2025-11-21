@@ -17,8 +17,8 @@ if (fs.existsSync(envPath)) {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const evolutionApiUrl = process.env.EVOLUTION_API_URL
-const evolutionApiKey = process.env.EVOLUTION_API_KEY
+let evolutionApiUrl = process.env.EVOLUTION_API_URL
+let evolutionApiKey = process.env.EVOLUTION_API_KEY
 
 if (!supabaseUrl || !supabaseKey) {
     console.error('Missing Supabase credentials in .env.local')
@@ -29,6 +29,10 @@ if (!evolutionApiUrl || !evolutionApiKey) {
     console.error('Missing Evolution API credentials in .env.local')
     process.exit(1)
 }
+
+// Type assertions after validation
+evolutionApiUrl = evolutionApiUrl as string
+evolutionApiKey = evolutionApiKey as string
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
@@ -58,7 +62,7 @@ async function run() {
         const response = await fetch(`${evolutionApiUrl}/webhook/find/${faculdade.evolution_instance}`, {
             method: 'GET',
             headers: {
-                'apikey': evolutionApiKey,
+                'apikey': evolutionApiKey!,
             },
         })
 
@@ -83,7 +87,7 @@ async function run() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'apikey': evolutionApiKey,
+                'apikey': evolutionApiKey!,
             },
             body: JSON.stringify({
                 enabled: true,
