@@ -358,7 +358,7 @@ export default function CRMDetalhesPage() {
             {/* Barra de Progresso das Etapas */}
             {etapasFormatadas.length > 0 && (
               <div className="flex items-center gap-1 overflow-x-auto pb-2">
-                {etapasFormatadas.map((etapa, idx) => (
+                {etapasFormatadas.map((etapa: any, idx: number) => (
                   <div
                     key={etapa.id}
                     className={`flex items-center gap-1 flex-shrink-0 ${etapa.ativo ? 'text-teal-600' : 'text-gray-400'

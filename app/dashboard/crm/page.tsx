@@ -374,13 +374,14 @@ export default function CRMPage() {
     const filename = `crm_negociacoes_${new Date().toISOString().split('T')[0]}`
 
     if (formato === 'pdf') {
-      exportToPDF(dados, 'Relatório de Negociações CRM', filename)
+      const columns = Object.keys(dados[0] || {}).map(key => ({ header: key, dataKey: key }))
+      exportToPDF({ title: 'Relatório de Negociações CRM', filename, columns, data: dados })
       showToast('Exportação em PDF iniciada', 'success')
     } else if (formato === 'excel') {
-      exportToExcel(dados, filename)
+      exportToExcel({ filename, sheetName: 'Negociações', data: dados })
       showToast('Exportação em Excel concluída', 'success')
     } else {
-      exportToCSV(dados, filename)
+      exportToCSV({ filename, data: dados })
       showToast('Exportação em CSV concluída', 'success')
     }
   }

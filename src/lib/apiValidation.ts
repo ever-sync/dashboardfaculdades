@@ -18,12 +18,8 @@ export const faculdadeSchema = z.object({
   endereco: z.string().optional().nullable(),
   cidade: z.string().optional().nullable(),
   estado: z.string().length(2, 'Estado deve ter 2 caracteres').optional().nullable().or(z.literal('')),
-  plano: z.enum(['basico', 'pro', 'enterprise'], {
-    errorMap: () => ({ message: 'Plano deve ser: basico, pro ou enterprise' }),
-  }),
-  status: z.enum(['ativo', 'inativo', 'suspenso'], {
-    errorMap: () => ({ message: 'Status deve ser: ativo, inativo ou suspenso' }),
-  }),
+  plano: z.enum(['basico', 'pro', 'enterprise']),
+  status: z.enum(['ativo', 'inativo', 'suspenso']),
 })
 
 // Schema para agente IA
@@ -94,7 +90,7 @@ export function validateData<T>(schema: z.ZodSchema<T>, data: unknown): { succes
     return { success: true, data: validated }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const firstError = error.errors[0]
+      const firstError = error.issues[0]
       return {
         success: false,
         error: firstError ? `${firstError.path.join('.')}: ${firstError.message}` : 'Dados inválidos',

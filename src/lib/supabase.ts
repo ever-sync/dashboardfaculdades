@@ -1,9 +1,47 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 
 // Define the Database type for better type inference
 export type Database = {
     public: {
         Tables: {
+            agentes_ia: {
+                Row: {
+                    id: string
+                    faculdade_id: string
+                    nome: string
+                    script_atendimento: string
+                    ativo: boolean
+                    setor?: 'Suporte' | 'Vendas' | 'Atendimento'
+                    descricao?: string
+                    configuracao?: Record<string, any>
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    faculdade_id: string
+                    nome: string
+                    script_atendimento: string
+                    ativo?: boolean
+                    setor?: 'Suporte' | 'Vendas' | 'Atendimento'
+                    descricao?: string
+                    configuracao?: Record<string, any>
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    faculdade_id?: string
+                    nome?: string
+                    script_atendimento?: string
+                    ativo?: boolean
+                    setor?: 'Suporte' | 'Vendas' | 'Atendimento'
+                    descricao?: string
+                    configuracao?: Record<string, any>
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
             mensagens: {
                 Row: {
                     id: string
@@ -121,4 +159,4 @@ export type Database = {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)

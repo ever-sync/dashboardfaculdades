@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -54,36 +54,29 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Verificar se está tentando acessar rotas do dashboard
   const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
   const isLogin = request.nextUrl.pathname === '/login'
 
-  // Verificar cookie de usuário demo (fallback)
   const demoUserCookie = request.cookies.get('user')
   const hasDemoUser = !!demoUserCookie
 
-  // Se tentar acessar dashboard sem estar logado (nem Supabase nem Demo), redirecionar para login
   if (isDashboard && !user && !hasDemoUser) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Se estiver logado (Supabase ou Demo) e tentar acessar login, redirecionar para dashboard
   if (isLogin && (user || hasDemoUser)) {
     const redirect = request.nextUrl.searchParams.get('redirect')
     return NextResponse.redirect(new URL(redirect || '/dashboard', request.url))
   }
 
-  // Adicionar headers de segurança
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 
-  // CSP básico
   response.headers.set(
     'Content-Security-Policy',
     "default-src 'self'; " +
@@ -100,13 +93,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

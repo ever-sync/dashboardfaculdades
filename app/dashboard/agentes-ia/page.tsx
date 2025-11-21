@@ -136,7 +136,8 @@ export default function AgentesIAPage() {
   const handleToggleAtivo = async (agente: AgenteIA) => {
     try {
       const updateData = { ativo: !agente.ativo }
-      const { error } = await (supabase.from('agentes_ia') as any)
+      const { error } = await supabase
+        .from('agentes_ia')
         .update(updateData)
         .eq('id', agente.id)
 

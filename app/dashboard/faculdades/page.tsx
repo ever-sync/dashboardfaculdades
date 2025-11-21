@@ -196,9 +196,6 @@ export default function FaculdadesPage() {
         }}
         onSave={carregar}
         faculdade={faculdadeEditando}
-        onFaculdadeUpdated={(faculdade) => {
-          setFaculdadeEditando(faculdade)
-        }}
       />
     </div>
   )

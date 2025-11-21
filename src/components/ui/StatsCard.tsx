@@ -9,7 +9,7 @@ interface StatsCardProps {
     isPositive: boolean
   }
   subtitle?: string
-  iconColor?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'pink' | 'indigo' | 'yellow'
+  iconColor?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'pink' | 'indigo' | 'yellow' | 'gray'
 }
 
 export function StatsCard({ title, value, icon: Icon, trend, subtitle, iconColor = 'blue' }: StatsCardProps) {
@@ -22,6 +22,7 @@ export function StatsCard({ title, value, icon: Icon, trend, subtitle, iconColor
     pink: 'text-pink-500',
     indigo: 'text-indigo-500',
     yellow: 'text-yellow-500',
+    gray: 'text-gray-500',
   }
   
   return (

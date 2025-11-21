@@ -823,7 +823,7 @@ export default function ConfiguracoesPage() {
 
                 <Button
                   onClick={() => handleSalvar('perfil')}
-                  disabled={loading || (novaSenha && novaSenha !== confirmarSenha)}
+                  disabled={loading || Boolean(novaSenha && novaSenha !== confirmarSenha)}
                   variant="primary"
                   className="w-full"
                 >

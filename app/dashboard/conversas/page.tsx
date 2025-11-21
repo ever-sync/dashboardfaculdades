@@ -45,7 +45,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useMensagens } from '@/hooks/useMensagens'
-import { Prospect, Curso } from '@/types/supabase'
+import { Prospect, Curso, ConversaWhatsApp } from '@/types/supabase'
 import { useDebounce } from '@/lib/debounce'
 import { TransferirModal } from '@/components/dashboard/TransferirModal'
 import { MetricasModal } from '@/components/dashboard/MetricasModal'
@@ -59,18 +59,7 @@ import { AgendarMensagem } from '@/components/dashboard/AgendarMensagem'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { exportarConversaTXT } from '@/lib/exportarConversa'
 
-interface ConversaWhatsApp {
-  id: string
-  nome: string
-  telefone: string
-  ultima_mensagem?: string
-  data_ultima_mensagem: string
-  status: string
-  nao_lidas?: number
-  faculdade_id?: string
-  prospect_id?: string
-  tags?: string[]
-}
+ 
 
 interface Conversa {
   id: string
