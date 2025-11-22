@@ -634,7 +634,7 @@ export default function CursosPage() {
           try {
             // Tentar inserir em lotes menores para melhorar debugging
             const batchSize = 10
-            const batches = []
+            const batches: any[][] = []
             for (let i = 0; i < cursosParaInserir.length; i += batchSize) {
               batches.push(cursosParaInserir.slice(i, i + batchSize))
             }
@@ -687,7 +687,7 @@ export default function CursosPage() {
                 let mensagemErro = `Erro ao inserir lote ${batchIndex + 1} (${batch.length} curso(s)):\n\n`
                 
                 if (fullError.includes('column') || fullError.includes('schema cache') || fullError.includes('does not exist')) {
-                  const camposFaltando = []
+                  const camposFaltando: string[] = []
                   if (fullError.includes('descricao')) camposFaltando.push('descricao')
                   if (fullError.includes('link')) camposFaltando.push('link')
                   if (fullError.includes('categoria')) camposFaltando.push('categoria')
@@ -776,7 +776,7 @@ export default function CursosPage() {
         )
 
         if (temErroColuna) {
-          const camposFaltando = []
+          const camposFaltando: string[] = []
           if (errosImportacao.some(e => e.includes('descricao'))) camposFaltando.push('descricao')
           if (errosImportacao.some(e => e.includes('link'))) camposFaltando.push('link')
           if (errosImportacao.some(e => e.includes('categoria'))) camposFaltando.push('categoria')

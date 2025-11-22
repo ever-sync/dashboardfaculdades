@@ -192,7 +192,7 @@ export default function DisparoMassaPage() {
           }
 
           // Buscar ou criar conversa
-          let conversaId = null
+          let conversaId: string | null = null
           if (destinatario.id.startsWith('conversa-')) {
             conversaId = destinatario.id.replace('conversa-', '')
           } else {

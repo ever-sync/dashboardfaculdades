@@ -303,7 +303,7 @@ export default function ConversasPage() {
 
         const conversasFormatadas: Conversa[] = (dataSimple || []).map((c: any) => {
           // Priorizar nome do prospect sobre nome da conversa
-          let prospectNome = null
+          let prospectNome: string | undefined = undefined
           if (c.prospect_id && prospectsMap[c.prospect_id]) {
             prospectNome = prospectsMap[c.prospect_id].nome || prospectsMap[c.prospect_id].nome_completo
           } else if (prospectsMap[c.id]) {
@@ -443,7 +443,7 @@ export default function ConversasPage() {
       const conversasFormatadas: Conversa[] = (data || []).map((c: any) => {
         // Priorizar nome do prospect sobre nome da conversa
         // Buscar por prospect_id primeiro, depois por conversaId (telefone)
-        let prospectNome = null
+        let prospectNome: string | undefined = undefined
         if (c.prospect_id && prospectsMap[c.prospect_id]) {
           prospectNome = prospectsMap[c.prospect_id].nome || prospectsMap[c.prospect_id].nome_completo
         } else if (prospectsMap[c.id]) {
