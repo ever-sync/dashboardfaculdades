@@ -11,7 +11,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Save } from 'lucide-react'
 
-export default function CriarTarefaPage() {
+function CriarTarefaContent() {
   const { faculdadeSelecionada } = useFaculdade()
   const { showToast } = useToast()
   const router = useRouter()
@@ -42,37 +42,25 @@ export default function CriarTarefaPage() {
   const fetchNegociacoes = async () => {
     if (!faculdadeSelecionada) return
 
-    try {
-      const { data } = await supabase
-        .from('negociacoes')
-        .select('id, nome')
-        .eq('faculdade_id', faculdadeSelecionada.id)
-        .order('nome', { ascending: true })
+    const { data } = await supabase
+      .from('negociacoes')
+      .select('id, nome')
+      .eq('faculdade_id', faculdadeSelecionada.id)
+      .order('created_at', { ascending: false })
 
-      if (data) {
-        setNegociacoes(data)
-      }
-    } catch (error) {
-      console.error('Erro ao buscar negociações:', error)
-    }
+    setNegociacoes(data || [])
   }
 
   const fetchContatos = async () => {
     if (!faculdadeSelecionada) return
 
-    try {
-      const { data } = await supabase
-        .from('contatos')
-        .select('id, nome')
-        .eq('faculdade_id', faculdadeSelecionada.id)
-        .order('nome', { ascending: true })
+    const { data } = await supabase
+      .from('contatos')
+      .select('id, nome')
+      .eq('faculdade_id', faculdadeSelecionada.id)
+      .order('nome')
 
-      if (data) {
-        setContatos(data)
-      }
-    } catch (error) {
-      console.error('Erro ao buscar contatos:', error)
-    }
+    setContatos(data || [])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,3 +266,17 @@ export default function CriarTarefaPage() {
   )
 }
 
+export default function CriarTarefaPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <div className="h-16 bg-gray-100 animate-pulse" />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-500"></div>
+        </div>
+      </div>
+    }>
+      <CriarTarefaContent />
+    </Suspense>
+  )
+}
