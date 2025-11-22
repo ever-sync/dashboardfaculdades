@@ -4,6 +4,9 @@ import { z } from 'zod'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 import { validarConversaFaculdade } from '@/lib/faculdadeValidation'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 

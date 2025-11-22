@@ -3,6 +3,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { loginSchema, validateData } from '@/lib/apiValidation'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 

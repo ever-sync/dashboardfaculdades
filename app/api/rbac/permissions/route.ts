@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/middleware/withAuth'
 import { getAllPermissions, getPermissionsByResource } from '@/lib/rbac'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/rbac/permissions - List all permissions
 export const GET = requireAuth(async (request: NextRequest, context) => {
     try {

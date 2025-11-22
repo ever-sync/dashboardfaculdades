@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/middleware/withAuth'
 import {
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
     assignRole,
     removeRole,
     assignPermissionToRole,
