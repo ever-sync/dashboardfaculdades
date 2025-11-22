@@ -7,10 +7,26 @@ import { validarConversaFaculdade } from '@/lib/faculdadeValidation'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+let _supabase: ReturnType<typeof createClient> | null = null
+function getSupabaseAdmin() {
+  if (!_supabase) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase not configured')
+    }
+    _supabase = createClient(supabaseUrl, supabaseServiceKey)
+  }
+  return _supabase
+}
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Use getter to defer initialization
+const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get: (_target, prop) => {
+    const client = getSupabaseAdmin()
+    return (client as any)[prop]
+  }
+})
 
 // Schema de validação para POST (criar)
 const criarAnotacaoSchema = z.object({
@@ -100,7 +116,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validar dados
     const validation = criarAnotacaoSchema.safeParse(body)
     if (!validation.success) {
@@ -183,7 +199,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validar dados
     const validation = editarAnotacaoSchema.safeParse(body)
     if (!validation.success) {
@@ -273,7 +289,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validar dados
     const validation = deletarAnotacaoSchema.safeParse(body)
     if (!validation.success) {
