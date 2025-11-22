@@ -26,9 +26,7 @@ services:
     ports:
       - "${PORT:-3003}:3000"
     restart: always
-    networks:               # ← ADICIONE ISSO
-      - eversync           # ← Nome da sua rede
-
-networks:                  # ← E ISSO NO FINAL
-  eversync:
-    external: true 
+networks:
+  NetSync:
+    name: NetSync
+    external: true
