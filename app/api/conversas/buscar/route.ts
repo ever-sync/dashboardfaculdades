@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { validateData } from '@/lib/schemas'
 import { getUserFriendlyError } from '@/lib/errorMessages'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 // Schema de validação
 const buscarConversasSchema = z.object({
@@ -56,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     if (busca_mensagens) {
       // Busca full-text nas mensagens
-      const { data: mensagensEncontradas, error: mensagensError } = await supabase
+      const { data: mensagensEncontradas, error: mensagensError } = await supabaseAdmin
         .from('mensagens')
         .select('conversa_id')
         .ilike('conteudo', `%${query}%`)
@@ -82,7 +77,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Buscar conversas que têm mensagens correspondentes
-      let queryConversas = supabase
+      let queryConversas = supabaseAdmin
         .from('conversas_whatsapp')
         .select(`
           *,
@@ -135,7 +130,7 @@ export async function POST(request: NextRequest) {
       conversas = conversasData || []
     } else {
       // Busca normal em conversas (nome, telefone, última mensagem)
-      let queryConversas = supabase
+      let queryConversas = supabaseAdmin
         .from('conversas_whatsapp')
         .select(`
           *,
@@ -189,7 +184,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar contagem de mensagens para cada conversa
     const conversaIds = conversas.map(c => c.id)
-    const { data: mensagensCount } = await supabase
+    const { data: mensagensCount } = await supabaseAdmin
       .from('mensagens')
       .select('conversa_id')
       .in('conversa_id', conversaIds)

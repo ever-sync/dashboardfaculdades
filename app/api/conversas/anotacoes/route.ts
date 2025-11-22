@@ -1,32 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 import { validarConversaFaculdade } from '@/lib/faculdadeValidation'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-let _supabase: ReturnType<typeof createClient> | null = null
-function getSupabaseAdmin() {
-  if (!_supabase) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase not configured')
-    }
-    _supabase = createClient(supabaseUrl, supabaseServiceKey)
-  }
-  return _supabase
-}
-
-// Use getter to defer initialization
-const supabase = new Proxy({} as ReturnType<typeof createClient>, {
-  get: (_target, prop) => {
-    const client = getSupabaseAdmin()
-    return (client as any)[prop]
-  }
-})
+const supabase = supabaseAdmin
 
 // Schema de validação para POST (criar)
 const criarAnotacaoSchema = z.object({

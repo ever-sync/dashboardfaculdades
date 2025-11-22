@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 import { z } from 'zod'
-import { createClient } from '@supabase/supabase-js'
 import { getEvolutionConfig } from '@/lib/evolutionConfig'
 import { validateData } from '@/lib/schemas'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabase = supabaseAdmin
 
 // Schema de validação para envio de mensagens
 const sendMessageSchema = z.object({
