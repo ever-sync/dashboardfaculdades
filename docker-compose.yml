@@ -26,6 +26,16 @@ services:
     ports:
       - "${PORT:-3003}:3000"
     restart: always
+    networks:
+      - NetSync
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.wchat-app.rule=Host(`app.wchat.digital`)"
+        - "traefik.http.routers.wchat-app.entrypoints=websecure"
+        - "traefik.http.routers.wchat-app.tls.certresolver=letsencrypt"
+        - "traefik.http.services.wchat-app.loadbalancer.server.port=3000"
+        - "traefik.docker.network=eversync"
 networks:
   NetSync:
     name: NetSync
