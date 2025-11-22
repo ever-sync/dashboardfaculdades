@@ -29,3 +29,7 @@ jobs:
         tags: |
           ghcr.io/ever-sync/dashboardfaculdades:latest
           ghcr.io/ever-sync/dashboardfaculdades:${{ github.sha }}
+        build-args: |
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
