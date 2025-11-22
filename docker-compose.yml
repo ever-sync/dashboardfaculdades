@@ -33,9 +33,10 @@ services:
         - "traefik.enable=true"
         - "traefik.http.routers.wchat-app.rule=Host(`app.wchat.digital`)"
         - "traefik.http.routers.wchat-app.entrypoints=websecure"
-        - "traefik.http.routers.wchat-app.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.wchat-app.tls.certresolver=letsencryptresolver"  # ← CORRIGIDO!
         - "traefik.http.services.wchat-app.loadbalancer.server.port=3000"
         - "traefik.docker.network=NetSync"
+
 networks:
   NetSync:
     name: NetSync
