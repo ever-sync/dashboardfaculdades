@@ -95,7 +95,7 @@ export default function LoginPage() {
               <MessageSquare className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-black mb-2">
-              Edu.Zap
+              wChat
             </h1>
             <p className="text-gray-600 text-sm">Faça login para acessar o dashboard</p>
           </div>

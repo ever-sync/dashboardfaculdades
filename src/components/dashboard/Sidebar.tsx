@@ -111,7 +111,7 @@ export function Sidebar() {
         <div className={`p-6 pt-16 lg:pt-6 border-b border-gray-200 flex-shrink-0 ${isCollapsed ? 'lg:px-3 lg:py-4' : ''}`}>
           {!isCollapsed ? (
             <div className="relative">
-              <h1 className="text-2xl font-bold text-black pr-8">Edu.Zap</h1>
+              <h1 className="text-2xl font-bold text-black pr-8">wChat</h1>
               <p className="text-sm text-gray-600">Dashboard Acadêmico</p>
               {/* Botão de Colapsar (apenas desktop) */}
               <button
