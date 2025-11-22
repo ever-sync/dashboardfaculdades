@@ -3,9 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) return null
+  return createClient(supabaseUrl, supabaseServiceKey)
+}
 
 // Schema de validação
 const configSchema = z.object({
@@ -21,6 +25,13 @@ const configSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin()
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Supabase não configurado. Defina NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.' },
+        { status: 500 }
+      )
+    }
     const { searchParams } = new URL(request.url)
     const chave = searchParams.get('chave')
 
@@ -82,6 +93,13 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin()
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Supabase não configurado. Defina NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.' },
+        { status: 500 }
+      )
+    }
     const body = await request.json()
     
     const validation = configSchema.safeParse(body)

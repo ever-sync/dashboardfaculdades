@@ -3,10 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) return null
+  return createClient(supabaseUrl, supabaseServiceKey)
+}
 
 // Schema de validação
 const buscarBaseSchema = z.object({
@@ -18,6 +21,13 @@ const buscarBaseSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin()
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Supabase não configurado. Defina NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.' },
+        { status: 500 }
+      )
+    }
     const { searchParams } = new URL(request.url)
     
     const query = searchParams.get('query') || ''
