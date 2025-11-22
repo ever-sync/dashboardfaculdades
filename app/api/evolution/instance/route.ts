@@ -894,15 +894,14 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      let qrCode = null
-      let qrExpiresAt = null
+      let qrCode: string | null = null
+      let qrExpiresAt: string | null = null
 
       if (qrResponse.ok) {
         const qrData = await qrResponse.json()
         if (qrData.qrcode) {
           qrCode = qrData.qrcode.base64 || qrData.qrcode
-          qrExpiresAt = new Date(Date.now() + 40 * 1000).toISOString() as string
-
+          qrExpiresAt = new Date(Date.now() + 40 * 1000).toISOString()
         }
       }
 
