@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
       .select('id, nome, email')
       .eq('faculdade_id', faculdadeId)
 
-    const desempenhoEquipe = []
+    const desempenhoEquipe: { nome: string; atendimentos: number; conversao: number; nota: number }[] = []
 
     if (usuarios && usuarios.length > 0) {
       for (const usuario of usuarios) {

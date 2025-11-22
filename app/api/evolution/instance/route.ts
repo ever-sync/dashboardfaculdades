@@ -147,8 +147,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar QR code e status da instância
-    let qrCode = faculdade.evolution_qr_code
-    let qrExpiresAt = faculdade.evolution_qr_expires_at
+    let qrCode: string | null = faculdade.evolution_qr_code || null
+    let qrExpiresAt: string | null = faculdade.evolution_qr_expires_at || null
     let status = faculdade.evolution_status || 'desconectado'
     let connectedAt = faculdade.evolution_connected_at
 
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
             // QR code geralmente expira em 40 segundos
             qrExpiresAt = new Date(Date.now() + 40 * 1000).toISOString()
 
-            console.log('QR Code extraído com sucesso, tamanho:', qrCode.length)
+            console.log('QR Code extraído com sucesso, tamanho:', qrCode!.length)
 
             // Atualizar no banco
             await supabase
@@ -901,7 +901,8 @@ export async function POST(request: NextRequest) {
         const qrData = await qrResponse.json()
         if (qrData.qrcode) {
           qrCode = qrData.qrcode.base64 || qrData.qrcode
-          qrExpiresAt = new Date(Date.now() + 40 * 1000).toISOString()
+          qrExpiresAt = new Date(Date.now() + 40 * 1000).toISOString() as string
+
         }
       }
 
