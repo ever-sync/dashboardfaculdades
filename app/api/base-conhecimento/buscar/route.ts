@@ -6,6 +6,9 @@ import { getUserFriendlyError } from '@/lib/errorMessages'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+// Force dynamic rendering to prevent build-time execution
+export const dynamic = 'force-dynamic'
+
 function getSupabaseAdmin() {
   if (!supabaseUrl || !supabaseServiceKey) return null
   return createClient(supabaseUrl, supabaseServiceKey)
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
       )
     }
     const { searchParams } = new URL(request.url)
-    
+
     const query = searchParams.get('query') || ''
     const faculdadeId = searchParams.get('faculdade_id')
     const categoria = searchParams.get('categoria')
@@ -80,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrar resultados por relevância (busca simples por palavras-chave)
     const palavrasChave = queryValidada.toLowerCase().split(/\s+/).filter(p => p.length > 2)
-    
+
     const resultadosRelevantes = (resultados || [])
       .map((item: any) => {
         const textoCompleto = `${item.pergunta} ${item.resposta}`.toLowerCase()
