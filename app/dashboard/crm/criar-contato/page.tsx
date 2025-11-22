@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useRouter } from 'next/navigation'
@@ -99,10 +99,12 @@ export default function CriarContatoPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Header
-        title="Criar Contato"
-        subtitle="Adicione um novo contato ao CRM"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Criar Contato"
+          subtitle="Adicione um novo contato ao CRM"
+        />
+      </Suspense>
 
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">

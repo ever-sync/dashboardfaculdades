@@ -1,37 +1,39 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Faculdade } from '@/types/supabase'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Building2, Plus, Edit, Trash2 } from 'lucide-react'
+import { useState, useEffect, Suspense } from 'react'
 import { Header } from '@/components/dashboard/Header'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { Building2, Edit, Trash2, Plus } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import { FaculdadeModal } from '@/components/dashboard/FaculdadeModal'
+import { toast } from 'react-hot-toast'
+import { Faculdade } from '@/types/supabase'
 
 export default function FaculdadesPage() {
   const [faculdades, setFaculdades] = useState<Faculdade[]>([])
-  const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [faculdadeEditando, setFaculdadeEditando] = useState<Faculdade | null>(null)
   const [deletandoId, setDeletandoId] = useState<string | null>(null)
 
+  const carregar = async () => {
+    const { data, error } = await supabase
+      .from('faculdades')
+      .select('*')
+      .order('nome')
+
+    if (error) {
+      toast.error('Erro ao carregar faculdades')
+      return
+    }
+
+    setFaculdades(data || [])
+  }
+
   useEffect(() => {
     carregar()
   }, [])
-
-  async function carregar() {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/faculdades')
-      const data = await res.json()
-      setFaculdades(data || [])
-    } catch (error) {
-      console.error('Erro ao carregar faculdades:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleNovo = () => {
     setFaculdadeEditando(null)
@@ -44,66 +46,51 @@ export default function FaculdadesPage() {
   }
 
   const handleDeletar = async (id: string) => {
-    if (!confirm('Tem certeza que deseja deletar esta faculdade?')) {
-      return
+    if (!confirm('Tem certeza que deseja excluir esta faculdade?')) return
+
+    setDeletandoId(id)
+    const { error } = await supabase
+      .from('faculdades')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      toast.error('Erro ao excluir faculdade')
+    } else {
+      toast.success('Faculdade excluída com sucesso')
+      carregar()
     }
-
-    try {
-      setDeletandoId(id)
-      const res = await fetch(`/api/faculdades/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        alert(data.error || 'Erro ao deletar faculdade')
-        return
-      }
-
-      await carregar()
-    } catch (error) {
-      console.error('Erro ao deletar faculdade:', error)
-      alert('Erro ao deletar faculdade')
-    } finally {
-      setDeletandoId(null)
-    }
+    setDeletandoId(null)
   }
 
   const getPlanoBadge = (plano: string) => {
-    const variants: Record<string, 'success' | 'warning' | 'info'> = {
-      basico: 'info',
-      pro: 'warning',
-      enterprise: 'success'
+    switch (plano?.toLowerCase()) {
+      case 'enterprise': return 'info'
+      case 'pro': return 'info'
+      default: return 'secondary'
     }
-    return variants[plano] || 'info'
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'success' | 'warning' | 'danger'> = {
-      ativo: 'success',
-      inativo: 'warning',
-      suspenso: 'danger'
+    switch (status?.toLowerCase()) {
+      case 'ativo': return 'success'
+      case 'inativo': return 'danger'
+      default: return 'warning'
     }
-    return variants[status] || 'info'
   }
 
-  if (loading) {
-    return (
-      <div>
-        <Header title="Faculdades" subtitle="Gerencie seus clientes" />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    )
-  }
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Faculdades"
+          subtitle="Gerencie as faculdades cadastradas"
+        />
+      </Suspense>
 
-         return (
-           <div className="min-h-screen bg-white text-black">
-             <Header title="Faculdades" subtitle="Gerencie seus clientes" />
-             <div className="p-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div></div>
+      <div className="p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-800">Faculdades</h2>
           <Button onClick={handleNovo}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Faculdade
@@ -150,17 +137,17 @@ export default function FaculdadesPage() {
                 </div>
 
                 <div className="flex gap-2 pt-4 border-t border-gray-100">
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     className="flex-1"
                     onClick={() => handleEditar(f)}
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Editar
                   </Button>
-                  <Button 
-                    variant="danger" 
+                  <Button
+                    variant="danger"
                     size="sm"
                     onClick={() => handleDeletar(f.id)}
                     disabled={deletandoId === f.id}

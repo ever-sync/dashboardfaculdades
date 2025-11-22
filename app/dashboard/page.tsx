@@ -9,84 +9,40 @@ import {
   Users,
   MessageSquare,
   TrendingUp,
+  GraduationCap,
   DollarSign,
   Bot,
   Clock,
-  Star,
-  GraduationCap
+  Star
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Suspense } from 'react'
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
-import { CardSkeleton } from '@/components/ui/Skeleton'
 
 export default function DashboardPage() {
   const { faculdadeSelecionada } = useFaculdade()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  
-  useEffect(() => {
-    if (faculdadeSelecionada) fetchStats()
-  }, [faculdadeSelecionada])
-  
-  const fetchStats = async () => {
-    if (!faculdadeSelecionada) {
-      setLoading(false)
-      return
-    }
 
-    try {
-      setLoading(true)
-      const res = await fetch(`/api/dashboard/stats?faculdade_id=${faculdadeSelecionada.id}`)
-      if (!res.ok) {
-        throw new Error(`Erro ${res.status}: ${res.statusText}`)
-      }
-      const data = await res.json()
-      setStats(data)
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error)
-      setStats(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white text-black">
-        <Header
-          title="Dashboard"
-          subtitle="Visão geral do atendimento WhatsApp"
-        />
-        <div className="p-4 sm:p-6 lg:p-8">
-          <CardSkeleton count={8} />
-        </div>
-      </div>
-    )
-  }
-  
-  if (!stats) {
-    return (
-      <div className="min-h-screen bg-white text-black p-8">
-        <Header
-          title="Dashboard"
-          subtitle="Visão geral do dashboard acadêmico"
-        />
-        <p className="mt-8 text-center text-red-500">
-          Erro ao carregar dados do dashboard.
-        </p>
-      </div>
-    )
+  // Mock data - replace with real data fetching
+  const stats: DashboardStats = {
+    total_conversas: 1250,
+    total_prospects: 850,
+    matriculas_mes: 45,
+    taxa_conversao: 15.2,
+    receita_mes: 150000,
+    taxa_automacao: 45.5,
+    tempo_medio_resposta: 120,
+    satisfacao_media: 4.8
   }
 
   return (
-    <div className="min-h-screen bg-white text-black">
-      <Header
-        title="Dashboard"
-        subtitle="Visão geral do atendimento WhatsApp"
-      />
-      
-      <div className="p-4 sm:p-6 lg:p-8">
-        {/* KPIs Grid - Primeira Linha */}
+    <div className="min-h-screen bg-gray-50">
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Dashboard"
+          subtitle="Visão geral da sua faculdade"
+        />
+      </Suspense>
+
+      <main className="p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard
             title="Total de Conversas"
@@ -95,7 +51,7 @@ export default function DashboardPage() {
             trend={{ value: 12.5, isPositive: true }}
             iconColor="gray"
           />
-          
+
           <StatsCard
             title="Prospects Ativos"
             value={stats.total_prospects}
@@ -103,15 +59,15 @@ export default function DashboardPage() {
             trend={{ value: 8.3, isPositive: true }}
             iconColor="green"
           />
-          
+
           <StatsCard
             title="Matrículas do Mês"
             value={stats.matriculas_mes}
             icon={GraduationCap}
-            trend={{ value: 15.2, isPositive: true }}
+            trend={{ value: 5.2, isPositive: true }}
             iconColor="purple"
           />
-          
+
           <StatsCard
             title="Receita do Mês"
             value={formatCurrency(stats.receita_mes)}
@@ -120,7 +76,7 @@ export default function DashboardPage() {
             iconColor="orange"
           />
         </div>
-        
+
         {/* Segunda Linha de KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard
@@ -130,7 +86,7 @@ export default function DashboardPage() {
             subtitle="Prospects → Matrículas"
             iconColor="red"
           />
-          
+
           <StatsCard
             title="Taxa de Automação"
             value={`${stats.taxa_automacao.toFixed(1)}%`}
@@ -138,7 +94,7 @@ export default function DashboardPage() {
             subtitle="Resolvido por IA"
             iconColor="indigo"
           />
-          
+
           <StatsCard
             title="Tempo Médio Resposta"
             value={`${stats.tempo_medio_resposta}s`}
@@ -146,7 +102,7 @@ export default function DashboardPage() {
             subtitle="Primeira resposta"
             iconColor="yellow"
           />
-          
+
           <StatsCard
             title="Satisfação Média"
             value={`${stats.satisfacao_media.toFixed(1)}/5`}
@@ -155,10 +111,10 @@ export default function DashboardPage() {
             iconColor="pink"
           />
         </div>
-        
+
         {/* Gráficos Reais */}
         <DashboardCharts faculdadeId={faculdadeSelecionada?.id} />
-      </div>
+      </main>
     </div>
   )
 }

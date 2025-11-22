@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import {
   Settings,
   MessageSquare,
@@ -152,10 +152,12 @@ export default function ConfiguracoesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header
-        title="Configurações"
-        subtitle="Gerencie as configurações do sistema"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Configurações"
+          subtitle="Gerencie as configurações do sistema"
+        />
+      </Suspense>
 
       <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -206,31 +208,28 @@ export default function ConfiguracoesPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button
                       onClick={() => setWhatsappProvider('evolution')}
-                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${
-                        whatsappProvider === 'evolution'
+                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'evolution'
                           ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       Evolution API
                     </button>
                     <button
                       onClick={() => setWhatsappProvider('twilio')}
-                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${
-                        whatsappProvider === 'twilio'
+                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'twilio'
                           ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       Twilio
                     </button>
                     <button
                       onClick={() => setWhatsappProvider('baileys')}
-                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${
-                        whatsappProvider === 'baileys'
+                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'baileys'
                           ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       Baileys
                     </button>
@@ -355,14 +354,12 @@ export default function ConfiguracoesPage() {
                   </div>
                   <button
                     onClick={() => setIaAtivaPorPadrao(!iaAtivaPorPadrao)}
-                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${
-                      iaAtivaPorPadrao ? 'bg-gray-900' : 'bg-gray-300'
-                    }`}
+                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${iaAtivaPorPadrao ? 'bg-gray-900' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                        iaAtivaPorPadrao ? 'translate-x-6' : 'translate-x-0'
-                      }`}
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${iaAtivaPorPadrao ? 'translate-x-6' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -374,14 +371,12 @@ export default function ConfiguracoesPage() {
                   </div>
                   <button
                     onClick={() => setRespostasAutomaticasAtivas(!respostasAutomaticasAtivas)}
-                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${
-                      respostasAutomaticasAtivas ? 'bg-gray-900' : 'bg-gray-300'
-                    }`}
+                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${respostasAutomaticasAtivas ? 'bg-gray-900' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                        respostasAutomaticasAtivas ? 'translate-x-6' : 'translate-x-0'
-                      }`}
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${respostasAutomaticasAtivas ? 'translate-x-6' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -432,14 +427,12 @@ export default function ConfiguracoesPage() {
                   </div>
                   <button
                     onClick={() => setDistribuicaoAutomatica(!distribuicaoAutomatica)}
-                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${
-                      distribuicaoAutomatica ? 'bg-gray-900' : 'bg-gray-300'
-                    }`}
+                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${distribuicaoAutomatica ? 'bg-gray-900' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                        distribuicaoAutomatica ? 'translate-x-6' : 'translate-x-0'
-                      }`}
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${distribuicaoAutomatica ? 'translate-x-6' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -580,14 +573,12 @@ export default function ConfiguracoesPage() {
                   </div>
                   <button
                     onClick={() => setNotificacoesAtivas(!notificacoesAtivas)}
-                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${
-                      notificacoesAtivas ? 'bg-gray-900' : 'bg-gray-300'
-                    }`}
+                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 ${notificacoesAtivas ? 'bg-gray-900' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                        notificacoesAtivas ? 'translate-x-6' : 'translate-x-0'
-                      }`}
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${notificacoesAtivas ? 'translate-x-6' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -598,14 +589,12 @@ export default function ConfiguracoesPage() {
                       <label className="font-medium text-gray-900 text-sm">Nova Conversa</label>
                       <button
                         onClick={() => setNotificarNovaConversa(!notificarNovaConversa)}
-                        className={`relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 ${
-                          notificarNovaConversa ? 'bg-gray-900' : 'bg-gray-300'
-                        }`}
+                        className={`relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 ${notificarNovaConversa ? 'bg-gray-900' : 'bg-gray-300'
+                          }`}
                       >
                         <div
-                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                            notificarNovaConversa ? 'translate-x-5' : 'translate-x-0'
-                          }`}
+                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${notificarNovaConversa ? 'translate-x-5' : 'translate-x-0'
+                            }`}
                         />
                       </button>
                     </div>
@@ -614,14 +603,12 @@ export default function ConfiguracoesPage() {
                       <label className="font-medium text-gray-900 text-sm">Mensagem Não Lida</label>
                       <button
                         onClick={() => setNotificarMensagemNaoLida(!notificarMensagemNaoLida)}
-                        className={`relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 ${
-                          notificarMensagemNaoLida ? 'bg-gray-900' : 'bg-gray-300'
-                        }`}
+                        className={`relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 ${notificarMensagemNaoLida ? 'bg-gray-900' : 'bg-gray-300'
+                          }`}
                       >
                         <div
-                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                            notificarMensagemNaoLida ? 'translate-x-5' : 'translate-x-0'
-                          }`}
+                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${notificarMensagemNaoLida ? 'translate-x-5' : 'translate-x-0'
+                            }`}
                         />
                       </button>
                     </div>
@@ -630,14 +617,12 @@ export default function ConfiguracoesPage() {
                       <label className="font-medium text-gray-900 text-sm">Transferência de Conversa</label>
                       <button
                         onClick={() => setNotificarTransferencia(!notificarTransferencia)}
-                        className={`relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 ${
-                          notificarTransferencia ? 'bg-gray-900' : 'bg-gray-300'
-                        }`}
+                        className={`relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1 ${notificarTransferencia ? 'bg-gray-900' : 'bg-gray-300'
+                          }`}
                       >
                         <div
-                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                            notificarTransferencia ? 'translate-x-5' : 'translate-x-0'
-                          }`}
+                          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${notificarTransferencia ? 'translate-x-5' : 'translate-x-0'
+                            }`}
                         />
                       </button>
                     </div>

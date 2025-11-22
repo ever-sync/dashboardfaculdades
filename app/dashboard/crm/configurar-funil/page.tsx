@@ -5,15 +5,15 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useRouter } from 'next/navigation'
-import { 
-  ArrowLeft, 
-  Settings, 
-  Plus, 
+import {
+  ArrowLeft,
+  Settings,
+  Plus,
   MoreVertical,
   ChevronRight,
   ToggleLeft,
@@ -68,13 +68,13 @@ export default function ConfigurarFunilPage() {
 
       if (error) {
         // Verificar se é um erro de tabela não encontrada (não é crítico)
-        const isTableNotFound = 
-          error.code === 'PGRST116' || 
+        const isTableNotFound =
+          error.code === 'PGRST116' ||
           error.code === '42P01' ||
           error.message?.includes('does not exist') ||
           error.message?.includes('relation') ||
           error.message?.includes('table')
-        
+
         if (!isTableNotFound) {
           // Só logar erros reais, não erros de tabela não encontrada
           const errorMessage = error.message || 'Erro desconhecido'
@@ -86,7 +86,7 @@ export default function ConfigurarFunilPage() {
             hint: error.hint || 'Sem hint'
           })
         }
-        
+
         // Usar dados mock em caso de erro
         setFunis(getMockFunis())
       } else if (data && data.length > 0) {
@@ -105,15 +105,15 @@ export default function ConfigurarFunilPage() {
       // Tratar erros inesperados
       const errorMessage = error?.message || 'Erro desconhecido ao buscar funis'
       const errorCode = error?.code || 'N/A'
-      
+
       // Verificar se é um erro de tabela não encontrada
-      const isTableNotFound = 
-        errorCode === 'PGRST116' || 
+      const isTableNotFound =
+        errorCode === 'PGRST116' ||
         errorCode === '42P01' ||
         errorMessage?.includes('does not exist') ||
         errorMessage?.includes('relation') ||
         errorMessage?.includes('table')
-      
+
       if (!isTableNotFound) {
         console.error('Erro ao buscar funis:', {
           message: errorMessage,
@@ -121,7 +121,7 @@ export default function ConfigurarFunilPage() {
           error: error
         })
       }
-      
+
       setFunis(getMockFunis())
     } finally {
       setLoading(false)
@@ -170,8 +170,8 @@ export default function ConfigurarFunilPage() {
       if (funil.id === funilId) {
         return {
           ...funil,
-          etapas: funil.etapas.map(etapa => 
-            etapa.id === etapaId 
+          etapas: funil.etapas.map(etapa =>
+            etapa.id === etapaId
               ? { ...etapa, destacar_esfriando: !etapa.destacar_esfriando }
               : etapa
           )
@@ -284,10 +284,12 @@ export default function ConfigurarFunilPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Header
-        title="Funis de vendas"
-        subtitle="Configurações"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Funis de vendas"
+          subtitle="Configurações"
+        />
+      </Suspense>
 
       <main className="flex-1 overflow-auto p-6">
         <div className="max-w-7xl mx-auto">
@@ -320,16 +322,15 @@ export default function ConfigurarFunilPage() {
                 <button
                   key={funil.id}
                   onClick={() => setFunilExpandido(funilExpandido === funil.id ? null : funil.id)}
-                  className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                    funilExpandido === funil.id
+                  className={`px-4 py-2 rounded-lg border-2 transition-all ${funilExpandido === funil.id
                       ? 'border-teal-600 bg-teal-50 text-teal-700 font-semibold'
                       : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   {funil.nome}
                 </button>
               ))}
-              
+
               {/* Botão Criar Funil */}
               {!showNovoFunil ? (
                 <button
@@ -406,110 +407,109 @@ export default function ConfigurarFunilPage() {
                         </Button>
                       </div>
 
-                  {/* Visualização do Funil - Linha de Etapas */}
-                  <div className="mb-6 overflow-x-auto pb-4">
-                    <div className="flex items-center gap-2 min-w-max">
-                      {funil.etapas.map((etapa, index) => (
-                        <div key={etapa.id} className="flex items-center">
-                          <div className="flex flex-col items-center">
-                            <div className="w-12 h-12 rounded-full bg-teal-100 border-2 border-teal-600 flex items-center justify-center text-teal-700 font-semibold text-sm">
-                              {etapa.sigla}
-                            </div>
-                            <span className="mt-2 text-xs text-gray-600 text-center max-w-[80px] truncate">
-                              {etapa.nome}
-                            </span>
-                          </div>
-                          {index < funil.etapas.length - 1 && (
-                            <div className="w-8 h-0.5 bg-teal-600 mx-2"></div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Etapas do Funil - Lista de Configuração */}
-                  <div className="space-y-4">
-                    {funil.etapas.map((etapa, index) => (
-                      <div
-                        key={etapa.id}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-gray-900">{etapa.nome}</h3>
-                              <Badge variant="info" className="text-xs">
-                                Sigla: {etapa.sigla}
-                              </Badge>
-                            </div>
-
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm text-gray-600">
-                                  Destacar negociações esfriando na etapa
+                      {/* Visualização do Funil - Linha de Etapas */}
+                      <div className="mb-6 overflow-x-auto pb-4">
+                        <div className="flex items-center gap-2 min-w-max">
+                          {funil.etapas.map((etapa, index) => (
+                            <div key={etapa.id} className="flex items-center">
+                              <div className="flex flex-col items-center">
+                                <div className="w-12 h-12 rounded-full bg-teal-100 border-2 border-teal-600 flex items-center justify-center text-teal-700 font-semibold text-sm">
+                                  {etapa.sigla}
+                                </div>
+                                <span className="mt-2 text-xs text-gray-600 text-center max-w-[80px] truncate">
+                                  {etapa.nome}
                                 </span>
-                                <button
-                                  onClick={() => handleToggleEsfriando(funil.id, etapa.id)}
-                                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                                  style={{
-                                    backgroundColor: etapa.destacar_esfriando ? '#14B8A6' : '#D1D5DB'
-                                  }}
-                                >
-                                  <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                      etapa.destacar_esfriando ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
-                                  />
-                                </button>
-                              {etapa.destacar_esfriando && (
-                                <Input
-                                  type="number"
-                                  placeholder="dias"
-                                  value={etapa.dias_esfriando || ''}
-                                  onChange={(e) => {
-                                    const valor = Number(e.target.value)
-                                    setFunis(prev => prev.map(f => {
-                                      if (f.id === funil.id) {
-                                        return {
-                                          ...f,
-                                          etapas: f.etapas.map(et => 
-                                            et.id === etapa.id 
-                                              ? { ...et, dias_esfriando: valor }
-                                              : et
-                                          )
-                                        }
-                                      }
-                                      return f
-                                    }))
-                                    // Salvar no banco após atualizar
-                                    setTimeout(() => {
-                                      saveFunil(funil.id)
-                                    }, 500)
-                                  }}
-                                  className="w-20 !bg-white !text-black text-sm"
-                                />
-                              )}
                               </div>
-
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleConfigurarEtapa(etapa.id)}
-                                className="!bg-blue-50 hover:!bg-blue-100 !text-blue-700"
-                              >
-                                <Settings className="w-4 h-4 mr-2" />
-                                Configurar etapa
-                              </Button>
+                              {index < funil.etapas.length - 1 && (
+                                <div className="w-8 h-0.5 bg-teal-600 mx-2"></div>
+                              )}
                             </div>
-
-                            <div className="mt-2 text-xs text-gray-500">
-                              ID: {etapa.id}
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
+
+                      {/* Etapas do Funil - Lista de Configuração */}
+                      <div className="space-y-4">
+                        {funil.etapas.map((etapa, index) => (
+                          <div
+                            key={etapa.id}
+                            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="font-semibold text-gray-900">{etapa.nome}</h3>
+                                  <Badge variant="info" className="text-xs">
+                                    Sigla: {etapa.sigla}
+                                  </Badge>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm text-gray-600">
+                                      Destacar negociações esfriando na etapa
+                                    </span>
+                                    <button
+                                      onClick={() => handleToggleEsfriando(funil.id, etapa.id)}
+                                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                                      style={{
+                                        backgroundColor: etapa.destacar_esfriando ? '#14B8A6' : '#D1D5DB'
+                                      }}
+                                    >
+                                      <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${etapa.destacar_esfriando ? 'translate-x-6' : 'translate-x-1'
+                                          }`}
+                                      />
+                                    </button>
+                                    {etapa.destacar_esfriando && (
+                                      <Input
+                                        type="number"
+                                        placeholder="dias"
+                                        value={etapa.dias_esfriando || ''}
+                                        onChange={(e) => {
+                                          const valor = Number(e.target.value)
+                                          setFunis(prev => prev.map(f => {
+                                            if (f.id === funil.id) {
+                                              return {
+                                                ...f,
+                                                etapas: f.etapas.map(et =>
+                                                  et.id === etapa.id
+                                                    ? { ...et, dias_esfriando: valor }
+                                                    : et
+                                                )
+                                              }
+                                            }
+                                            return f
+                                          }))
+                                          // Salvar no banco após atualizar
+                                          setTimeout(() => {
+                                            saveFunil(funil.id)
+                                          }, 500)
+                                        }}
+                                        className="w-20 !bg-white !text-black text-sm"
+                                      />
+                                    )}
+                                  </div>
+
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => handleConfigurarEtapa(etapa.id)}
+                                    className="!bg-blue-50 hover:!bg-blue-100 !text-blue-700"
+                                  >
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Configurar etapa
+                                  </Button>
+                                </div>
+
+                                <div className="mt-2 text-xs text-gray-500">
+                                  ID: {etapa.id}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   )
                 })()}

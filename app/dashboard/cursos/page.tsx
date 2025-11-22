@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { CursoModal } from '@/components/dashboard/CursoModal'
-import { 
-  GraduationCap, 
-  Search, 
+import {
+  GraduationCap,
+  Search,
   Plus,
   Edit,
   Trash2,
@@ -20,7 +20,7 @@ import {
   Eye,
   X
 } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { Curso, Faculdade } from '@/types/supabase'
@@ -55,13 +55,13 @@ export default function CursosPage() {
           hint: error.hint,
           code: error.code
         })
-        
+
         // Se a tabela não existe, mostrar mensagem específica
         if (error.code === '42P01' || error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
           console.warn('⚠️ A tabela "cursos" não existe no banco de dados.')
           console.warn('📋 Execute a migração SQL: supabase/migrations/009_create_cursos_table.sql')
         }
-        
+
         setCursos([])
         return
       }
@@ -93,9 +93,9 @@ export default function CursosPage() {
 
   const cursosFiltrados = cursos.filter(curso => {
     const matchSearch = curso.curso.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       curso.modalidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       curso.duracao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       (curso.categoria || '').toLowerCase().includes(searchTerm.toLowerCase())
+      curso.modalidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      curso.duracao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (curso.categoria || '').toLowerCase().includes(searchTerm.toLowerCase())
     return matchSearch
   })
 
@@ -166,7 +166,7 @@ export default function CursosPage() {
 
     // Pegar primeira faculdade como exemplo, ou usar um nome genérico
     const faculdadeExemplo = faculdades.length > 0 ? faculdades[0].nome : 'Nome da Faculdade'
-    
+
     // Linha de exemplo
     const exemplo = [
       faculdadeExemplo,
@@ -269,27 +269,27 @@ export default function CursosPage() {
     input.type = 'file'
     input.accept = '.csv'
     input.style.display = 'none'
-    
+
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) return
 
       try {
         setImportando(true)
-        
+
         // Ler arquivo CSV
         const text = await file.text()
-        
+
         // Função para fazer parse correto de CSV (trata vírgulas dentro de aspas)
         const parseCSVLine = (line: string): string[] => {
           const result: string[] = []
           let current = ''
           let insideQuotes = false
-          
+
           for (let i = 0; i < line.length; i++) {
             const char = line[i]
             const nextChar = line[i + 1]
-            
+
             if (char === '"') {
               if (insideQuotes && nextChar === '"') {
                 // Escape de aspas duplas ("" vira ")
@@ -307,7 +307,7 @@ export default function CursosPage() {
               current += char
             }
           }
-          
+
           // Adicionar último campo
           result.push(current.trim())
           return result
@@ -321,11 +321,11 @@ export default function CursosPage() {
         let currentLine = ''
         let insideQuotes = false
         let quoteCount = 0
-        
+
         for (let i = 0; i < normalizedText.length; i++) {
           const char = normalizedText[i]
           const nextChar = normalizedText[i + 1]
-          
+
           if (char === '"') {
             if (insideQuotes && nextChar === '"') {
               // Escape de aspas duplas
@@ -351,12 +351,12 @@ export default function CursosPage() {
             currentLine += char
           }
         }
-        
+
         // Adicionar última linha se houver
         if (currentLine.trim()) {
           lines.push(currentLine)
         }
-        
+
         // Filtrar linhas vazias
         lines = lines.filter(line => line.trim())
         if (lines.length < 2) {
@@ -366,10 +366,10 @@ export default function CursosPage() {
 
         // Processar cabeçalho usando parser CSV
         const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase())
-        
+
         // Mapear índices dos campos
         const getIndex = (field: string) => {
-          const index = headers.findIndex(h => 
+          const index = headers.findIndex(h =>
             h.toLowerCase().includes(field.toLowerCase()) ||
             h.toLowerCase() === field.toLowerCase()
           )
@@ -394,14 +394,14 @@ export default function CursosPage() {
         const parcelasIdx = parcelasIdxTemp !== -1 ? parcelasIdxTemp : getIndex('parcelas')
         const modalidadeIdx = getIndex('modalidade')
         const duracaoIdx = getIndex('duracao') !== -1 ? getIndex('duracao') : getIndex('duração')
-        
+
         // Buscar índice de valor - pode ser "Valor com Desconto" ou "Valor"
         let valorIdxTemp = getIndex('valor_com_desconto')
         if (valorIdxTemp === -1) {
           valorIdxTemp = getIndex('valor')
         }
         const valorIdx = valorIdxTemp
-        
+
         // Buscar índice de desconto - pode ter "%" no final
         const descontoIdxTemp = getIndex('desconto %')
         const descontoIdx = descontoIdxTemp !== -1 ? descontoIdxTemp : getIndex('desconto')
@@ -430,10 +430,10 @@ export default function CursosPage() {
         for (let i = 1; i < lines.length; i++) {
           // Usar parser CSV para tratar vírgulas dentro de aspas corretamente
           const values = parseCSVLine(lines[i]).map(v => v.replace(/^"|"$/g, '').trim())
-          
+
           // Buscar faculdade por nome
           const nomeFaculdade = values[faculdadeIdx]?.trim()
-          const faculdade = faculdades.find(f => 
+          const faculdade = faculdades.find(f =>
             f.nome.toLowerCase() === nomeFaculdade?.toLowerCase()
           )
 
@@ -465,12 +465,12 @@ export default function CursosPage() {
           const laboratorio = ['sim', 'yes', 'true', '1', 's'].includes((values[laboratorioIdx] || '').toLowerCase())
           const estagio = ['sim', 'yes', 'true', '1', 's'].includes((values[estagioIdx] || '').toLowerCase())
           const tcc = ['sim', 'yes', 'true', '1', 's'].includes((values[tccIdx] || '').toLowerCase())
-          
+
           // Campos opcionais - só incluir se a coluna existir no CSV
           const link = linkIdx !== -1 ? (values[linkIdx]?.trim() || null) : null
           const descricao = descricaoIdx !== -1 ? (values[descricaoIdx]?.trim() || null) : null
           const categoria = categoriaIdx !== -1 ? (values[categoriaIdx]?.trim() || null) : null
-          
+
           const ativo = ativoIdx === -1 ? true : ['sim', 'yes', 'true', '1', 's'].includes((values[ativoIdx] || 'sim').toLowerCase())
 
           // Construir objeto apenas com campos que existem
@@ -499,7 +499,7 @@ export default function CursosPage() {
         }
 
         if (erros.length > 0) {
-          const mensagemErros = erros.slice(0, 10).join('\n') + 
+          const mensagemErros = erros.slice(0, 10).join('\n') +
             (erros.length > 10 ? `\n... e mais ${erros.length - 10} erro(s)` : '')
           const continuar = confirm(
             `Foram encontrados ${erros.length} erro(s) ao processar o CSV:\n\n${mensagemErros}\n\nDeseja continuar importando os ${cursosParaImportar.length} curso(s) válido(s)?`
@@ -516,7 +516,7 @@ export default function CursosPage() {
         // Buscar todos os cursos existentes de uma vez para melhor performance
         const faculdadesIds = [...new Set(cursosParaImportar.map(c => c.faculdade_id))]
         const cursosNomes = [...new Set(cursosParaImportar.map(c => c.curso))]
-        
+
         const { data: todosCursosExistentes } = await supabase
           .from('cursos')
           .select('id, curso, faculdade_id')
@@ -550,7 +550,7 @@ export default function CursosPage() {
         // Se houver duplicados, perguntar ao usuário
         let acaoDuplicados: 'atualizar' | 'pular' | 'cancelar' = 'pular'
         if (cursosExistentes.length > 0) {
-          const mensagemDuplicados = 
+          const mensagemDuplicados =
             `Foram encontrados ${cursosExistentes.length} curso(s) que já existem no banco de dados:\n\n` +
             cursosDuplicados.slice(0, 10).join('\n') +
             (cursosDuplicados.length > 10 ? `\n... e mais ${cursosDuplicados.length - 10} curso(s)` : '') +
@@ -595,7 +595,7 @@ export default function CursosPage() {
               tcc: curso.tcc,
               ativo: curso.ativo
             }
-            
+
             // Adicionar campos opcionais apenas se estiverem definidos
             // Não incluir se forem null ou undefined para evitar erros de coluna não encontrada
             if (curso.link !== null && curso.link !== undefined && curso.link !== '') {
@@ -607,14 +607,14 @@ export default function CursosPage() {
             if (curso.categoria !== null && curso.categoria !== undefined && curso.categoria !== '') {
               cursoLimpo.categoria = curso.categoria
             }
-            
+
             return cursoLimpo
           })
-          
+
           // Log dos dados antes de inserir para debug
           console.log('Cursos novos para inserir (primeiro):', JSON.stringify(cursosParaInserir[0], null, 2))
           console.log(`Total de cursos para inserir: ${cursosParaInserir.length}`)
-          
+
           // Validar dados antes de inserir
           const cursosInvalidos: string[] = []
           cursosParaInserir.forEach((curso, index) => {
@@ -624,13 +624,13 @@ export default function CursosPage() {
               cursosInvalidos.push(`Curso ${index + 1}: modalidade inválida (${curso.modalidade})`)
             }
           })
-          
+
           if (cursosInvalidos.length > 0) {
             console.error('Cursos inválidos encontrados:', cursosInvalidos)
             errosImportacao.push(`Erro de validação: ${cursosInvalidos.slice(0, 5).join(', ')}`)
             return
           }
-          
+
           try {
             // Tentar inserir em lotes menores para melhorar debugging
             const batchSize = 10
@@ -638,13 +638,13 @@ export default function CursosPage() {
             for (let i = 0; i < cursosParaInserir.length; i += batchSize) {
               batches.push(cursosParaInserir.slice(i, i + batchSize))
             }
-            
+
             console.log(`Inserindo ${cursosParaInserir.length} cursos em ${batches.length} lote(s)`)
-            
+
             for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
               const batch = batches[batchIndex]
               console.log(`Inserindo lote ${batchIndex + 1}/${batches.length} com ${batch.length} curso(s)`)
-              
+
               const { data: dataInsert, error: errorInsert } = await supabase
                 .from('cursos')
                 .insert(batch)
@@ -660,7 +660,7 @@ export default function CursosPage() {
                   status: (errorInsert as any)?.status || 'Sem status',
                   statusCode: (errorInsert as any)?.statusCode || 'Sem statusCode',
                 }
-                
+
                 // Tentar serializar o erro completo
                 let errorString = 'Erro não serializável'
                 try {
@@ -668,7 +668,7 @@ export default function CursosPage() {
                 } catch (e) {
                   errorString = String(errorInsert)
                 }
-                
+
                 // Log completo do erro no console
                 console.error('=== ERRO AO INSERIR CURSOS ===')
                 console.error('Erro objeto completo:', errorInsert)
@@ -676,22 +676,22 @@ export default function CursosPage() {
                 console.error('Informações do erro:', errorInfo)
                 console.error('Batch que causou erro:', JSON.stringify(batch, null, 2))
                 console.error('================================')
-              
+
                 // Verificar se é erro de coluna não encontrada
                 const errorMessage = errorInfo.message
                 const errorDetails = errorInfo.details
                 const errorCode = errorInfo.code
                 const fullError = `${errorMessage} ${errorDetails}`.toLowerCase()
-                
+
                 // Preparar mensagem de erro para o usuário
                 let mensagemErro = `Erro ao inserir lote ${batchIndex + 1} (${batch.length} curso(s)):\n\n`
-                
+
                 if (fullError.includes('column') || fullError.includes('schema cache') || fullError.includes('does not exist')) {
                   const camposFaltando: string[] = []
                   if (fullError.includes('descricao')) camposFaltando.push('descricao')
                   if (fullError.includes('link')) camposFaltando.push('link')
                   if (fullError.includes('categoria')) camposFaltando.push('categoria')
-                  
+
                   if (camposFaltando.length > 0) {
                     mensagemErro += `Campos não encontrados na tabela 'cursos':\n${camposFaltando.map(c => `  • ${c}`).join('\n')}\n\n`
                     mensagemErro += `📋 Execute as migrações SQL necessárias:\n`
@@ -728,13 +728,13 @@ export default function CursosPage() {
                     mensagemErro += `Dica: ${errorInfo.hint}`
                   }
                 }
-                
+
                 // Adicionar à lista de erros
                 errosImportacao.push(mensagemErro)
-                
+
                 // Mostrar alerta imediato para o usuário
                 alert(mensagemErro)
-                
+
                 break // Parar processamento se houver erro
               } else {
                 const inseridosNoBatch = dataInsert?.length || 0
@@ -742,7 +742,7 @@ export default function CursosPage() {
                 console.log(`✅ Lote ${batchIndex + 1}: ${inseridosNoBatch} curso(s) inserido(s)`)
               }
             }
-            
+
             console.log(`✅ Total: ${cursosInseridos} curso(s) inserido(s) com sucesso`)
           } catch (err: any) {
             console.error('Erro inesperado ao tentar inserir cursos:', err)
@@ -771,7 +771,7 @@ export default function CursosPage() {
         }
 
         // Verificar se houve erro de coluna não encontrada nos erros
-        const temErroColuna = errosImportacao.some(e => 
+        const temErroColuna = errosImportacao.some(e =>
           e.includes('column') || e.includes('schema cache')
         )
 
@@ -780,7 +780,7 @@ export default function CursosPage() {
           if (errosImportacao.some(e => e.includes('descricao'))) camposFaltando.push('descricao')
           if (errosImportacao.some(e => e.includes('link'))) camposFaltando.push('link')
           if (errosImportacao.some(e => e.includes('categoria'))) camposFaltando.push('categoria')
-          
+
           let mensagem = `Erro: Campos não encontrados na tabela 'cursos':\n\n`
           if (camposFaltando.length > 0) {
             mensagem += camposFaltando.map(c => `  - ${c}`).join('\n')
@@ -806,7 +806,7 @@ export default function CursosPage() {
         // Sucesso
         const totalErros = erros.length
         let mensagemSucesso = `Importação concluída!\n\n`
-        
+
         if (cursosInseridos > 0) {
           mensagemSucesso += `✅ ${cursosInseridos} curso(s) novo(s) inserido(s)\n`
         }
@@ -846,10 +846,12 @@ export default function CursosPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white text-black">
-        <Header
-          title="Cursos"
-          subtitle="Lista de cursos disponíveis"
-        />
+        <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+          <Header
+            title="Cursos"
+            subtitle="Lista de cursos disponíveis"
+          />
+        </Suspense>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
@@ -859,11 +861,13 @@ export default function CursosPage() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <Header
-        title="Cursos"
-        subtitle="Lista de cursos disponíveis"
-      />
-      
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Cursos"
+          subtitle="Lista de cursos disponíveis"
+        />
+      </Suspense>
+
       <div className="p-8 space-y-6">
         {/* Ações e Busca */}
         <Card>
@@ -880,8 +884,8 @@ export default function CursosPage() {
                 />
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button 
-                  variant="secondary" 
+                <Button
+                  variant="secondary"
                   className="w-full md:w-auto"
                   onClick={handleBaixarModelo}
                   title="Baixar modelo/template CSV para importação"
@@ -889,8 +893,8 @@ export default function CursosPage() {
                   <FileDown className="w-4 h-4 mr-2" />
                   Baixar Modelo
                 </Button>
-                <Button 
-                  variant="secondary" 
+                <Button
+                  variant="secondary"
                   className="w-full md:w-auto"
                   onClick={handleImportarCSV}
                   disabled={importando}
@@ -898,8 +902,8 @@ export default function CursosPage() {
                   <Upload className="w-4 h-4 mr-2" />
                   {importando ? 'Importando...' : 'Importar CSV'}
                 </Button>
-                <Button 
-                  variant="secondary" 
+                <Button
+                  variant="secondary"
                   className="w-full md:w-auto"
                   onClick={handleExportar}
                   disabled={cursosFiltrados.length === 0}
@@ -958,73 +962,74 @@ export default function CursosPage() {
                   {cursosFiltrados.map((curso) => {
                     const faculdade = faculdadesMap[curso.faculdade_id]
                     return (
-                    <tr key={curso.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Building2 className="w-4 h-4 text-gray-500" />
-                          <span className="font-medium">{faculdade?.nome || 'N/A'}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900">{curso.curso}</div>
-                      </td>
-                      <td className="py-3 px-4">
-                        {curso.categoria ? (
-                          <Badge variant="info" className="text-xs">
-                            {curso.categoria}
+                      <tr key={curso.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
+                            <Building2 className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium">{faculdade?.nome || 'N/A'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-gray-900">{curso.curso}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {curso.categoria ? (
+                            <Badge variant="info" className="text-xs">
+                              {curso.categoria}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-gray-700">{curso.quantidade_de_parcelas}</td>
+                        <td className="py-3 px-4">
+                          <Badge
+                            variant={curso.modalidade === 'Presencial' ? 'info' : curso.modalidade === 'EAD' ? 'warning' : 'success'}
+                          >
+                            {curso.modalidade}
                           </Badge>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">{curso.quantidade_de_parcelas}</td>
-                      <td className="py-3 px-4">
-                        <Badge 
-                          variant={curso.modalidade === 'Presencial' ? 'info' : curso.modalidade === 'EAD' ? 'warning' : 'success'}
-                        >
-                          {curso.modalidade}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">{curso.duracao}</td>
-                      <td className="py-3 px-4 text-right font-medium text-gray-900">
-                        {formatCurrency(curso.valor_com_desconto_pontualidade)}
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-700">
-                        {curso.desconto_percentual.toFixed(1)}%
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setCursoVisualizando(curso)}
-                            className="p-1"
-                            title="Visualizar curso"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleEditarCurso(curso)}
-                            className="p-1"
-                            title="Editar curso"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleDeletarCurso(curso)}
-                            className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Deletar curso"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )})}
+                        </td>
+                        <td className="py-3 px-4 text-gray-700">{curso.duracao}</td>
+                        <td className="py-3 px-4 text-right font-medium text-gray-900">
+                          {formatCurrency(curso.valor_com_desconto_pontualidade)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-gray-700">
+                          {curso.desconto_percentual.toFixed(1)}%
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setCursoVisualizando(curso)}
+                              className="p-1"
+                              title="Visualizar curso"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleEditarCurso(curso)}
+                              className="p-1"
+                              title="Editar curso"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleDeletarCurso(curso)}
+                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Deletar curso"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1091,7 +1096,7 @@ export default function CursosPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-500">Modalidade</label>
                   <div className="mt-1">
-                    <Badge 
+                    <Badge
                       variant={cursoVisualizando.modalidade === 'Presencial' ? 'info' : cursoVisualizando.modalidade === 'EAD' ? 'warning' : 'success'}
                     >
                       {cursoVisualizando.modalidade}

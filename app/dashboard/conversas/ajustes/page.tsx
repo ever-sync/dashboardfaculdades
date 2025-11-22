@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { Settings, Save, Bell, MessageSquare, Clock, User, Shield, Database, Key, ExternalLink } from 'lucide-react'
@@ -20,22 +20,22 @@ export default function AjustesPage() {
     notificacoes_sonoras: true,
     notificacoes_email: false,
     notificacoes_push: true,
-    
+
     // Mensagens
     auto_resposta: false,
     mensagem_ausencia: '',
     horario_atendimento_inicio: '08:00',
     horario_atendimento_fim: '18:00',
-    
+
     // Atendimento
     tempo_resposta_maximo: 5,
     transferencia_automatica: false,
     fila_automatica: true,
-    
+
     // Segurança
     bloqueio_automatico: false,
     tentativas_antes_bloqueio: 3,
-    
+
     // Geral
     timezone: 'America/Sao_Paulo',
     idioma: 'pt-BR',
@@ -61,18 +61,18 @@ export default function AjustesPage() {
 
       if (error) {
         // Se a tabela não existe ou não há dados, não é um erro crítico
-        const isTableNotFound = error.code === 'PGRST116' || 
-                                 error.code === '42P01' ||
-                                 error.message?.includes('does not exist') || 
-                                 error.message?.includes('não existe') ||
-                                 error.message?.includes('relation') ||
-                                 error.message?.includes('not found')
-        
+        const isTableNotFound = error.code === 'PGRST116' ||
+          error.code === '42P01' ||
+          error.message?.includes('does not exist') ||
+          error.message?.includes('não existe') ||
+          error.message?.includes('relation') ||
+          error.message?.includes('not found')
+
         if (isTableNotFound) {
           // Tabela não existe, usar configurações padrão silenciosamente
           return
         }
-        
+
         // Apenas logar erros reais
         if (error.message) {
           console.error('Erro ao buscar configurações:', error.message)
@@ -95,7 +95,7 @@ export default function AjustesPage() {
 
     try {
       setLoading(true)
-      
+
       // Salvar no banco de dados
       const { error } = await supabase
         .from('configuracoes_conversas')
@@ -118,10 +118,12 @@ export default function AjustesPage() {
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
-      <Header
-        title="Ajustes"
-        subtitle="Configure as opções de conversas e atendimento"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Ajustes"
+          subtitle="Configure as opções de conversas e atendimento"
+        />
+      </Suspense>
 
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">

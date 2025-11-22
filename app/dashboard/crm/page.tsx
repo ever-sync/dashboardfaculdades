@@ -5,10 +5,10 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { 
-  Plus, 
-  Filter, 
-  RefreshCw, 
+import {
+  Plus,
+  Filter,
+  RefreshCw,
   BarChart3,
   ChevronLeft,
   Info,
@@ -27,7 +27,7 @@ import {
   Building2,
   ChevronDown
 } from 'lucide-react'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/exportRelatorio'
@@ -63,7 +63,7 @@ export default function CRMPage() {
   const { faculdadeSelecionada } = useFaculdade()
   const { showToast } = useToast()
   const router = useRouter()
-  
+
   // Mock data para demonstração
   const mockNegociacoesData: NegociacaoCard[] = [
     {
@@ -189,13 +189,13 @@ export default function CRMPage() {
 
       if (error) {
         // Verificar se é um erro de tabela não encontrada (não é crítico)
-        const isTableNotFound = 
-          error.code === 'PGRST116' || 
+        const isTableNotFound =
+          error.code === 'PGRST116' ||
           error.code === '42P01' ||
           error.message?.includes('does not exist') ||
           error.message?.includes('relation') ||
           error.message?.includes('table')
-        
+
         if (!isTableNotFound) {
           // Só logar erros reais, não erros de tabela não encontrada
           const errorMessage = error.message || 'Erro desconhecido'
@@ -207,7 +207,7 @@ export default function CRMPage() {
             hint: error.hint || 'Sem hint'
           })
         }
-        
+
         // Se a tabela não existe, usar dados mock
         if (isTableNotFound) {
           setNegociacoes(mockNegociacoesData)
@@ -246,15 +246,15 @@ export default function CRMPage() {
       // Tratar erros inesperados
       const errorMessage = error?.message || 'Erro desconhecido ao buscar negociações'
       const errorCode = error?.code || 'N/A'
-      
+
       // Verificar se é um erro de tabela não encontrada
-      const isTableNotFound = 
-        errorCode === 'PGRST116' || 
+      const isTableNotFound =
+        errorCode === 'PGRST116' ||
         errorCode === '42P01' ||
         errorMessage?.includes('does not exist') ||
         errorMessage?.includes('relation') ||
         errorMessage?.includes('table')
-      
+
       if (!isTableNotFound) {
         console.error('Erro ao buscar negociações:', {
           message: errorMessage,
@@ -262,7 +262,7 @@ export default function CRMPage() {
           error: error
         })
       }
-      
+
       setNegociacoes(mockNegociacoesData)
     } finally {
       setLoading(false)
@@ -311,8 +311,8 @@ export default function CRMPage() {
     if (!negociacao) return
 
     // Atualizar estado local imediatamente
-    setNegociacoes(prev => prev.map(card => 
-      card.id === draggedCard 
+    setNegociacoes(prev => prev.map(card =>
+      card.id === draggedCard
         ? { ...card, etapa: etapaId as any, diasNaEtapa: 0 }
         : card
     ))
@@ -332,8 +332,8 @@ export default function CRMPage() {
       if (error) {
         console.error('Erro ao atualizar etapa:', error)
         // Reverter mudança local em caso de erro
-        setNegociacoes(prev => prev.map(card => 
-          card.id === draggedCard 
+        setNegociacoes(prev => prev.map(card =>
+          card.id === draggedCard
             ? negociacao
             : card
         ))
@@ -342,8 +342,8 @@ export default function CRMPage() {
     } catch (error) {
       console.error('Erro ao atualizar etapa:', error)
       // Reverter mudança local
-      setNegociacoes(prev => prev.map(card => 
-        card.id === draggedCard 
+      setNegociacoes(prev => prev.map(card =>
+        card.id === draggedCard
           ? negociacao
           : card
       ))
@@ -402,7 +402,7 @@ export default function CRMPage() {
   const handleWhatsAppClick = (e: React.MouseEvent, negociacao: NegociacaoCard) => {
     e.preventDefault()
     e.stopPropagation()
-    
+
     if (negociacao.conversaId) {
       router.push(`/dashboard/conversas?conversa=${negociacao.conversaId}`)
     } else if (negociacao.telefone) {
@@ -435,10 +435,12 @@ export default function CRMPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Header
-        title="CRM"
-        subtitle="Gestão de Negociações"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="CRM"
+          subtitle="Gestão de Negociações"
+        />
+      </Suspense>
 
       {/* Barra de Filtros e Ações */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -469,7 +471,7 @@ export default function CRMPage() {
               >
                 <BarChart3 className="w-4 h-4" />
               </Button>
-              
+
               {/* Botão Configuração */}
               <div className="relative" ref={configMenuRef}>
                 <Button
@@ -480,7 +482,7 @@ export default function CRMPage() {
                 >
                   <MoreVertical className="w-4 h-4" />
                 </Button>
-                
+
                 {showConfigMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                     <div className="py-1">
@@ -572,7 +574,7 @@ export default function CRMPage() {
                   <Plus className="w-4 h-4 mr-2" />
                   Criar
                 </Button>
-                
+
                 {showCriarMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                     <div className="py-1">
@@ -694,142 +696,142 @@ export default function CRMPage() {
         ) : (
           <div className="flex gap-4 h-full min-w-max">
             {negociacoesPorEtapa.map((coluna) => (
-            <div
-              key={coluna.id}
-              className="flex flex-col bg-white rounded-lg border border-gray-200 w-80 flex-shrink-0"
-            >
-              {/* Cabeçalho da Coluna */}
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{coluna.label}</h3>
-                  <Badge variant="info" className="text-xs">
-                    ({coluna.negociacoes.length})
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">
-                    R$ {coluna.negociacoes.reduce((sum, n) => sum + (n.valor || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <RefreshCw className="w-4 h-4 text-gray-500" />
-                    </button>
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <BarChart3 className="w-4 h-4 text-gray-500" />
-                    </button>
+              <div
+                key={coluna.id}
+                className="flex flex-col bg-white rounded-lg border border-gray-200 w-80 flex-shrink-0"
+              >
+                {/* Cabeçalho da Coluna */}
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900">{coluna.label}</h3>
+                    <Badge variant="info" className="text-xs">
+                      ({coluna.negociacoes.length})
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-700">
+                      R$ {coluna.negociacoes.reduce((sum, n) => sum + (n.valor || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button className="p-1 hover:bg-gray-100 rounded">
+                        <RefreshCw className="w-4 h-4 text-gray-500" />
+                      </button>
+                      <button className="p-1 hover:bg-gray-100 rounded">
+                        <BarChart3 className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Cards da Coluna */}
-              <div 
-                className={`flex-1 overflow-y-auto p-2 space-y-2 ${dragOverColumn === coluna.id ? 'bg-blue-50' : ''}`}
-                onDragOver={(e) => handleDragOver(e, coluna.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, coluna.id)}
-              >
-                {coluna.negociacoes.map((negociacao) => (
-                  <div
-                    key={negociacao.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, negociacao.id)}
-                    className={`cursor-move ${draggedCard === negociacao.id ? 'opacity-50' : ''}`}
-                  >
-                    <Card className="p-3 hover:shadow-md transition-shadow cursor-pointer bg-white border border-gray-200">
-                      {/* Status e Info */}
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge
-                          variant={negociacao.status === 'em_andamento' ? 'info' : 'default'}
-                          className="text-xs"
-                        >
-                          {negociacao.status === 'em_andamento' ? 'Em andamento' : negociacao.status}
-                        </Badge>
-                        <div className="flex items-center gap-1">
-                          {/* Ícone WhatsApp */}
-                          {negociacao.telefone && (
-                            <button
-                              onClick={(e) => handleWhatsAppClick(e, negociacao)}
-                              className="p-1 hover:bg-green-100 rounded text-green-600"
-                              title="Abrir conversa no WhatsApp"
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                            }}
-                            className="p-1 hover:bg-gray-100 rounded"
+                {/* Cards da Coluna */}
+                <div
+                  className={`flex-1 overflow-y-auto p-2 space-y-2 ${dragOverColumn === coluna.id ? 'bg-blue-50' : ''}`}
+                  onDragOver={(e) => handleDragOver(e, coluna.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, coluna.id)}
+                >
+                  {coluna.negociacoes.map((negociacao) => (
+                    <div
+                      key={negociacao.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, negociacao.id)}
+                      className={`cursor-move ${draggedCard === negociacao.id ? 'opacity-50' : ''}`}
+                    >
+                      <Card className="p-3 hover:shadow-md transition-shadow cursor-pointer bg-white border border-gray-200">
+                        {/* Status e Info */}
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge
+                            variant={negociacao.status === 'em_andamento' ? 'info' : 'default'}
+                            className="text-xs"
                           >
-                            <Info className="w-4 h-4 text-gray-500" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Nome */}
-                      <Link href={`/dashboard/crm/${negociacao.id}`}>
-                        <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 hover:text-teal-600">
-                          {negociacao.nome}
-                        </h4>
-                      </Link>
-
-                      {/* Qualificação e Responsável */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                          <span className="text-xs text-gray-600">{negociacao.qualificacao}</span>
-                        </div>
-                        {negociacao.responsavel && (
+                            {negociacao.status === 'em_andamento' ? 'Em andamento' : negociacao.status}
+                          </Badge>
                           <div className="flex items-center gap-1">
-                            <User className="w-3 h-3 text-gray-400" />
-                            <span className="text-xs text-gray-500">{negociacao.responsavel}</span>
+                            {/* Ícone WhatsApp */}
+                            {negociacao.telefone && (
+                              <button
+                                onClick={(e) => handleWhatsAppClick(e, negociacao)}
+                                className="p-1 hover:bg-green-100 rounded text-green-600"
+                                title="Abrir conversa no WhatsApp"
+                              >
+                                <MessageSquare className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                              }}
+                              className="p-1 hover:bg-gray-100 rounded"
+                            >
+                              <Info className="w-4 h-4 text-gray-500" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Nome */}
+                        <Link href={`/dashboard/crm/${negociacao.id}`}>
+                          <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 hover:text-teal-600">
+                            {negociacao.nome}
+                          </h4>
+                        </Link>
+
+                        {/* Qualificação e Responsável */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            <span className="text-xs text-gray-600">{negociacao.qualificacao}</span>
+                          </div>
+                          {negociacao.responsavel && (
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3 text-gray-400" />
+                              <span className="text-xs text-gray-500">{negociacao.responsavel}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Tags */}
+                        {negociacao.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {negociacao.tags.slice(0, 2).map((tag, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="info"
+                                className="text-xs px-2 py-0.5 bg-teal-100 text-teal-700"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
                           </div>
                         )}
-                      </div>
 
-                      {/* Tags */}
-                      {negociacao.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {negociacao.tags.slice(0, 2).map((tag, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="info"
-                              className="text-xs px-2 py-0.5 bg-teal-100 text-teal-700"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                        {/* Botão Criar Tarefa */}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="w-full !bg-gray-50 hover:!bg-gray-100 !text-gray-700 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            router.push(`/dashboard/crm/criar-tarefa?negociacao=${negociacao.id}`)
+                          }}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Criar Tarefa
+                        </Button>
+                      </Card>
+                    </div>
+                  ))}
 
-                      {/* Botão Criar Tarefa */}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="w-full !bg-gray-50 hover:!bg-gray-100 !text-gray-700 text-xs"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          router.push(`/dashboard/crm/criar-tarefa?negociacao=${negociacao.id}`)
-                        }}
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Criar Tarefa
-                      </Button>
-                    </Card>
-                  </div>
-                ))}
-
-                {/* Card vazio quando não há negociações */}
-                {coluna.negociacoes.length === 0 && (
-                  <div className="text-center py-8 text-gray-400 text-sm">
-                    Nenhuma negociação
-                  </div>
-                )}
+                  {/* Card vazio quando não há negociações */}
+                  {coluna.negociacoes.length === 0 && (
+                    <div className="text-center py-8 text-gray-400 text-sm">
+                      Nenhuma negociação
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
           </div>
         )}
       </div>

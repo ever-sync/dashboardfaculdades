@@ -24,7 +24,7 @@ import {
   Star,
   Flag
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -279,10 +279,12 @@ export default function CRMDetalhesPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Header
-        title=""
-        subtitle=""
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title=""
+          subtitle=""
+        />
+      </Suspense>
 
       <div className="flex-1 flex overflow-hidden">
         {/* Conteúdo Principal */}

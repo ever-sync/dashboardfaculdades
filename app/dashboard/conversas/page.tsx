@@ -5,11 +5,11 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { 
-  MessageSquare, 
-  Search, 
-  User, 
-  Clock, 
+import {
+  MessageSquare,
+  Search,
+  User,
+  Clock,
   Send,
   Phone,
   Mail,
@@ -41,7 +41,7 @@ import {
   XCircle,
   RotateCcw
 } from 'lucide-react'
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useMensagens } from '@/hooks/useMensagens'
@@ -59,7 +59,7 @@ import { AgendarMensagem } from '@/components/dashboard/AgendarMensagem'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { exportarConversaTXT } from '@/lib/exportarConversa'
 
- 
+
 
 interface Conversa {
   id: string
@@ -106,7 +106,7 @@ export default function ConversasPage() {
   const [conversaDetalhes, setConversaDetalhes] = useState<ConversaWhatsApp | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
-  
+
   // Debounce do termo de busca
   const debouncedSearchTerm = useDebounce(searchTerm, 400)
   const [novaMensagem, setNovaMensagem] = useState('')
@@ -163,7 +163,7 @@ export default function ConversasPage() {
 
     try {
       setLoading(true)
-      
+
       // Buscar contagem total
       const { count, error: countError } = await supabase
         .from('conversas_whatsapp')
@@ -194,7 +194,7 @@ export default function ConversasPage() {
           code: error.code,
           error: error
         })
-        
+
         // Tentar sem range e order
         const { data: dataSimple, error: errorSimple } = await supabase
           .from('conversas_whatsapp')
@@ -216,9 +216,9 @@ export default function ConversasPage() {
             const tel = c.telefone.replace('@s.whatsapp.net', '')
             return { conversaId: c.id, telefone: tel }
           })
-        
+
         let prospectsMap: Record<string, { nome?: string; nome_completo?: string }> = {}
-        
+
         // Buscar prospects por ID
         if (prospectIds.length > 0) {
           const { data: prospects } = await supabase
@@ -226,14 +226,14 @@ export default function ConversasPage() {
             .select('id, nome, nome_completo')
             .in('id', prospectIds)
             .eq('faculdade_id', faculdadeSelecionada.id)
-          
+
           if (prospects) {
             prospects.forEach(p => {
               prospectsMap[p.id] = { nome: p.nome, nome_completo: p.nome_completo }
             })
           }
         }
-        
+
         // Buscar prospects por telefone para conversas sem prospect_id
         if (telefonesSemProspectId.length > 0) {
           const telefonesUnicos = [...new Set(telefonesSemProspectId.map(t => t.telefone))]
@@ -247,19 +247,19 @@ export default function ConversasPage() {
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle()
-            
+
             if (prospectTelExato) {
               telefonesSemProspectId
                 .filter(t => t.telefone === telefone)
                 .forEach(t => {
-                  prospectsMap[t.conversaId] = { 
-                    nome: prospectTelExato.nome, 
-                    nome_completo: prospectTelExato.nome_completo 
+                  prospectsMap[t.conversaId] = {
+                    nome: prospectTelExato.nome,
+                    nome_completo: prospectTelExato.nome_completo
                   }
                 })
               continue
             }
-            
+
             // Se não encontrou, tentar buscar com @s.whatsapp.net
             const { data: prospectTelWhatsApp } = await supabase
               .from('prospects_academicos')
@@ -269,30 +269,30 @@ export default function ConversasPage() {
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle()
-            
+
             if (prospectTelWhatsApp) {
               telefonesSemProspectId
                 .filter(t => t.telefone === telefone)
                 .forEach(t => {
-                  prospectsMap[t.conversaId] = { 
-                    nome: prospectTelWhatsApp.nome, 
-                    nome_completo: prospectTelWhatsApp.nome_completo 
+                  prospectsMap[t.conversaId] = {
+                    nome: prospectTelWhatsApp.nome,
+                    nome_completo: prospectTelWhatsApp.nome_completo
                   }
                 })
             }
           }
         }
-        
+
         // Buscar contagem de mensagens por conversa
         const conversaIds = (dataSimple || []).map(c => c.id)
         let mensagensCountMap: Record<string, number> = {}
-        
+
         if (conversaIds.length > 0) {
           const { data: mensagensCount } = await supabase
             .from('mensagens')
             .select('conversa_id')
             .in('conversa_id', conversaIds)
-          
+
           if (mensagensCount) {
             // Contar mensagens por conversa_id
             mensagensCount.forEach(m => {
@@ -355,9 +355,9 @@ export default function ConversasPage() {
           const tel = c.telefone.replace('@s.whatsapp.net', '')
           return { conversaId: c.id, telefone: tel }
         })
-      
+
       let prospectsMap: Record<string, { nome?: string; nome_completo?: string }> = {}
-      
+
       // Buscar prospects por ID
       if (prospectIds.length > 0) {
         const { data: prospects } = await supabase
@@ -365,14 +365,14 @@ export default function ConversasPage() {
           .select('id, nome, nome_completo')
           .in('id', prospectIds)
           .eq('faculdade_id', faculdadeSelecionada.id)
-        
+
         if (prospects) {
           prospects.forEach(p => {
             prospectsMap[p.id] = { nome: p.nome, nome_completo: p.nome_completo }
           })
         }
       }
-      
+
       // Buscar prospects por telefone para conversas sem prospect_id
       if (telefonesSemProspectId.length > 0) {
         const telefonesUnicos = [...new Set(telefonesSemProspectId.map(t => t.telefone))]
@@ -386,19 +386,19 @@ export default function ConversasPage() {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
-          
+
           if (prospectTelExato) {
             telefonesSemProspectId
               .filter(t => t.telefone === telefone)
               .forEach(t => {
-                prospectsMap[t.conversaId] = { 
-                  nome: prospectTelExato.nome, 
-                  nome_completo: prospectTelExato.nome_completo 
+                prospectsMap[t.conversaId] = {
+                  nome: prospectTelExato.nome,
+                  nome_completo: prospectTelExato.nome_completo
                 }
               })
             continue
           }
-          
+
           // Se não encontrou, tentar buscar com @s.whatsapp.net
           const { data: prospectTelWhatsApp } = await supabase
             .from('prospects_academicos')
@@ -408,30 +408,30 @@ export default function ConversasPage() {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
-          
+
           if (prospectTelWhatsApp) {
             telefonesSemProspectId
               .filter(t => t.telefone === telefone)
               .forEach(t => {
-                prospectsMap[t.conversaId] = { 
-                  nome: prospectTelWhatsApp.nome, 
-                  nome_completo: prospectTelWhatsApp.nome_completo 
+                prospectsMap[t.conversaId] = {
+                  nome: prospectTelWhatsApp.nome,
+                  nome_completo: prospectTelWhatsApp.nome_completo
                 }
               })
           }
         }
       }
-      
+
       // Buscar contagem de mensagens por conversa
       const conversaIds = (data || []).map(c => c.id)
       let mensagensCountMap: Record<string, number> = {}
-      
+
       if (conversaIds.length > 0) {
         const { data: mensagensCount } = await supabase
           .from('mensagens')
           .select('conversa_id')
           .in('conversa_id', conversaIds)
-        
+
         if (mensagensCount) {
           // Contar mensagens por conversa_id
           mensagensCount.forEach(m => {
@@ -472,9 +472,9 @@ export default function ConversasPage() {
           ultimaMensagem,
           hora: dataMensagem
             ? new Date(dataMensagem).toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
+              hour: '2-digit',
+              minute: '2-digit',
+            })
             : 'N/A',
           status: statusNormalizado,
           naoLidas: c.nao_lidas || c.nao_lidas_count || 0,
@@ -508,7 +508,7 @@ export default function ConversasPage() {
 
       try {
         setLoadingProspect(true)
-        
+
         // Buscar detalhes da conversa
         const { data: conversaData, error: conversaError } = await supabase
           .from('conversas_whatsapp')
@@ -667,11 +667,15 @@ export default function ConversasPage() {
   const conversasFiltradas = useMemo(() => {
     return conversas.filter(conversa => {
       const matchSearch = conversa.nome.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                         conversa.ultimaMensagem.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+        conversa.ultimaMensagem.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
       const matchStatus = statusFilter === 'todos' || conversa.status === statusFilter
       return matchSearch && matchStatus
     })
   }, [conversas, debouncedSearchTerm, statusFilter])
+
+  const conversaAtual = useMemo(() => {
+    return conversas.find(c => c.id === conversaSelecionada)
+  }, [conversas, conversaSelecionada])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -699,7 +703,7 @@ export default function ConversasPage() {
       // Parar indicador de digitação ao enviar
       setIsTypingLocal(false)
       setClienteDigitando(false)
-      
+
       await sendMessage(novaMensagem.trim(), 'agente')
       setNovaMensagem('')
       // Resetar altura do textarea
@@ -715,10 +719,10 @@ export default function ConversasPage() {
         code: error?.code,
         error: error
       })
-      
+
       // Mensagem de erro mais amigável
       let errorMessage = 'Erro ao enviar mensagem'
-      
+
       if (error?.message) {
         errorMessage = error.message
       } else if (error?.details) {
@@ -728,7 +732,7 @@ export default function ConversasPage() {
       } else if (error?.error?.message) {
         errorMessage = error.error.message
       }
-      
+
       alert(errorMessage)
     }
   }
@@ -789,7 +793,7 @@ export default function ConversasPage() {
         .select('*')
         .eq('id', conversaSelecionada)
         .single()
-      
+
       if (conversaData) {
         const conversaFormatada = {
           ...conversaData,
@@ -883,9 +887,9 @@ export default function ConversasPage() {
           ultimaMensagem: c.ultima_mensagem || 'Sem mensagens',
           hora: c.data_ultima_mensagem
             ? new Date(c.data_ultima_mensagem).toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
+              hour: '2-digit',
+              minute: '2-digit',
+            })
             : 'N/A',
           status: statusNormalizado,
           naoLidas: c.nao_lidas || 0,
@@ -952,18 +956,18 @@ export default function ConversasPage() {
   // Formatar informações do curso para mensagem
   const formatarInformacoesCurso = (curso: Curso): string => {
     const partes: string[] = []
-    
+
     partes.push(`📚 *${curso.curso}*`)
-    
+
     if (curso.descricao) {
       partes.push(`\n${curso.descricao}`)
     }
-    
+
     partes.push(`\n\n📋 *Informações:*`)
     partes.push(`• Modalidade: ${curso.modalidade}`)
     partes.push(`• Duração: ${curso.duracao}`)
     partes.push(`• Parcelas: ${curso.quantidade_de_parcelas}x`)
-    
+
     if (curso.valor_com_desconto_pontualidade) {
       const valorFormatado = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -971,29 +975,29 @@ export default function ConversasPage() {
       }).format(Number(curso.valor_com_desconto_pontualidade))
       partes.push(`• Valor com desconto: ${valorFormatado}`)
     }
-    
+
     if (curso.desconto_percentual > 0) {
       partes.push(`• Desconto: ${curso.desconto_percentual}%`)
     }
-    
+
     if (curso.categoria) {
       partes.push(`• Categoria: ${curso.categoria}`)
     }
-    
+
     const caracteristicas: string[] = []
     if (curso.pratica) caracteristicas.push('Prática')
     if (curso.laboratorio) caracteristicas.push('Laboratório')
     if (curso.estagio) caracteristicas.push('Estágio')
     if (curso.tcc) caracteristicas.push('TCC')
-    
+
     if (caracteristicas.length > 0) {
       partes.push(`• Características: ${caracteristicas.join(', ')}`)
     }
-    
+
     if (curso.link) {
       partes.push(`\n🔗 Mais informações: ${curso.link}`)
     }
-    
+
     return partes.join('\n')
   }
 
@@ -1028,11 +1032,11 @@ export default function ConversasPage() {
 
     try {
       const novaEstado = !iaPausada
-      
+
       // Preparar tags atualizadas
       const tagsAtuais = conversaDetalhes?.tags || []
       const tagsArray = Array.isArray(tagsAtuais) ? tagsAtuais : []
-      
+
       let novasTags: string[]
       if (novaEstado) {
         // Adicionar tag IA_PAUSADA se não existir
@@ -1049,7 +1053,7 @@ export default function ConversasPage() {
       // Atualizar no banco de dados
       const { data, error } = await supabase
         .from('conversas_whatsapp')
-        .update({ 
+        .update({
           tags: novasTags.length > 0 ? novasTags : null
         })
         .eq('id', conversaSelecionada)
@@ -1070,7 +1074,7 @@ export default function ConversasPage() {
 
       // Atualizar estado local
       setIaPausada(novaEstado)
-      
+
       // Atualizar conversaDetalhes com os novos dados
       if (data) {
         const conversaAtualizada = {
@@ -1091,7 +1095,7 @@ export default function ConversasPage() {
         console.warn('Erro ao enviar mensagem de pausa/retomada:', msgError)
         // Não bloquear a operação se falhar ao enviar mensagem
       }
-      
+
       // Atualizar lista de conversas para refletir mudança
       await fetchConversas()
     } catch (error: any) {
@@ -1103,227 +1107,106 @@ export default function ConversasPage() {
     }
   }
 
-  // Verificar se IA está pausada ao carregar conversa
-  useEffect(() => {
-    if (conversaDetalhes) {
-      const tags = conversaDetalhes.tags || []
-      const tagsArray = Array.isArray(tags) ? tags : (tags ? [tags] : [])
-      setIaPausada(tagsArray.includes('IA_PAUSADA'))
-    } else {
-      setIaPausada(false)
-    }
-  }, [conversaDetalhes])
-
-  // Auto-ajustar altura do textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      const scrollHeight = textareaRef.current.scrollHeight
-      const maxHeight = 200 // máximo 200px (cerca de 8 linhas)
-      textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`
-    }
-  }, [novaMensagem])
-
-  // Fechar menus ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element
-      if (!target.closest('.template-menu') && !target.closest('.anexo-menu') && !target.closest('.cursos-menu') && !target.closest('.base-conhecimento-menu')) {
-        setShowTemplates(false)
-        setShowAnexos(false)
-        setShowCursos(false)
-        setShowBaseConhecimento(false)
-      }
-    }
-
-    if (showTemplates || showAnexos || showCursos || showBaseConhecimento) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showTemplates, showAnexos, showCursos, showBaseConhecimento])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white text-black">
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
         <Header
           title="Conversas"
-          subtitle="Gerencie conversas e mensagens"
+          subtitle="Gerencie seus atendimentos do WhatsApp"
         />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    )
-  }
+      </Suspense>
 
-  const conversaAtual = conversas.find(c => c.id === conversaSelecionada)
-
-  return (
-    <div className="h-screen bg-white text-black flex flex-col overflow-hidden">
-      <Header
-        title="Conversas"
-        subtitle="Atendimento e Mensagens"
-      />
-      
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex h-[calc(100vh-64px)]">
         {/* COLUNA 1: Lista de Conversas */}
-        <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
-          {/* Busca e Filtros */}
-          <div className="p-4 border-b border-gray-200 bg-white">
-            <div className="relative mb-3">
+        <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
+          <div className="p-4 border-b border-gray-200 space-y-3">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Buscar conversas... (Ctrl+K)"
-                value={filtroBusca.query || searchTerm}
-                onChange={(e) => {
-                  setFiltroBusca({ ...filtroBusca, query: e.target.value })
-                  setSearchTerm(e.target.value)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleBuscaAvancada()
-                  }
-                }}
-                className="pl-10 !bg-white !text-black"
+                placeholder="Buscar conversa..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setBuscaAvancada(!buscaAvancada)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 !bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                title="Busca avançada"
-              >
-                <Search className="w-3 h-3" />
-              </Button>
             </div>
-            
-            {buscaAvancada && (
-              <Card className="p-3 mb-3 bg-white border border-gray-200">
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Buscar em mensagens</label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filtroBusca.buscaMensagens}
-                        onChange={(e) => setFiltroBusca({ ...filtroBusca, buscaMensagens: e.target.checked })}
-                        className="rounded"
-                      />
-                      <span className="text-xs text-gray-600">Buscar no conteúdo das mensagens</span>
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Setor</label>
-                      <select
-                        value={filtroBusca.setor}
-                        onChange={(e) => setFiltroBusca({ ...filtroBusca, setor: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 rounded !bg-white !text-black"
-                      >
-                        <option value="">Todos</option>
-                        <option value="Vendas">Vendas</option>
-                        <option value="Suporte">Suporte</option>
-                        <option value="Atendimento">Atendimento</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
-                      <select
-                        value={filtroBusca.status}
-                        onChange={(e) => setFiltroBusca({ ...filtroBusca, status: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 rounded !bg-white !text-black"
-                      >
-                        <option value="">Todos</option>
-                        <option value="ativa">Ativa</option>
-                        <option value="pendente">Pendente</option>
-                        <option value="encerrada">Encerrada</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Início</label>
-                      <Input
-                        type="date"
-                        value={filtroBusca.dataInicio}
-                        onChange={(e) => setFiltroBusca({ ...filtroBusca, dataInicio: e.target.value })}
-                        className="text-xs !bg-white !text-black"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim</label>
-                      <Input
-                        type="date"
-                        value={filtroBusca.dataFim}
-                        onChange={(e) => setFiltroBusca({ ...filtroBusca, dataFim: e.target.value })}
-                        className="text-xs !bg-white !text-black"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleBuscaAvancada}
-                      className="flex-1 !bg-gray-900 hover:!bg-gray-800"
-                    >
-                      Buscar
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setFiltroBusca({
-                          query: '',
-                          buscaMensagens: false,
-                          setor: '',
-                          status: '',
-                          dataInicio: '',
-                          dataFim: '',
-                          tags: [],
-                        })
-                        setSearchTerm('')
-                        fetchConversas()
-                      }}
-                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                    >
-                      Limpar
-                    </Button>
-                  </div>
+
+            <Card className="p-2 bg-gray-50 border border-gray-100">
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={filtroBusca.dataInicio}
+                    onChange={(e) => setFiltroBusca({ ...filtroBusca, dataInicio: e.target.value })}
+                    className="text-xs !bg-white !text-black"
+                  />
+                  <Input
+                    type="date"
+                    value={filtroBusca.dataFim}
+                    onChange={(e) => setFiltroBusca({ ...filtroBusca, dataFim: e.target.value })}
+                    className="text-xs !bg-white !text-black"
+                  />
                 </div>
-              </Card>
-            )}
-            
-            <div className="flex gap-2">
-              <Button
-                variant={statusFilter === 'todos' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setStatusFilter('todos')}
-                className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-              >
-                Todos
-              </Button>
-              <Button
-                variant={statusFilter === 'ativo' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setStatusFilter('ativo')}
-                className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-              >
-                Ativos
-              </Button>
-              <Button
-                variant={statusFilter === 'pendente' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setStatusFilter('pendente')}
-                className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-              >
-                Pendentes
-              </Button>
-            </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleBuscaAvancada}
+                    className="flex-1 !bg-gray-900 hover:!bg-gray-800"
+                  >
+                    Buscar
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setFiltroBusca({
+                        query: '',
+                        buscaMensagens: false,
+                        setor: '',
+                        status: '',
+                        dataInicio: '',
+                        dataFim: '',
+                        tags: [],
+                      })
+                      setSearchTerm('')
+                      fetchConversas()
+                    }}
+                    className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+            </Card>
           </div>
-          
+
+          <div className="flex gap-2 p-2 border-b border-gray-200 bg-gray-50">
+            <Button
+              variant={statusFilter === 'todos' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setStatusFilter('todos')}
+              className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
+            >
+              Todos
+            </Button>
+            <Button
+              variant={statusFilter === 'ativo' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setStatusFilter('ativo')}
+              className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
+            >
+              Ativos
+            </Button>
+            <Button
+              variant={statusFilter === 'pendente' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setStatusFilter('pendente')}
+              className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
+            >
+              Pendentes
+            </Button>
+          </div>
+
           {/* Lista de Conversas */}
           <div className="flex-1 overflow-y-auto">
             {conversasFiltradas.length === 0 ? (
@@ -1333,8 +1216,8 @@ export default function ConversasPage() {
                   {searchTerm || statusFilter !== 'todos' ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa'}
                 </h3>
                 <p className="text-xs text-gray-600">
-                  {searchTerm || statusFilter !== 'todos' 
-                    ? 'Tente ajustar os filtros' 
+                  {searchTerm || statusFilter !== 'todos'
+                    ? 'Tente ajustar os filtros'
                     : 'As conversas aparecerão aqui'}
                 </p>
               </div>
@@ -1344,36 +1227,35 @@ export default function ConversasPage() {
                   <div
                     key={conversa.id}
                     onClick={() => setConversaSelecionada(conversa.id)}
-                    className={`p-4 cursor-pointer transition-colors hover:bg-gray-100 ${
-                      conversaSelecionada === conversa.id ? 'bg-gray-50 border-l-4 border-gray-300' : 'bg-white'
-                    }`}
+                    className={`p-4 cursor-pointer transition-colors hover:bg-gray-100 ${conversaSelecionada === conversa.id ? 'bg-gray-50 border-l-4 border-gray-300' : 'bg-white'
+                      }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
                         {conversa.avatar}
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <h4 className="font-semibold text-sm truncate text-gray-900">{conversa.nome}</h4>
                           <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{conversa.hora}</span>
                         </div>
-                        
+
                         <p className="text-xs text-gray-600 truncate mb-2">
                           {conversa.ultimaMensagem}
                         </p>
-                        
+
                         <div className="flex items-center justify-between gap-2">
                           <Badge variant={getStatusColor(conversa.status)} className="text-xs">
                             {conversa.status}
                           </Badge>
-                          
+
                           <div className="flex items-center gap-2">
                             {/* Contagem total de mensagens */}
                             <span className="text-xs text-gray-500" title={`${conversa.totalMensagens} mensagem(ns)`}>
                               💬 {conversa.totalMensagens}
                             </span>
-                            
+
                             {/* Contador de não lidas */}
                             {conversa.naoLidas > 0 && (
                               <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
@@ -1387,42 +1269,45 @@ export default function ConversasPage() {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-          
+            )
+            }
+          </div >
+
           {/* Paginação */}
-          {totalPages > 1 && (
-            <div className="p-3 border-t border-gray-200 bg-white">
-              <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
-                <span>Página {currentPage} de {totalPages}</span>
-                <span>{totalCount} conversas</span>
+          {
+            totalPages > 1 && (
+              <div className="p-3 border-t border-gray-200 bg-white">
+                <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
+                  <span>Página {currentPage} de {totalPages}</span>
+                  <span>{totalCount} conversas</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
+                  >
+                    Próxima
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex-1 !bg-gray-100 !text-gray-900 hover:!bg-gray-200"
-                >
-                  Próxima
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+            )
+          }
+        </div >
 
         {/* COLUNA 2: Área do Chat */}
-        <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden" >
           {conversaSelecionada && conversaAtual ? (
             <>
               {/* Cabeçalho do Chat - FIXO */}
@@ -1433,11 +1318,11 @@ export default function ConversasPage() {
                       {/* Usar inicial do nome do prospect se disponível, senão usar da conversa */}
                       {prospectInfo && (prospectInfo.nome || prospectInfo.nome_completo)
                         ? (prospectInfo.nome || prospectInfo.nome_completo || 'SN')
-                            .split(' ')
-                            .map(n => n[0])
-                            .join('')
-                            .toUpperCase()
-                            .slice(0, 2)
+                          .split(' ')
+                          .map(n => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2)
                         : conversaAtual.avatar}
                     </div>
                     <div>
@@ -1640,7 +1525,7 @@ export default function ConversasPage() {
                   </div>
                 )}
               </div>
-              
+
               {/* Mensagens - ÁREA ROLÁVEL */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 min-h-0">
                 {loadingMensagens ? (
@@ -1660,7 +1545,7 @@ export default function ConversasPage() {
                     const remetenteLower = (mensagem.remetente || '').toLowerCase()
                     const isCliente = remetenteLower === 'usuario' || remetenteLower === 'cliente'
                     // Todos os outros (robo, bot, humano, agente) ficam à direita automaticamente
-                    
+
                     // Função para obter ícone do remetente
                     const getRemetenteIcon = () => {
                       if (remetenteLower === 'robo' || remetenteLower === 'bot') {
@@ -1677,7 +1562,7 @@ export default function ConversasPage() {
                       }
                       return null
                     }
-                    
+
                     // Função para obter cor do balão baseado no remetente
                     const getMensagemBgColor = () => {
                       if (remetenteLower === 'robo' || remetenteLower === 'bot') {
@@ -1692,7 +1577,7 @@ export default function ConversasPage() {
                       // Cliente usa branco
                       return 'bg-white border border-gray-200 text-gray-900'
                     }
-                    
+
                     // Função para obter cor do ícone do remetente
                     const getIconBgColor = () => {
                       if (remetenteLower === 'robo' || remetenteLower === 'bot') {
@@ -1706,7 +1591,7 @@ export default function ConversasPage() {
                       }
                       return 'bg-gray-300 text-gray-700' // Cliente
                     }
-                    
+
                     const dataMensagem = mensagem.timestamp || mensagem.created_at
                     const horaFormatada = formatTime(dataMensagem)
                     const remetenteIcon = getRemetenteIcon()
@@ -1724,7 +1609,7 @@ export default function ConversasPage() {
                             {remetenteIcon}
                           </div>
                         )}
-                        
+
                         {/* Balão de mensagem */}
                         <div
                           className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${mensagemBgColor}`}
@@ -1732,29 +1617,27 @@ export default function ConversasPage() {
                           <p className="text-sm whitespace-pre-wrap">{mensagem.conteudo}</p>
                           <div className="flex items-center justify-between gap-2 mt-1">
                             <span
-                              className={`text-xs ${
-                                isCliente 
-                                  ? 'text-gray-500' 
-                                  : (remetenteLower === 'robo' || remetenteLower === 'bot' || remetenteLower === 'humano')
-                                    ? 'text-gray-700'
-                                    : 'text-gray-100'
-                              }`}
+                              className={`text-xs ${isCliente
+                                ? 'text-gray-500'
+                                : (remetenteLower === 'robo' || remetenteLower === 'bot' || remetenteLower === 'humano')
+                                  ? 'text-gray-700'
+                                  : 'text-gray-100'
+                                }`}
                             >
                               {horaFormatada}
                             </span>
                             {/* Ícone do remetente dentro da mensagem do sistema */}
                             {!isCliente && remetenteIcon && (
-                              <div className={`flex-shrink-0 ${
-                                remetenteLower === 'robo' || remetenteLower === 'bot' || remetenteLower === 'humano'
-                                  ? 'text-gray-700'
-                                  : 'text-gray-100'
-                              }`}>
+                              <div className={`flex-shrink-0 ${remetenteLower === 'robo' || remetenteLower === 'bot' || remetenteLower === 'humano'
+                                ? 'text-gray-700'
+                                : 'text-gray-100'
+                                }`}>
                                 {remetenteIcon}
                               </div>
                             )}
                           </div>
                         </div>
-                        
+
                         {/* Ícone do sistema à direita */}
                         {!isCliente && remetenteIcon && (
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mb-1 ${iconBgColor}`}>
@@ -1765,7 +1648,7 @@ export default function ConversasPage() {
                     )
                   })
                 )}
-                
+
                 {/* Indicador de digitação */}
                 {clienteDigitando && (
                   <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 italic">
@@ -1777,7 +1660,7 @@ export default function ConversasPage() {
                     <span>Atendente está digitando...</span>
                   </div>
                 )}
-                
+
                 <div ref={messagesEndRef} />
               </div>
 
@@ -1834,7 +1717,7 @@ export default function ConversasPage() {
                         <span className="hidden sm:inline ml-1">Templates</span>
                       </Button>
                     </div>
-                    
+
                     <div className="relative cursos-menu">
                       <Button
                         variant="secondary"
@@ -1851,7 +1734,7 @@ export default function ConversasPage() {
                         <GraduationCap className="w-4 h-4" />
                         <span className="hidden sm:inline ml-1">Listar Cursos</span>
                       </Button>
-                      
+
                       {/* Menu de Cursos */}
                       {showCursos && (
                         <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-20 min-w-[250px] max-w-[400px] max-h-[400px] overflow-y-auto">
@@ -1862,7 +1745,7 @@ export default function ConversasPage() {
                             </div>
                           ) : cursos.length === 0 ? (
                             <div className="px-3 py-2 text-sm text-gray-500 text-center">
-                              {!faculdadeSelecionada 
+                              {!faculdadeSelecionada
                                 ? 'Selecione uma faculdade primeiro'
                                 : 'Nenhum curso encontrado'}
                             </div>
@@ -1891,7 +1774,7 @@ export default function ConversasPage() {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="relative anexo-menu">
                       <Button
                         variant="secondary"
@@ -1902,7 +1785,7 @@ export default function ConversasPage() {
                       >
                         <Paperclip className="w-4 h-4" />
                       </Button>
-                      
+
                       {/* Menu de Anexos */}
                       {showAnexos && (
                         <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-20">
@@ -1959,7 +1842,7 @@ export default function ConversasPage() {
                         </div>
                       )}
                     </div>
-                    
+
                     <Button
                       variant="secondary"
                       size="sm"
@@ -1969,13 +1852,13 @@ export default function ConversasPage() {
                     >
                       <CheckCheck className="w-4 h-4" />
                     </Button>
-                    
+
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={handlePausarIA}
-                      className={iaPausada 
-                        ? "!bg-orange-100 hover:!bg-orange-200 !text-orange-700 border border-orange-300" 
+                      className={iaPausada
+                        ? "!bg-orange-100 hover:!bg-orange-200 !text-orange-700 border border-orange-300"
                         : "!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
                       }
                       title={iaPausada ? "Retomar IA" : "Pausar IA"}
@@ -1993,44 +1876,44 @@ export default function ConversasPage() {
                       )}
                     </Button>
 
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setShowAgendarModal(true)}
-                        className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                        title="Agendar mensagem"
-                        disabled={!conversaSelecionada}
-                      >
-                        <Calendar className="w-4 h-4" />
-                        <span className="hidden sm:inline ml-1">Agendar</span>
-                      </Button>
-                      
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          if (conversaDetalhes) {
-                            exportarConversaTXT({
-                              conversa: conversaDetalhes,
-                              mensagens,
-                              prospect: prospectInfo,
-                            })
-                          }
-                        }}
-                        className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
-                        title="Exportar conversa"
-                        disabled={!conversaDetalhes}
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="hidden sm:inline ml-1">Exportar</span>
-                      </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowAgendarModal(true)}
+                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                      title="Agendar mensagem"
+                      disabled={!conversaSelecionada}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1">Agendar</span>
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (conversaDetalhes) {
+                          exportarConversaTXT({
+                            conversa: conversaDetalhes,
+                            mensagens,
+                            prospect: prospectInfo,
+                          })
+                        }
+                      }}
+                      className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700"
+                      title="Exportar conversa"
+                      disabled={!conversaDetalhes}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1">Exportar</span>
+                    </Button>
                   </div>
-                  
+
                   <div className="text-xs text-gray-500">
                     {novaMensagem.length > 0 && `${novaMensagem.length} caracteres`}
                   </div>
                 </div>
-                
+
                 {/* Templates Dropdown */}
                 {showTemplates && (
                   <div className="template-menu px-4 py-2 bg-gray-50 border-b border-gray-200 max-h-48 overflow-y-auto">
@@ -2048,7 +1931,7 @@ export default function ConversasPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Área de Input Melhorada */}
                 <div className="p-4">
                   <div className="flex items-end gap-2">
@@ -2060,7 +1943,7 @@ export default function ConversasPage() {
                     >
                       <Smile className="w-5 h-5" />
                     </button>
-                    
+
                     {/* Textarea Grande */}
                     <div className="flex-1 relative">
                       <textarea
@@ -2095,7 +1978,7 @@ export default function ConversasPage() {
                         className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none overflow-y-auto !bg-white !text-black placeholder:text-gray-400 min-h-[60px] max-h-[200px]"
                         style={{ minHeight: '60px' }}
                       />
-                      
+
                       {/* Contador de caracteres (se necessário) */}
                       {novaMensagem.length > 1000 && (
                         <div className="absolute bottom-2 right-2 text-xs text-gray-400">
@@ -2103,9 +1986,9 @@ export default function ConversasPage() {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Botão Enviar */}
-                    <Button 
+                    <Button
                       onClick={handleEnviarMensagem}
                       disabled={!novaMensagem.trim()}
                       className="!bg-gray-900 hover:!bg-gray-800 disabled:!bg-gray-300 disabled:!cursor-not-allowed h-[60px] px-6"
@@ -2114,7 +1997,7 @@ export default function ConversasPage() {
                       <Send className="w-5 h-5" />
                     </Button>
                   </div>
-                  
+
                   {/* Dica de atalho */}
                   <div className="mt-2 text-xs text-gray-400">
                     <span>💡 Pressione Enter para enviar, Shift+Enter para nova linha</span>
@@ -2130,11 +2013,12 @@ export default function ConversasPage() {
                 <p className="text-gray-600">Clique em uma conversa ao lado para começar</p>
               </div>
             </div>
-          )}
-        </div>
+          )
+          }
+        </div >
 
         {/* COLUNA 3: Informações do Lead */}
-        <div className="w-80 border-l border-gray-200 bg-gray-50 flex flex-col">
+        <div className="w-80 border-l border-gray-200 bg-gray-50 flex flex-col" >
           {conversaSelecionada && conversaAtual ? (
             <>
               <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
@@ -2154,7 +2038,7 @@ export default function ConversasPage() {
                   </Button>
                 )}
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {loadingProspect ? (
                   <div className="flex items-center justify-center py-8">
@@ -2422,45 +2306,51 @@ export default function ConversasPage() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </div >
+      </div >
 
       {/* Modal de Transferência */}
-      {faculdadeSelecionada && conversaSelecionada && conversaDetalhes && (
-        <TransferirModal
-          isOpen={showTransferirModal}
-          onClose={() => setShowTransferirModal(false)}
-          conversaId={conversaSelecionada}
-          faculdadeId={faculdadeSelecionada.id}
-          setorAtual={conversaDetalhes.setor}
-          atendenteAtual={conversaDetalhes.atendente}
-          onTransferir={handleTransferirSucesso}
-        />
-      )}
+      {
+        faculdadeSelecionada && conversaSelecionada && conversaDetalhes && (
+          <TransferirModal
+            isOpen={showTransferirModal}
+            onClose={() => setShowTransferirModal(false)}
+            conversaId={conversaSelecionada}
+            faculdadeId={faculdadeSelecionada.id}
+            setorAtual={conversaDetalhes.setor}
+            atendenteAtual={conversaDetalhes.atendente}
+            onTransferir={handleTransferirSucesso}
+          />
+        )
+      }
 
       {/* Modal de Métricas */}
-      {conversaSelecionada && (
-        <MetricasModal
-          isOpen={showMetricasModal}
-          onClose={() => setShowMetricasModal(false)}
-          conversaId={conversaSelecionada}
-          mensagens={mensagens}
-          conversaDetalhes={conversaDetalhes}
-        />
-      )}
+      {
+        conversaSelecionada && (
+          <MetricasModal
+            isOpen={showMetricasModal}
+            onClose={() => setShowMetricasModal(false)}
+            conversaId={conversaSelecionada}
+            mensagens={mensagens}
+            conversaDetalhes={conversaDetalhes}
+          />
+        )
+      }
 
       {/* Modal de Agendar Mensagem */}
-      {faculdadeSelecionada && conversaSelecionada && conversaDetalhes && (
-        <AgendarMensagem
-          isOpen={showAgendarModal}
-          onClose={() => setShowAgendarModal(false)}
-          conversaId={conversaSelecionada}
-          telefone={conversaDetalhes.telefone}
-          nomeContato={conversaAtual?.nome || conversaDetalhes.nome}
-          faculdadeId={faculdadeSelecionada.id}
-          onAgendar={handleAgendarMensagem}
-        />
-      )}
-    </div>
+      {
+        faculdadeSelecionada && conversaSelecionada && conversaDetalhes && (
+          <AgendarMensagem
+            isOpen={showAgendarModal}
+            onClose={() => setShowAgendarModal(false)}
+            conversaId={conversaSelecionada}
+            telefone={conversaDetalhes.telefone}
+            nomeContato={conversaAtual?.nome || conversaDetalhes.nome}
+            faculdadeId={faculdadeSelecionada.id}
+            onAgendar={handleAgendarMensagem}
+          />
+        )
+      }
+    </div >
   )
 }

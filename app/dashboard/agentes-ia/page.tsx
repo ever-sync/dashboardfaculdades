@@ -15,7 +15,7 @@ import {
   PowerOff,
   FileText
 } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { AgenteIA } from '@/types/supabase'
@@ -160,10 +160,12 @@ export default function AgentesIAPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white text-black">
-        <Header
-          title="Agentes IA"
-          subtitle="Gerencie seus agentes de inteligência artificial"
-        />
+        <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+          <Header
+            title="Agentes IA"
+            subtitle="Gerencie seus agentes de inteligência artificial"
+          />
+        </Suspense>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
@@ -173,10 +175,12 @@ export default function AgentesIAPage() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <Header
-        title="Agentes IA"
-        subtitle="Gerencie seus agentes de inteligência artificial"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Agentes IA"
+          subtitle="Gerencie seus agentes de inteligência artificial"
+        />
+      </Suspense>
 
       <div className="p-8 space-y-6">
         {/* Ações e Busca */}

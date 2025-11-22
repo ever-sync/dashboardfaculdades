@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -47,7 +47,7 @@ export default function EtiquetasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [itemsPerPage, setItemsPerPage] = useState(6)
   const [currentPage, setCurrentPage] = useState(1)
-  
+
   // Form
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -95,7 +95,7 @@ export default function EtiquetasPage() {
               .select('*', { count: 'exact', head: true })
               .eq('faculdade_id', faculdadeSelecionada.id)
               .or(`tags.cs.{${etiqueta.id}},tags.cs.{${etiqueta.nome}}`)
-            
+
             return {
               ...etiqueta,
               clientes_count: count || 0,
@@ -202,10 +202,12 @@ export default function EtiquetasPage() {
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
-      <Header
-        title="Etiquetas"
-        subtitle="Gerencie etiquetas de contatos"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Etiquetas"
+          subtitle="Gerencie etiquetas de contatos"
+        />
+      </Suspense>
 
       <main className="flex-1 p-6 overflow-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
@@ -217,7 +219,7 @@ export default function EtiquetasPage() {
                   <TagIcon className="w-8 h-8 text-blue-500" />
                 </div>
               </div>
-              
+
               <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">
                 {editingId ? 'Editar Etiqueta' : 'Nova Etiqueta'}
               </h2>
@@ -258,11 +260,10 @@ export default function EtiquetasPage() {
                         key={cor}
                         type="button"
                         onClick={() => setFormData({ ...formData, cor })}
-                        className={`w-10 h-10 rounded-full border-2 transition-all ${
-                          formData.cor === cor
-                            ? 'border-blue-600 scale-110'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
+                        className={`w-10 h-10 rounded-full border-2 transition-all ${formData.cor === cor
+                          ? 'border-blue-600 scale-110'
+                          : 'border-gray-300 hover:border-gray-400'
+                          }`}
                         style={{ backgroundColor: cor }}
                       />
                     ))}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { Usuario } from '@/types/supabase'
@@ -495,10 +495,12 @@ export default function AtendentesPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <Header
-        title="Gestão de Atendentes"
-        subtitle="Gerencie seus atendentes e suas configurações"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Gestão de Atendentes"
+          subtitle="Gerencie seus atendentes e suas configurações"
+        />
+      </Suspense>
 
       {/* Filtros e Busca */}
       <Card className="p-4">

@@ -4,7 +4,7 @@ import { Header } from '@/components/dashboard/Header'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { User, ArrowRight, ArrowLeft, Info, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
@@ -149,10 +149,12 @@ export default function BloqueadosPage() {
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
-      <Header
-        title="Bloqueio de Clientes"
-        subtitle="Gerencie clientes bloqueados"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Bloqueio de Clientes"
+          subtitle="Gerencie clientes bloqueados"
+        />
+      </Suspense>
 
       <main className="flex-1 p-6 overflow-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">

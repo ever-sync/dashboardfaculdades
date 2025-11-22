@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { 
-  BookOpen, 
-  Search, 
+import {
+  BookOpen,
+  Search,
   Plus,
   Edit,
   Trash2,
@@ -17,7 +17,7 @@ import {
   X,
   Check
 } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { BaseConhecimento } from '@/types/supabase'
@@ -66,12 +66,12 @@ export default function BaseConhecimentosPage() {
           hint: error.hint,
           code: error.code
         })
-        
+
         if (error.code === '42P01' || error.code === 'PGRST116' || error.message?.includes('does not exist')) {
           console.warn('⚠️ A tabela "base_conhecimento" não existe no banco de dados.')
           console.warn('📋 Execute a migração SQL: supabase/migrations/010_create_base_conhecimento_table.sql')
         }
-        
+
         setConhecimentos([])
         return
       }
@@ -96,9 +96,9 @@ export default function BaseConhecimentosPage() {
 
   const conhecimentosFiltrados = conhecimentos.filter(conhecimento => {
     const matchSearch = conhecimento.pergunta.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       conhecimento.resposta.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       (conhecimento.categoria || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       (conhecimento.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      conhecimento.resposta.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (conhecimento.categoria || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (conhecimento.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchCategoria = !categoriaFilter || conhecimento.categoria === categoriaFilter
     return matchSearch && matchCategoria
   })
@@ -222,7 +222,7 @@ export default function BaseConhecimentosPage() {
     try {
       const text = await arquivoSelecionado.text()
       const lines = text.split('\n').filter(line => line.trim())
-      
+
       // Pular cabeçalho se existir
       const header = lines[0].toLowerCase()
       const startIndex = (header.includes('pergunta') && header.includes('resposta')) ? 1 : 0
@@ -318,10 +318,12 @@ export default function BaseConhecimentosPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white text-black">
-        <Header
-          title="Conhecimento"
-          subtitle="Gerencie perguntas e respostas"
-        />
+        <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+          <Header
+            title="Conhecimento"
+            subtitle="Gerencie perguntas e respostas"
+          />
+        </Suspense>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-500"></div>
         </div>
@@ -332,10 +334,12 @@ export default function BaseConhecimentosPage() {
   if (!faculdadeSelecionada) {
     return (
       <div className="min-h-screen bg-white text-black">
-        <Header
-          title="Conhecimento"
-          subtitle="Gerencie perguntas e respostas"
-        />
+        <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+          <Header
+            title="Conhecimento"
+            subtitle="Gerencie perguntas e respostas"
+          />
+        </Suspense>
         <div className="p-8">
           <Card>
             <div className="text-center py-12">
@@ -355,11 +359,13 @@ export default function BaseConhecimentosPage() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <Header
-        title="Conhecimento"
-        subtitle={`Gerencie perguntas e respostas - ${faculdadeSelecionada.nome}`}
-      />
-      
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Conhecimento"
+          subtitle={`Gerencie perguntas e respostas - ${faculdadeSelecionada.nome}`}
+        />
+      </Suspense>
+
       <div className="p-8 space-y-6">
         {/* Ações e Busca */}
         <Card>
@@ -428,8 +434,8 @@ export default function BaseConhecimentosPage() {
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {searchTerm || categoriaFilter 
-                  ? 'Nenhum conhecimento encontrado' 
+                {searchTerm || categoriaFilter
+                  ? 'Nenhum conhecimento encontrado'
                   : `Nenhum conhecimento cadastrado para ${faculdadeSelecionada.nome}`}
               </h3>
               <p className="text-gray-600 mb-4">

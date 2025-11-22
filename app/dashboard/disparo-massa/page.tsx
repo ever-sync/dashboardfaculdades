@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { 
-  Send, 
-  Users, 
+import {
+  Send,
+  Users,
   MessageSquare,
   Upload,
   FileText,
@@ -26,7 +26,7 @@ import {
   Calendar,
   Zap
 } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { supabase } from '@/lib/supabase'
@@ -49,7 +49,7 @@ export default function DisparoMassaPage() {
   const [agendarEnvio, setAgendarEnvio] = useState('')
   const [personalizar, setPersonalizar] = useState(false)
   const [mostrarPreview, setMostrarPreview] = useState(false)
-  
+
   const [destinatarios, setDestinatarios] = useState<Destinatario[]>([])
   const [loading, setLoading] = useState(true)
   const [enviando, setEnviando] = useState(false)
@@ -130,15 +130,15 @@ export default function DisparoMassaPage() {
   }, [fetchDestinatarios])
 
   const destinatariosSelecionados = destinatarios.filter(d => d.selecionado).length
-  const destinatariosFiltrados = destinatarios.filter(d => 
+  const destinatariosFiltrados = destinatarios.filter(d =>
     d.nome.toLowerCase().includes(buscaDestinatarios.toLowerCase()) ||
     d.telefone.includes(buscaDestinatarios) ||
     d.email?.toLowerCase().includes(buscaDestinatarios.toLowerCase())
   )
 
   const toggleSelecionar = (id: string) => {
-    setDestinatarios(prev => 
-      prev.map(dest => 
+    setDestinatarios(prev =>
+      prev.map(dest =>
         dest.id === id ? { ...dest, selecionado: !dest.selecionado } : dest
       )
     )
@@ -146,7 +146,7 @@ export default function DisparoMassaPage() {
 
   const selecionarTodos = () => {
     const todosSelecionados = destinatariosFiltrados.every(d => d.selecionado)
-    setDestinatarios(prev => 
+    setDestinatarios(prev =>
       prev.map(dest => {
         const estaNaFiltragem = destinatariosFiltrados.some(d => d.id === dest.id)
         if (estaNaFiltragem) {
@@ -179,7 +179,7 @@ export default function DisparoMassaPage() {
 
       for (let i = 0; i < selecionados.length; i++) {
         const destinatario = selecionados[i]
-        
+
         try {
           // Personalizar mensagem se necessário
           let mensagemPersonalizada = mensagem
@@ -259,7 +259,7 @@ export default function DisparoMassaPage() {
       }
 
       showToast(`Envio concluído! Sucessos: ${sucessos}, Erros: ${erros}`, sucessos > 0 ? 'success' : 'warning')
-      
+
       // Limpar seleção e mensagem
       setDestinatarios(prev => prev.map(d => ({ ...d, selecionado: false })))
       setMensagem('')
@@ -273,11 +273,13 @@ export default function DisparoMassaPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
-      <Header
-        title="Disparo em Massa"
-        subtitle="Envie mensagens para múltiplos destinatários de forma eficiente"
-      />
-      
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Disparo em Massa"
+          subtitle="Envie mensagens para múltiplos destinatários de forma eficiente"
+        />
+      </Suspense>
+
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -544,9 +546,9 @@ export default function DisparoMassaPage() {
                     <Filter className="w-3 h-3 mr-1" />
                     Filtrar
                   </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     className="text-xs"
                     onClick={selecionarTodos}
                   >
@@ -578,11 +580,10 @@ export default function DisparoMassaPage() {
                     destinatariosFiltrados.map((dest) => (
                       <div
                         key={dest.id}
-                        className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                          dest.selecionado
+                        className={`p-3 rounded-lg border transition-all cursor-pointer ${dest.selecionado
                             ? 'bg-gray-50 border-gray-300'
                             : 'bg-white border-gray-200 hover:border-gray-300'
-                        }`}
+                          }`}
                         onClick={() => toggleSelecionar(dest.id)}
                       >
                         <div className="flex items-start gap-3">
@@ -627,7 +628,7 @@ export default function DisparoMassaPage() {
                     onClick={handleEnviar}
                   >
                     <Send className="w-4 h-4 mr-2" />
-                    {enviando 
+                    {enviando
                       ? `Enviando... (${destinatariosSelecionados} destinatários)`
                       : `Enviar para ${destinatariosSelecionados} destinatário${destinatariosSelecionados !== 1 ? 's' : ''}`
                     }

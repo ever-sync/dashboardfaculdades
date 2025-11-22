@@ -20,7 +20,7 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { TrendingUp, Users, MessageSquare, Clock } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 
@@ -38,7 +38,7 @@ const processarEvolucaoSemanal = (metricas: AnalyticsData[]) => {
   // Agrupar últimos 7 dias
   const ultimos7Dias = metricas.slice(0, 7).reverse()
   const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-  
+
   return ultimos7Dias.map((m) => {
     const data = new Date(m.data)
     const diaSemana = diasSemana[data.getDay()]
@@ -54,17 +54,17 @@ const processarEvolucaoSemanal = (metricas: AnalyticsData[]) => {
 const processarSetores = (metricas: AnalyticsData[]) => {
   // Agrupar por departamento
   const setoresMap = new Map<string, number>()
-  
+
   metricas.forEach(m => {
     if (m.departamento) {
       const atual = setoresMap.get(m.departamento) || 0
       setoresMap.set(m.departamento, atual + (m.total_conversas || 0))
     }
   })
-  
+
   const cores = ['#6b7280', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
   let corIndex = 0
-  
+
   return Array.from(setoresMap.entries()).map(([name, value]) => ({
     name,
     value,
@@ -125,13 +125,13 @@ export default function AnalyticsPage() {
   const conversasPorHoraData = processarDadosPorHora(analyticsData)
   const evolucaoSemanalData = processarEvolucaoSemanal(analyticsData)
   const setoresData = processarSetores(analyticsData)
-  
+
   // Calcular funil de conversão
   const totalConversas = analyticsData.reduce((sum, m) => sum + (m.total_conversas || 0), 0)
   const totalProspects = analyticsData.reduce((sum, m) => sum + (m.novos_prospects || 0), 0)
   const totalQualificados = analyticsData.reduce((sum, m) => sum + (m.novos_prospects || 0), 0) // Simplificado
   const totalConvertidos = analyticsData.reduce((sum, m) => sum + (m.prospects_convertidos || 0), 0)
-  
+
   const taxaConversaoData = [
     { etapa: 'Conversas Iniciadas', valor: totalConversas },
     { etapa: 'Prospects Qualificados', valor: totalQualificados },
@@ -142,8 +142,8 @@ export default function AnalyticsPage() {
   // Calcular métricas agregadas
   const taxaCrescimento = analyticsData.length > 0 ? 23.5 : 0 // Placeholder
   const prospectsAtivos = totalProspects
-  const conversasDia = analyticsData.length > 0 
-    ? Math.round(totalConversas / analyticsData.length) 
+  const conversasDia = analyticsData.length > 0
+    ? Math.round(totalConversas / analyticsData.length)
     : 0
   const tempoResposta = analyticsData.length > 0
     ? Math.round(analyticsData.reduce((sum, m) => sum + (m.tempo_medio_primeira_resposta_segundos || 0), 0) / analyticsData.length)
@@ -152,10 +152,12 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white text-black">
-        <Header
-          title="Analytics"
-          subtitle="Análise detalhada do atendimento"
-        />
+        <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+          <Header
+            title="Analytics"
+            subtitle="Análise detalhada do atendimento"
+          />
+        </Suspense>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
@@ -164,11 +166,13 @@ export default function AnalyticsPage() {
   }
   return (
     <div className="min-h-screen bg-white text-black">
-      <Header
-        title="Analytics"
-        subtitle="Análise detalhada do atendimento"
-      />
-      
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Analytics"
+          subtitle="Análise detalhada do atendimento"
+        />
+      </Suspense>
+
       <div className="p-8 space-y-6">
         {/* Gráfico de Linha - Conversas por Hora */}
         <Card title="Conversas por Hora do Dia" subtitle="Horário de pico de atendimento">
@@ -252,21 +256,21 @@ export default function AnalyticsPage() {
             <p className="text-2xl font-bold text-green-500">+{taxaCrescimento}%</p>
             <p className="text-sm text-gray-600">vs mês anterior</p>
           </Card>
-          
+
           <Card className="text-center">
             <Users className="w-8 h-8 text-gray-500 mx-auto mb-2" />
             <h3 className="text-lg font-semibold text-black">Prospects Ativos</h3>
             <p className="text-2xl font-bold text-gray-500">{prospectsAtivos}</p>
             <p className="text-sm text-gray-600">Este mês</p>
           </Card>
-          
+
           <Card className="text-center">
             <MessageSquare className="w-8 h-8 text-purple-500 mx-auto mb-2" />
             <h3 className="text-lg font-semibold text-black">Conversas/Dia</h3>
             <p className="text-2xl font-bold text-purple-500">{conversasDia}</p>
             <p className="text-sm text-gray-600">Média diária</p>
           </Card>
-          
+
           <Card className="text-center">
             <Clock className="w-8 h-8 text-orange-500 mx-auto mb-2" />
             <h3 className="text-lg font-semibold text-black">Tempo de Resposta</h3>

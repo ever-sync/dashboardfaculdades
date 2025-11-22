@@ -4,7 +4,7 @@ import { Header } from '@/components/dashboard/Header'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFaculdade } from '@/contexts/FaculdadeContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -17,7 +17,7 @@ export default function CriarTarefaPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const negociacaoId = searchParams.get('negociacao')
-  
+
   const [loading, setLoading] = useState(false)
   const [negociacoes, setNegociacoes] = useState<any[]>([])
   const [contatos, setContatos] = useState<any[]>([])
@@ -117,10 +117,12 @@ export default function CriarTarefaPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Header
-        title="Criar Tarefa"
-        subtitle="Adicione uma nova tarefa ao CRM"
-      />
+      <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
+        <Header
+          title="Criar Tarefa"
+          subtitle="Adicione uma nova tarefa ao CRM"
+        />
+      </Suspense>
 
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
