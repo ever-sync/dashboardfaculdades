@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/middleware/withAuth'
 import {
-
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
     getAllRoles,
     getRoleWithPermissions,
     createRole,
     updateRole,
     deleteRole
 } from '@/lib/rbac'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 
 // GET /api/rbac/roles - List all roles
 export const GET = requireAuth(async (request: NextRequest, context) => {
