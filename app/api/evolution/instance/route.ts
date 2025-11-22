@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
         // Evolution API can return different formats:
         // 1. Array of instances: [{ instance: { instanceName, state } }]
         // 2. Object with instance names as keys: { "instanceName": { instance: { ... } } }
-        let instance = null
+        let instance: any = null
 
         if (Array.isArray(instances)) {
           console.log('Response is array, searching...')
@@ -248,7 +248,7 @@ export async function GET(request: NextRequest) {
 
         if (instance) {
           // Evolution API v2 uses 'connectionStatus' field
-          const instanceStatus = instance.connectionStatus || instance.instance?.status || instance.status
+          const instanceStatus = (instance as any).connectionStatus || (instance as any).instance?.status || (instance as any).status
           console.log('Status extraído:', instanceStatus)
           console.log('Status será mapeado para:', instanceStatus === 'open' ? 'conectado' : 'desconectado')
 
