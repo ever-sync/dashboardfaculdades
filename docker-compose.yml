@@ -1,10 +1,8 @@
 version: '3.8'
 services:
   dashboardfaculdades:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: dashboardfaculdades:latest
+    image: ghcr.io/ever-sync/dashboardfaculdades:latest  # ← Use a imagem do registry
+    # REMOVA o build: completamente
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     environment:
       NODE_ENV: production
