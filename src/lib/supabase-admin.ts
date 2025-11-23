@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import { Database } from '../../types/supabase'
 
-let _supabaseAdmin: ReturnType<typeof createClient> | null = null
+let _supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null
 
 /**
  * Cria um cliente Supabase Admin com service role key de forma lazy e segura.
@@ -36,7 +37,7 @@ function getSupabaseAdmin() {
  * Isso previne erros durante o build do Next.js quando as variáveis de ambiente
  * ainda não estão disponíveis.
  */
-export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Database>>, {
   get(_target, prop) {
     const client = getSupabaseAdmin()
     return (client as any)[prop]

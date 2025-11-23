@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     // Verificar se está em desenvolvimento ou se tem token de admin
     const authHeader = request.headers.get('authorization')
     const isDev = process.env.NODE_ENV === 'development'
-    
+
     if (!isDev && authHeader !== `Bearer ${process.env.ADMIN_TOKEN || 'dev-token'}`) {
       return NextResponse.json(
         { error: 'Não autorizado' },
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       sql: sql,
       instructions: [
         '1. Acesse o Dashboard do Supabase',
-        `2. Vá em SQL Editor (${supabaseUrl.replace('/rest/v1', '')}/project/_/sql)`,
+        `2. Vá em SQL Editor (${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('/rest/v1', '')}/project/_/sql)`,
         '3. Cole o SQL abaixo',
         '4. Execute o SQL'
       ]
