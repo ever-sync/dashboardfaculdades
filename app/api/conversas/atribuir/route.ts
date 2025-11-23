@@ -123,7 +123,8 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        const atendenteSelecionado = atendentes.find(
+        const atendentesTyped = atendentes as Atendente[]
+        const atendenteSelecionado = atendentesTyped.find(
           a => a.carga_trabalho_atual < a.carga_trabalho_maxima
         )
 
