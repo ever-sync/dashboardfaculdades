@@ -34,3 +34,4 @@ export const STRIPE_PLANS = {
 export type PlanType = 'basic' | 'pro'
 
 
+

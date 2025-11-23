@@ -120,3 +120,4 @@ const { data } = await supabase
 - O `status` é atualizado automaticamente conforme eventos do Stripe
 
 
+

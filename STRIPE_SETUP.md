@@ -57,3 +57,4 @@ Após configurar, teste o fluxo completo:
 4. Confirme que o usuário foi criado/atualizado no Supabase
 
 
+
