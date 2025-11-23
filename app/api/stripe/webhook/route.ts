@@ -34,82 +34,139 @@ export async function POST(req: Request) {
         return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 })
     }
 
-    const session = event.data.object as Stripe.Checkout.Session
+    // Processar diferentes tipos de eventos
+    switch (event.type) {
+        case 'checkout.session.completed': {
+            const session = event.data.object as Stripe.Checkout.Session
 
-    if (event.type === 'checkout.session.completed') {
-        const subscription = await stripe.subscriptions.retrieve(
-            session.subscription as string
-        )
+            if (!session.subscription) {
+                console.error('No subscription found in checkout session')
+                return new NextResponse(null, { status: 200 })
+            }
 
-        const email = session.customer_details?.email
-        const name = session.customer_details?.name
+            const subscription = await stripe.subscriptions.retrieve(
+                session.subscription as string
+            )
 
-        if (email) {
-            try {
-                // 1. Check if user exists
-                const { data: existingUser } = await supabase
-                    .from('profiles') // Assuming profiles table is linked to auth.users
-                    .select('*')
-                    .eq('email', email)
-                    .single()
+            const email = session.customer_details?.email
+            const name = session.customer_details?.name
+            const customerId = session.customer as string
 
-                let userId = existingUser?.id
-
-                if (!userId) {
-                    // 2. Create Auth User if not exists
-                    // Note: We can't set password here easily without sending an invite.
-                    // For now, we'll create the user and trigger a password reset email manually or via Supabase logic
-                    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-                        email: email,
-                        email_confirm: true,
-                        user_metadata: { full_name: name }
-                    })
-
-                    if (authError) {
-                        console.error('Error creating auth user:', authError)
-                        // If user already exists in Auth but not in profiles (rare), handle it
-                        if (authError.message.includes('already been registered')) {
-                            // Fetch the user ID from auth
-                            const { data: userData } = await supabase.rpc('get_user_id_by_email', { email_input: email })
-                            // This RPC might not exist, so we might need another way or just ignore
-                        }
-                    } else {
-                        userId = authUser.user.id
-
-                        // Send password reset email (Welcome email)
-                        await supabase.auth.admin.inviteUserByEmail(email)
-                    }
-                }
-
-                // 3. Update/Create Profile with Subscription Info
-                // We need to determine the plan based on price ID or metadata
-                // For now, we default to 'pro' or read from metadata
-                const plan = session.metadata?.plan || 'pro'
-
-                if (userId) {
-                    const { error: profileError } = await supabase
+            if (email) {
+                try {
+                    // 1. Verificar se usuário existe
+                    const { data: existingUser } = await supabase
                         .from('profiles')
-                        .upsert({
-                            id: userId,
+                        .select('*')
+                        .eq('email', email)
+                        .single()
+
+                    let userId = existingUser?.id
+
+                    if (!userId) {
+                        // 2. Criar usuário Auth se não existir
+                        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
                             email: email,
-                            nome: name || email.split('@')[0],
-                            role: 'admin', // The buyer is an Admin
-                            plano: plan,
-                            stripe_customer_id: session.customer as string,
-                            stripe_subscription_id: subscription.id,
-                            status: 'ativo'
+                            email_confirm: true,
+                            user_metadata: { full_name: name }
                         })
 
-                    if (profileError) {
-                        console.error('Error updating profile:', profileError)
+                        if (authError) {
+                            console.error('Erro ao criar usuário auth:', authError)
+                            // Se usuário já existe no Auth mas não no profiles
+                            if (authError.message.includes('already been registered')) {
+                                // Buscar usuário existente
+                                const { data: { users } } = await supabase.auth.admin.listUsers()
+                                const existingAuthUser = users.find(u => u.email === email)
+                                if (existingAuthUser) {
+                                    userId = existingAuthUser.id
+                                }
+                            }
+                        } else {
+                            userId = authUser.user.id
+                            // Enviar email de boas-vindas
+                            await supabase.auth.admin.inviteUserByEmail(email)
+                        }
                     }
-                }
 
-            } catch (err) {
-                console.error('Error processing checkout:', err)
-                return new NextResponse('Internal Server Error', { status: 500 })
+                    // 3. Atualizar/Criar Profile com informações da assinatura
+                    const plan = session.metadata?.plan || 'pro'
+
+                    if (userId) {
+                        const { error: profileError } = await supabase
+                            .from('profiles')
+                            .upsert({
+                                id: userId,
+                                email: email,
+                                nome: name || email.split('@')[0],
+                                role: 'admin',
+                                plano: plan,
+                                stripe_customer_id: customerId,
+                                stripe_subscription_id: subscription.id,
+                                status: 'ativo'
+                            }, {
+                                onConflict: 'id'
+                            })
+
+                        if (profileError) {
+                            console.error('Erro ao atualizar profile:', profileError)
+                        }
+                    }
+
+                } catch (err) {
+                    console.error('Erro ao processar checkout:', err)
+                    return new NextResponse('Internal Server Error', { status: 500 })
+                }
             }
+            break
         }
+
+        case 'customer.subscription.updated': {
+            const subscription = event.data.object as Stripe.Subscription
+
+            try {
+                // Atualizar status da assinatura
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        status: subscription.status === 'active' ? 'ativo' : 'inativo',
+                        stripe_subscription_id: subscription.id,
+                    })
+                    .eq('stripe_customer_id', subscription.customer as string)
+
+                if (error) {
+                    console.error('Erro ao atualizar assinatura:', error)
+                }
+            } catch (err) {
+                console.error('Erro ao processar atualização de assinatura:', err)
+            }
+            break
+        }
+
+        case 'customer.subscription.deleted': {
+            const subscription = event.data.object as Stripe.Subscription
+
+            try {
+                // Cancelar assinatura
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        status: 'cancelado',
+                        plano: 'basic', // Reverter para plano básico
+                    })
+                    .eq('stripe_customer_id', subscription.customer as string)
+
+                if (error) {
+                    console.error('Erro ao cancelar assinatura:', error)
+                }
+            } catch (err) {
+                console.error('Erro ao processar cancelamento de assinatura:', err)
+            }
+            break
+        }
+
+        default:
+            console.log(`Evento não tratado: ${event.type}`)
     }
 
     return new NextResponse(null, { status: 200 })

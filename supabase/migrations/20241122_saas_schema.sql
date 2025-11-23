@@ -11,8 +11,17 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- Update profiles table
-ALTER TABLE profiles 
+-- Create profiles table if it doesn't exist
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT,
+    nome TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Update profiles table (add columns if they don't exist)
+ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS role user_role DEFAULT 'admin',
 ADD COLUMN IF NOT EXISTS plano subscription_plan DEFAULT 'basic',
 ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
@@ -24,24 +33,28 @@ ALTER TABLE faculdades
 ADD COLUMN IF NOT EXISTS admin_id UUID REFERENCES auth.users(id);
 
 -- Enable RLS
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faculdades ENABLE ROW LEVEL SECURITY;
 
 -- POLICIES
 
 -- Profiles
-CREATE POLICY "Users can view own profile" ON profiles
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+CREATE POLICY "Users can view own profile" ON public.profiles
 FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Super Admin full access profiles" ON profiles
+DROP POLICY IF EXISTS "Super Admin full access profiles" ON public.profiles;
+CREATE POLICY "Super Admin full access profiles" ON public.profiles
 FOR ALL USING (
-  (SELECT role FROM profiles WHERE id = auth.uid()) = 'super_admin'
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
 );
 
 -- Faculdades
+DROP POLICY IF EXISTS "Admin manage own faculdades" ON faculdades;
 CREATE POLICY "Admin manage own faculdades" ON faculdades
 FOR ALL USING (admin_id = auth.uid());
 
+DROP POLICY IF EXISTS "Super Admin full access faculdades" ON faculdades;
 CREATE POLICY "Super Admin full access faculdades" ON faculdades
 FOR ALL USING (
   (SELECT role FROM profiles WHERE id = auth.uid()) = 'super_admin'
