@@ -380,7 +380,6 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await (supabase
         .from('faculdades') as any)
         .update(updateData as any)
-        })
         .eq('id', faculdadeId)
 
       if (updateError) {
