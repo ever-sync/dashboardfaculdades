@@ -694,20 +694,21 @@ export async function POST(request: NextRequest) {
             }
           } else {
             // Criar nova conversa
-            const { error: insertError } = await supabase
-              .from('conversas_whatsapp')
-              .insert({
-                faculdade_id: faculdadeId,
-                telefone: telefone,
-                nome: nome,
-                status: 'ativo',
-                status_conversa: 'ativa',
-                ultima_mensagem: ultimaMensagem || null,
-                data_ultima_mensagem: dataUltimaMensagem,
-                nao_lidas: unreadCount,
-                departamento: 'WhatsApp',
-                setor: 'Atendimento',
-              } as any)
+            const insertData = {
+              faculdade_id: faculdadeId,
+              telefone: telefone,
+              nome: nome,
+              status: 'ativo',
+              status_conversa: 'ativa',
+              ultima_mensagem: ultimaMensagem || null,
+              data_ultima_mensagem: dataUltimaMensagem,
+              nao_lidas: unreadCount,
+              departamento: 'WhatsApp',
+              setor: 'Atendimento',
+            }
+            const { error: insertError } = await (supabase
+              .from('conversas_whatsapp') as any)
+              .insert(insertData as any)
 
             if (insertError) {
               console.error(`Erro ao criar conversa para ${telefone}:`, insertError)
