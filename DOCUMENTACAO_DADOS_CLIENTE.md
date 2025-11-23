@@ -119,3 +119,4 @@ const { data } = await supabase
 - O `role` é sempre definido como `admin` para novos clientes
 - O `status` é atualizado automaticamente conforme eventos do Stripe
 
+

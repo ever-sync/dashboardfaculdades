@@ -64,3 +64,4 @@ FOR ALL USING (
 GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
 GRANT USAGE ON SCHEMA public TO authenticated;
 
+

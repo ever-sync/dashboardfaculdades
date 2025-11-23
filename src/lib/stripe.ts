@@ -33,3 +33,4 @@ export const STRIPE_PLANS = {
 // Tipos de planos
 export type PlanType = 'basic' | 'pro'
 
+

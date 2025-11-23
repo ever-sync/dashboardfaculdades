@@ -56,3 +56,4 @@ Após configurar, teste o fluxo completo:
 3. Verifique se o webhook foi processado no Dashboard do Stripe
 4. Confirme que o usuário foi criado/atualizado no Supabase
 
+
