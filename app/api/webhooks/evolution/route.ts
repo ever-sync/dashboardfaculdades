@@ -72,9 +72,9 @@ async function handleConnectionUpdate(data: any, instance: string) {
     if (status === 'open' || status === 'connected') systemStatus = 'conectado'
     else if (status === 'connecting') systemStatus = 'conectando'
 
-    const { error } = await supabase
-        .from('faculdades')
-        .update({ evolution_status: systemStatus })
+    const { error } = await (supabase
+        .from('faculdades') as any)
+        .update({ evolution_status: systemStatus } as any)
         .eq('evolution_instance', instance)
 
     if (error) {
@@ -215,17 +215,18 @@ async function handleMessageUpsert(data: any, instance: string) {
     }
 
     console.log('💾 Inserindo mensagem no banco...')
-    const { error: msgError } = await supabase
-        .from('mensagens')
-        .insert({
-            conversa_id: conversa.id,
-            conteudo: messageContent,
-            remetente: fromMe ? 'agente' : 'usuario',
-            tipo_mensagem: messageType,
-            timestamp: new Date(data.messageTimestamp * 1000).toISOString(),
-            lida: fromMe ? true : false,
-            message_id: data.key.id
-        })
+    const mensagemData = {
+        conversa_id: conversa.id,
+        conteudo: messageContent,
+        remetente: fromMe ? 'agente' : 'usuario',
+        tipo_mensagem: messageType,
+        timestamp: new Date(data.messageTimestamp * 1000).toISOString(),
+        lida: fromMe ? true : false,
+        message_id: data.key.id
+    }
+    const { error: msgError } = await (supabase
+        .from('mensagens') as any)
+        .insert(mensagemData as any)
 
     if (msgError) {
         console.error('❌ Erro ao inserir mensagem:', msgError)
@@ -238,9 +239,9 @@ async function handleMessageUpdate(data: any, instance: string) {
     if (!data.key?.id || !data.status) return
 
     if (data.status === 'READ') {
-        await supabase
-            .from('mensagens')
-            .update({ lida: true })
+        await (supabase
+            .from('mensagens') as any)
+            .update({ lida: true } as any)
             .eq('message_id', data.key.id)
     }
 }

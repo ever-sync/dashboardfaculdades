@@ -57,9 +57,9 @@ export async function POST(request: NextRequest) {
     // Se mensagens específicas foram fornecidas, marcar apenas elas
     if (marcar_mensagens_especificas && marcar_mensagens_especificas.length > 0) {
       // Marcar mensagens específicas como lidas
-      const { error: updateMensagensError } = await supabase
-        .from('mensagens')
-        .update({ lida: true })
+      const { error: updateMensagensError } = await (supabase
+        .from('mensagens') as any)
+        .update({ lida: true } as any)
         .in('id', marcar_mensagens_especificas)
         .eq('conversa_id', conversa_id)
 
@@ -81,12 +81,13 @@ export async function POST(request: NextRequest) {
       const nao_lidas = countError ? conversa.nao_lidas || 0 : (count || 0)
 
       // Atualizar contador na conversa
-      const { error: updateConversaError } = await supabase
-        .from('conversas_whatsapp')
-        .update({
-          nao_lidas: nao_lidas,
-          updated_at: new Date().toISOString(),
-        })
+      const updateData = {
+        nao_lidas: nao_lidas,
+        updated_at: new Date().toISOString(),
+      }
+      const { error: updateConversaError } = await (supabase
+        .from('conversas_whatsapp') as any)
+        .update(updateData as any)
         .eq('id', conversa_id)
 
       if (updateConversaError) {
@@ -101,9 +102,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Caso contrário, marcar TODAS as mensagens da conversa como lidas
-    const { error: updateAllMensagensError } = await supabase
-      .from('mensagens')
-      .update({ lida: true })
+    const { error: updateAllMensagensError } = await (supabase
+      .from('mensagens') as any)
+      .update({ lida: true } as any)
       .eq('conversa_id', conversa_id)
       .eq('lida', false)
 
@@ -116,12 +117,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Atualizar contador na conversa para 0
-    const { error: updateConversaError } = await supabase
-      .from('conversas_whatsapp')
-      .update({
-        nao_lidas: 0,
-        updated_at: new Date().toISOString(),
-      })
+    const updateData = {
+      nao_lidas: 0,
+      updated_at: new Date().toISOString(),
+    }
+    const { error: updateConversaError } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData as any)
       .eq('id', conversa_id)
 
     if (updateConversaError) {

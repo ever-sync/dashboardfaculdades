@@ -298,15 +298,16 @@ export async function POST(request: NextRequest) {
 
     if (!sendResult.success) {
       // Em caso de erro, ainda salvar a mensagem no banco como pendente
-      await supabase
-        .from('mensagens')
-        .insert({
-          conversa_id,
-          conteudo,
-          remetente: remetente as any,
-          tipo_mensagem: tipo_mensagem as any,
-          lida: false,
-        })
+      const mensagemData = {
+        conversa_id,
+        conteudo,
+        remetente: remetente as any,
+        tipo_mensagem: tipo_mensagem as any,
+        lida: false,
+      }
+      await (supabase
+        .from('mensagens') as any)
+        .insert(mensagemData as any)
 
       return NextResponse.json(
         { error: sendResult.error || 'Erro ao enviar mensagem via WhatsApp' },
@@ -316,30 +317,32 @@ export async function POST(request: NextRequest) {
 
     // Salvar mensagem no banco após envio bem-sucedido
     // Usar upsert para evitar conflito com webhook SEND_MESSAGE que pode ter chegado primeiro
-    await supabase
-      .from('mensagens')
-      .upsert({
-        conversa_id,
-        conteudo,
-        remetente: 'agente',
-        tipo_mensagem: tipo_mensagem as any,
-        lida: true,
-        timestamp: new Date().toISOString(),
-        message_id: sendResult.message_id
-      }, {
+    const upsertData = {
+      conversa_id,
+      conteudo,
+      remetente: 'agente',
+      tipo_mensagem: tipo_mensagem as any,
+      lida: true,
+      timestamp: new Date().toISOString(),
+      message_id: sendResult.message_id
+    }
+    await (supabase
+      .from('mensagens') as any)
+      .upsert(upsertData as any, {
         onConflict: 'message_id',
         ignoreDuplicates: true
       })
 
     // Atualizar última mensagem na conversa e zerar contador de não lidas
-    await supabase
-      .from('conversas_whatsapp')
-      .update({
-        ultima_mensagem: conteudo,
-        data_ultima_mensagem: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        nao_lidas: 0,
-      })
+    const updateData = {
+      ultima_mensagem: conteudo,
+      data_ultima_mensagem: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      nao_lidas: 0,
+    }
+    await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData as any)
       .eq('id', conversa_id)
 
     // Sincronizar com tabelas do n8n (opcional - apenas se as tabelas existirem)
@@ -349,13 +352,14 @@ export async function POST(request: NextRequest) {
 
       // Atualizar ou criar registro na tabela chats (formato n8n)
       // Esta tabela mantém o registro de conversas ativas
-      const { error: chatError } = await supabase
-        .from('chats')
-        .upsert({
-          phone: phoneWithSuffix, // Formato: 5512981092776@s.whatsapp.net
-          updated_at: timestamp,
-          created_at: timestamp, // Garantir que created_at seja definido na criação
-        }, {
+      const upsertData = {
+        phone: phoneWithSuffix, // Formato: 5512981092776@s.whatsapp.net
+        updated_at: timestamp,
+        created_at: timestamp, // Garantir que created_at seja definido na criação
+      }
+      const { error: chatError } = await (supabase
+        .from('chats') as any)
+        .upsert(upsertData as any, {
           onConflict: 'phone',
         })
 
@@ -370,15 +374,16 @@ export async function POST(request: NextRequest) {
 
       // Salvar mensagem na tabela chat_messages (formato n8n)
       // Esta tabela mantém o histórico completo de mensagens
-      const { error: chatMessageError } = await supabase
-        .from('chat_messages')
-        .insert({
-          phone: phoneWithSuffix,
-          nomewpp: nomeCliente,
-          user_message: null, // Mensagem do cliente (não aplicável aqui, é mensagem do app)
-          bot_message: conteudo.trim(), // Mensagem do atendente/bot enviada pelo app
-          created_at: timestamp,
-        })
+      const chatMessageData = {
+        phone: phoneWithSuffix,
+        nomewpp: nomeCliente,
+        user_message: null, // Mensagem do cliente (não aplicável aqui, é mensagem do app)
+        bot_message: conteudo.trim(), // Mensagem do atendente/bot enviada pelo app
+        created_at: timestamp,
+      }
+      const { error: chatMessageError } = await (supabase
+        .from('chat_messages') as any)
+        .insert(chatMessageData as any)
 
       if (chatMessageError) {
         // Verificar se é erro de tabela não existir (código 42P01) ou outro erro

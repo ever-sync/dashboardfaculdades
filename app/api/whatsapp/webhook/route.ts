@@ -93,20 +93,21 @@ export async function POST(request: NextRequest) {
 
     if (conversaError || !conversa) {
       // Criar nova conversa
-      const { data: novaConversa, error: createError } = await supabase
-        .from('conversas_whatsapp')
-        .insert({
-          faculdade_id: faculdadeId,
-          telefone: messageData.phoneNumber,
-          nome: messageData.phoneNumber, // Será atualizado quando obter nome do prospect
-          status: 'ativo',
-          status_conversa: 'ativa',
-          ultima_mensagem: messageData.content,
-          data_ultima_mensagem: messageData.timestamp,
-          nao_lidas: 1,
-          departamento: 'WhatsApp',
-          setor: 'Atendimento',
-        } as any)
+      const insertData = {
+        faculdade_id: faculdadeId,
+        telefone: messageData.phoneNumber,
+        nome: messageData.phoneNumber, // Será atualizado quando obter nome do prospect
+        status: 'ativo',
+        status_conversa: 'ativa',
+        ultima_mensagem: messageData.content,
+        data_ultima_mensagem: messageData.timestamp,
+        nao_lidas: 1,
+        departamento: 'WhatsApp',
+        setor: 'Atendimento',
+      }
+      const { data: novaConversa, error: createError } = await (supabase
+        .from('conversas_whatsapp') as any)
+        .insert(insertData as any)
         .select()
         .single()
 
@@ -120,16 +121,17 @@ export async function POST(request: NextRequest) {
       conversa = novaConversa
     } else {
       // Atualizar conversa existente
-      await supabase
-        .from('conversas_whatsapp')
-        .update({
-          ultima_mensagem: messageData.content,
-          data_ultima_mensagem: messageData.timestamp,
-          nao_lidas: (conversa as any).nao_lidas ? (conversa as any).nao_lidas + 1 : 1,
-          status: 'ativo',
-          status_conversa: 'ativa',
-          updated_at: new Date().toISOString(),
-        } as any)
+      const updateData = {
+        ultima_mensagem: messageData.content,
+        data_ultima_mensagem: messageData.timestamp,
+        nao_lidas: (conversa as any).nao_lidas ? (conversa as any).nao_lidas + 1 : 1,
+        status: 'ativo',
+        status_conversa: 'ativa',
+        updated_at: new Date().toISOString(),
+      }
+      await (supabase
+        .from('conversas_whatsapp') as any)
+        .update(updateData as any)
         .eq('id', conversa.id)
     }
 
@@ -141,16 +143,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Inserir mensagem no banco
-    const { error: messageError } = await supabase
-      .from('mensagens')
-      .insert({
-        conversa_id: conversa.id,
-        conteudo: messageData.content,
-        remetente: 'cliente', // Mensagem recebida do cliente
-        tipo_mensagem: messageData.type,
-        timestamp: messageData.timestamp,
-        lida: false,
-      })
+    const mensagemData = {
+      conversa_id: conversa.id,
+      conteudo: messageData.content,
+      remetente: 'cliente', // Mensagem recebida do cliente
+      tipo_mensagem: messageData.type || 'texto',
+      timestamp: messageData.timestamp,
+      lida: false,
+    }
+    const { error: messageError } = await (supabase
+      .from('mensagens') as any)
+      .insert(mensagemData as any)
 
     if (messageError) {
       console.error('Erro ao inserir mensagem:', messageError)

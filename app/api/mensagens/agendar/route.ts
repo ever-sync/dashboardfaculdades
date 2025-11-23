@@ -69,21 +69,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Inserir mensagem agendada
-    const { data, error } = await supabase
-      .from('mensagens_agendadas')
-      .insert({
-        faculdade_id,
-        conversa_id: conversa_id || null,
-        telefone,
-        conteudo,
-        tipo_mensagem,
-        midia_url: midia_url || null,
-        data_agendamento: dataAgendamento.toISOString(),
-        status: 'pendente',
-        remetente,
-        atendente_id: atendente_id || null,
-        tentativas: 0,
-      })
+    const insertData = {
+      faculdade_id,
+      conversa_id: conversa_id || null,
+      telefone,
+      conteudo,
+      tipo_mensagem,
+      midia_url: midia_url || null,
+      data_agendamento: dataAgendamento.toISOString(),
+      status: 'pendente',
+      remetente,
+      atendente_id: atendente_id || null,
+      tentativas: 0,
+    }
+    const { data, error } = await (supabase
+      .from('mensagens_agendadas') as any)
+      .insert(insertData as any)
       .select()
       .single()
 

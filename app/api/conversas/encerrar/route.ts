@@ -42,12 +42,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Atualizar status da conversa para 'encerrada'
-    const { data, error } = await supabase
-      .from('conversas_whatsapp')
-      .update({
-        status_conversa: 'encerrada',
-        updated_at: new Date().toISOString(),
-      })
+    const updateData = {
+      status_conversa: 'encerrada',
+      updated_at: new Date().toISOString(),
+    }
+    const { data, error } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData as any)
       .eq('id', conversa_id)
       .select()
       .single()

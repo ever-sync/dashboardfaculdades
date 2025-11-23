@@ -71,13 +71,14 @@ export async function POST(request: NextRequest) {
 
         if (sendResponse.ok && sendData.success) {
           // Atualizar status para "enviada"
-          await supabase
-            .from('mensagens_agendadas')
-            .update({
-              status: 'enviada',
-              enviada_em: agora.toISOString(),
-              tentativas: mensagem.tentativas + 1,
-            })
+          const updateData = {
+            status: 'enviada',
+            enviada_em: agora.toISOString(),
+            tentativas: mensagem.tentativas + 1,
+          }
+          await (supabase
+            .from('mensagens_agendadas') as any)
+            .update(updateData as any)
             .eq('id', mensagem.id)
 
           resultados.enviadas++
@@ -91,13 +92,14 @@ export async function POST(request: NextRequest) {
           const novasTentativas = mensagem.tentativas + 1
           const novoStatus = novasTentativas >= limiteTentativas ? 'falha' : 'pendente'
 
-          await supabase
-            .from('mensagens_agendadas')
-            .update({
-              status: novoStatus,
-              tentativas: novasTentativas,
-              erro_mensagem: sendData.error || 'Erro ao enviar mensagem',
-            })
+          const updateData = {
+            status: novoStatus,
+            tentativas: novasTentativas,
+            erro_mensagem: sendData.error || 'Erro ao enviar mensagem',
+          }
+          await (supabase
+            .from('mensagens_agendadas') as any)
+            .update(updateData as any)
             .eq('id', mensagem.id)
 
           resultados.falhas++
@@ -114,13 +116,14 @@ export async function POST(request: NextRequest) {
         const novasTentativas = mensagem.tentativas + 1
         const novoStatus = novasTentativas >= limiteTentativas ? 'falha' : 'pendente'
 
-        await supabase
-          .from('mensagens_agendadas')
-          .update({
-            status: novoStatus,
-            tentativas: novasTentativas,
-            erro_mensagem: error.message || 'Erro desconhecido',
-          })
+        const updateData = {
+          status: novoStatus,
+          tentativas: novasTentativas,
+          erro_mensagem: error.message || 'Erro desconhecido',
+        }
+        await (supabase
+          .from('mensagens_agendadas') as any)
+          .update(updateData as any)
           .eq('id', mensagem.id)
 
         resultados.falhas++

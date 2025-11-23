@@ -41,12 +41,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Atualizar tags na conversa
-    const { error: updateError } = await supabase
-      .from('conversas_whatsapp')
-      .update({
-        tags: tags.length > 0 ? tags : null, // null se array vazio
-        updated_at: new Date().toISOString(),
-      })
+    const updateData = {
+      tags: tags.length > 0 ? tags : null, // null se array vazio
+      updated_at: new Date().toISOString(),
+    }
+    const { error: updateError } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData as any)
       .eq('id', conversa_id)
 
     if (updateError) {

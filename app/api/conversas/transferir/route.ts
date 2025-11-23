@@ -128,9 +128,9 @@ export async function POST(request: NextRequest) {
       atualizacaoConversa.atendente = null
     }
 
-    const { error: updateError } = await supabase
-      .from('conversas_whatsapp')
-      .update(atualizacaoConversa)
+    const { error: updateError } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(atualizacaoConversa as any)
       .eq('id', conversa_id)
 
     if (updateError) {
@@ -142,18 +142,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Registrar transferência
-    const { error: transferError } = await supabase
-      .from('transferencias_setores')
-      .insert({
-        faculdade_id,
-        conversa_id,
-        setor_origem,
-        setor_destino: setorDestinoFinal,
-        motivo: motivo || undefined,
-        atendente_origem: conversa.atendente || undefined,
-        atendente_destino: atendenteDestinoNome || undefined,
-        timestamp: new Date().toISOString(),
-      })
+    const transferData = {
+      faculdade_id,
+      conversa_id,
+      setor_origem,
+      setor_destino: setorDestinoFinal,
+      motivo: motivo || undefined,
+      atendente_origem: conversa.atendente || undefined,
+      atendente_destino: atendenteDestinoNome || undefined,
+      timestamp: new Date().toISOString(),
+    }
+    const { error: transferError } = await (supabase
+      .from('transferencias_setores') as any)
+      .insert(transferData as any)
 
     if (transferError) {
       console.error('Erro ao registrar transferência:', transferError)
@@ -164,16 +165,17 @@ export async function POST(request: NextRequest) {
     const mensagemTransferencia = `🔄 Conversa transferida para ${setorDestinoFinal}${atendenteDestinoNome ? ` (Atendente: ${atendenteDestinoNome})` : ''}. ${motivo ? `Motivo: ${motivo}` : ''}`
 
     try {
-      await supabase
-        .from('mensagens')
-        .insert({
-          conversa_id,
-          conteudo: mensagemTransferencia,
-          remetente: 'agente',
-          tipo_mensagem: 'texto',
-          timestamp: new Date().toISOString(),
-          lida: false,
-        })
+      const mensagemData = {
+        conversa_id,
+        conteudo: mensagemTransferencia,
+        remetente: 'agente',
+        tipo_mensagem: 'texto',
+        timestamp: new Date().toISOString(),
+        lida: false,
+      }
+      await (supabase
+        .from('mensagens') as any)
+        .insert(mensagemData as any)
     } catch (messageError) {
       console.error('Erro ao enviar mensagem de transferência:', messageError)
       // Não falhar a transferência se apenas a mensagem falhar

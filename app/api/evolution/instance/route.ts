@@ -190,13 +190,14 @@ export async function GET(request: NextRequest) {
             console.log('QR Code extraído com sucesso, tamanho:', qrCode!.length)
 
             // Atualizar no banco
-            await supabase
-              .from('faculdades')
-              .update({
-                evolution_qr_code: qrCode,
-                evolution_qr_expires_at: qrExpiresAt,
-                evolution_status: 'conectando',
-              })
+            const updateData = {
+              evolution_qr_code: qrCode,
+              evolution_qr_expires_at: qrExpiresAt,
+              evolution_status: 'conectando',
+            }
+            await (supabase
+              .from('faculdades') as any)
+              .update(updateData as any)
               .eq('id', faculdadeId)
           } else {
             console.warn('Campo code não encontrado na resposta:', qrData)
@@ -262,12 +263,13 @@ export async function GET(request: NextRequest) {
           console.log('Atualizando banco com status:', status)
 
           // Atualizar status no banco
-          const updateResult = await supabase
-            .from('faculdades')
-            .update({
-              evolution_status: status,
-              evolution_connected_at: status === 'conectado' ? connectedAt : faculdade.evolution_connected_at,
-            })
+          const updateData = {
+            evolution_status: status,
+            evolution_connected_at: status === 'conectado' ? connectedAt : faculdade.evolution_connected_at,
+          }
+          const updateResult = await (supabase
+            .from('faculdades') as any)
+            .update(updateData as any)
             .eq('id', faculdadeId)
 
           console.log('Resultado da atualização:', updateResult)
@@ -367,15 +369,17 @@ export async function POST(request: NextRequest) {
       }
 
       // Limpar dados da instância no banco
-      const { error: updateError } = await supabase
-        .from('faculdades')
-        .update({
-          evolution_instance: null,
-          evolution_status: 'nao_configurado',
-          evolution_qr_code: null,
-          evolution_qr_expires_at: null,
-          evolution_connected_at: null,
-          evolution_last_error: null,
+      const updateData = {
+        evolution_instance: null,
+        evolution_status: 'nao_configurado',
+        evolution_qr_code: null,
+        evolution_qr_expires_at: null,
+        evolution_connected_at: null,
+        evolution_last_error: null,
+      }
+      const { error: updateError } = await (supabase
+        .from('faculdades') as any)
+        .update(updateData as any)
         })
         .eq('id', faculdadeId)
 
@@ -443,12 +447,13 @@ export async function POST(request: NextRequest) {
                 }
 
                 // Atualizar status no banco
-                await supabase
-                  .from('faculdades')
-                  .update({
-                    evolution_status: status,
-                    evolution_connected_at: status === 'conectado' ? connectedAt : faculdade.evolution_connected_at,
-                  })
+                const updateData = {
+                  evolution_status: status,
+                  evolution_connected_at: status === 'conectado' ? connectedAt : faculdade.evolution_connected_at,
+                }
+                await (supabase
+                  .from('faculdades') as any)
+                  .update(updateData as any)
                   .eq('id', faculdadeId)
               }
             }
@@ -669,15 +674,16 @@ export async function POST(request: NextRequest) {
 
           if (conversaExistente) {
             // Atualizar conversa existente
-            const { error: updateError } = await supabase
-              .from('conversas_whatsapp')
-              .update({
-                nome: nome,
-                ultima_mensagem: ultimaMensagem || null,
-                data_ultima_mensagem: dataUltimaMensagem,
-                nao_lidas: unreadCount,
-                updated_at: new Date().toISOString(),
-              })
+            const updateData = {
+              nome: nome,
+              ultima_mensagem: ultimaMensagem || null,
+              data_ultima_mensagem: dataUltimaMensagem,
+              nao_lidas: unreadCount,
+              updated_at: new Date().toISOString(),
+            }
+            const { error: updateError } = await (supabase
+              .from('conversas_whatsapp') as any)
+              .update(updateData as any)
               .eq('id', conversaExistente.id)
 
             if (updateError) {
@@ -965,9 +971,9 @@ export async function POST(request: NextRequest) {
         evolution_last_error: null,
       }
 
-      const { error: updateError } = await supabase
-        .from('faculdades')
-        .update(updateData)
+      const { error: updateError } = await (supabase
+        .from('faculdades') as any)
+        .update(updateData as any)
         .eq('id', faculdade_id)
 
       if (updateError) {
@@ -1074,15 +1080,17 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Limpar dados da instância na faculdade
-    const { error: updateError } = await supabase
-      .from('faculdades')
-      .update({
-        evolution_instance: null,
-        evolution_status: 'desconectado',
-        evolution_qr_code: null,
-        evolution_qr_expires_at: null,
-        evolution_connected_at: null,
-        evolution_last_error: null,
+    const updateData = {
+      evolution_instance: null,
+      evolution_status: 'desconectado',
+      evolution_qr_code: null,
+      evolution_qr_expires_at: null,
+      evolution_connected_at: null,
+      evolution_last_error: null,
+    }
+    const { error: updateError } = await (supabase
+      .from('faculdades') as any)
+      .update(updateData as any)
       })
       .eq('id', faculdadeId)
 
