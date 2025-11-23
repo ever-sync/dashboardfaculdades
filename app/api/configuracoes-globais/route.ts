@@ -8,6 +8,15 @@ export const dynamic = 'force-dynamic'
 
 const getSupabaseAdmin = () => supabaseAdmin
 
+// Tipo para configuração global
+interface ConfiguracaoGlobal {
+  chave: string
+  valor: string | null
+  descricao: string | null
+  tipo: 'texto' | 'json' | 'boolean' | 'number'
+  sensivel: boolean
+}
+
 // Schema de validação
 const configSchema = z.object({
   chave: z.string().min(1, 'Chave é obrigatória'),
@@ -47,18 +56,20 @@ export async function GET(request: NextRequest) {
         )
       }
 
+      const config = data as ConfiguracaoGlobal
+
       // Se for sensível, não retornar o valor
-      if (data.sensivel) {
+      if (config.sensivel) {
         return NextResponse.json({
-          chave: data.chave,
-          descricao: data.descricao,
-          tipo: data.tipo,
+          chave: config.chave,
+          descricao: config.descricao,
+          tipo: config.tipo,
           sensivel: true,
           valor: '***' // Não expor valor sensível
         })
       }
 
-      return NextResponse.json(data)
+      return NextResponse.json(config)
     } else {
       // Buscar todas as configurações (sem valores sensíveis)
       const { data, error } = await supabase
@@ -69,7 +80,7 @@ export async function GET(request: NextRequest) {
       if (error) throw error
 
       // Ocultar valores sensíveis
-      const configs = (data || []).map(config => ({
+      const configs = (data || []).map((config: ConfiguracaoGlobal) => ({
         ...config,
         valor: config.sensivel ? '***' : config.valor
       }))
