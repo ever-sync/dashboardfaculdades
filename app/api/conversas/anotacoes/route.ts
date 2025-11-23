@@ -9,6 +9,21 @@ export const dynamic = 'force-dynamic'
 
 const supabase = supabaseAdmin
 
+// Interface para anotação
+interface Anotacao {
+  id: string
+  autor: string
+  autor_id?: string | null
+  texto: string
+  timestamp: string
+  editado_em?: string
+}
+
+// Interface para conversa com anotações
+interface ConversaComAnotacoes {
+  anotacoes?: Anotacao[] | null
+}
+
 // Schema de validação para POST (criar)
 const criarAnotacaoSchema = z.object({
   conversa_id: z.string().uuid('ID de conversa inválido'),
@@ -78,7 +93,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Converter JSONB para array
-    const anotacoes = Array.isArray(conversa.anotacoes) ? conversa.anotacoes : []
+    const conversaTyped = conversa as ConversaComAnotacoes
+    const anotacoes = Array.isArray(conversaTyped.anotacoes) ? conversaTyped.anotacoes : []
 
     return NextResponse.json({
       success: true,
@@ -133,7 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar nova anotação
-    const novaAnotacao = {
+    const novaAnotacao: Anotacao = {
       id: crypto.randomUUID(),
       autor,
       autor_id: autor_id || null,
@@ -142,7 +158,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Adicionar à lista de anotações
-    const anotacoesAtuais = Array.isArray(conversa.anotacoes) ? conversa.anotacoes : []
+    const conversaTyped = conversa as ConversaComAnotacoes
+    const anotacoesAtuais = Array.isArray(conversaTyped.anotacoes) ? conversaTyped.anotacoes : []
     const novasAnotacoes = [...anotacoesAtuais, novaAnotacao]
 
     // Atualizar no banco
@@ -216,8 +233,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar anotação
-    const anotacoesAtuais = Array.isArray(conversa.anotacoes) ? conversa.anotacoes : []
-    const anotacaoIndex = anotacoesAtuais.findIndex((a: any) => a.id === anotacao_id)
+    const conversaTyped = conversa as ConversaComAnotacoes
+    const anotacoesAtuais = Array.isArray(conversaTyped.anotacoes) ? conversaTyped.anotacoes : []
+    const anotacaoIndex = anotacoesAtuais.findIndex((a: Anotacao) => a.id === anotacao_id)
 
     if (anotacaoIndex === -1) {
       return NextResponse.json(
@@ -306,8 +324,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Remover anotação
-    const anotacoesAtuais = Array.isArray(conversa.anotacoes) ? conversa.anotacoes : []
-    const novasAnotacoes = anotacoesAtuais.filter((a: any) => a.id !== anotacao_id)
+    const conversaTyped = conversa as ConversaComAnotacoes
+    const anotacoesAtuais = Array.isArray(conversaTyped.anotacoes) ? conversaTyped.anotacoes : []
+    const novasAnotacoes = anotacoesAtuais.filter((a: Anotacao) => a.id !== anotacao_id)
 
     // Atualizar no banco
     const { error: updateError } = await supabase
