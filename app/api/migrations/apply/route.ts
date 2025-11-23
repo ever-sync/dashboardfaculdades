@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,8 +33,8 @@ export async function POST(request: NextRequest) {
     const migrationPath = join(process.cwd(), 'supabase', 'migrations', migrationFile)
     const sql = readFileSync(migrationPath, 'utf-8')
 
-    // Criar cliente Supabase
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Usar cliente Supabase admin
+    const supabase = supabaseAdmin
 
     // O Supabase JS não permite executar SQL arbitrário diretamente
     // Vamos retornar o SQL para ser executado manualmente ou via CLI
