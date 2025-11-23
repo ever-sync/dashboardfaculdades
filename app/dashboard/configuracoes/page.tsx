@@ -25,13 +25,15 @@ import {
   Mail,
   Clock,
   Zap,
-  TrendingUp
+  TrendingUp,
+  LayoutGrid
 } from 'lucide-react'
 
 export default function ConfiguracoesPage() {
   const { faculdadeSelecionada } = useFaculdade()
   const [loading, setLoading] = useState(false)
   const [salvo, setSalvo] = useState(false)
+  const [activeTab, setActiveTab] = useState('geral')
 
   // Configurações de WhatsApp
   const [whatsappProvider, setWhatsappProvider] = useState<'evolution' | 'twilio' | 'baileys'>('evolution')
@@ -150,6 +152,16 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  const tabs = [
+    { id: 'geral', label: 'Geral', icon: Globe },
+    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+    { id: 'ia', label: 'IA & Automação', icon: Bot },
+    { id: 'distribuicao', label: 'Distribuição', icon: Users },
+    { id: 'notificacoes', label: 'Notificações', icon: Bell },
+    { id: 'metricas', label: 'Métricas', icon: BarChart3 },
+    { id: 'perfil', label: 'Perfil', icon: Shield },
+  ]
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse" />}>
@@ -160,182 +172,319 @@ export default function ConfiguracoesPage() {
       </Suspense>
 
       <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* COLUNA ESQUERDA */}
-          <div className="space-y-6">
-            {/* Seção: WhatsApp */}
-            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <MessageSquare className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Integração WhatsApp</h2>
-                    <p className="text-xs text-gray-500">Configure o provedor de WhatsApp</p>
-                  </div>
+
+        {/* Tabs Navigation */}
+        <div className="mb-8 overflow-x-auto">
+          <div className="flex space-x-2 min-w-max p-1 bg-white rounded-xl border border-gray-200 shadow-sm">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+
+          {/* TAB: GERAL */}
+          {activeTab === 'geral' && (
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                <div className="p-2 bg-teal-100 rounded-lg">
+                  <Globe className="w-5 h-5 text-teal-600" />
                 </div>
-                {statusConexao && (
-                  <Badge
-                    variant={statusConexao.status === 'conectado' ? 'success' : statusConexao.status === 'verificando' ? 'info' : 'danger'}
-                    className="flex items-center gap-2"
-                  >
-                    {statusConexao.status === 'verificando' ? (
-                      <>
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                        Verificando...
-                      </>
-                    ) : statusConexao.status === 'conectado' ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        Conectado
-                      </>
-                    ) : (
-                      <>
-                        <X className="w-3 h-3" />
-                        Desconectado
-                      </>
-                    )}
-                  </Badge>
-                )}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Configurações Gerais</h2>
+                  <p className="text-xs text-gray-500">Ajustes de localização e idioma</p>
+                </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4 max-w-2xl">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Provedor WhatsApp
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fuso Horário
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button
-                      onClick={() => setWhatsappProvider('evolution')}
-                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'evolution'
-                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
+                  <select
+                    value={fusoHorario}
+                    onChange={(e) => setFusoHorario(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
+                  >
+                    <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
+                    <option value="America/Manaus">Manaus (GMT-4)</option>
+                    <option value="America/Rio_Branco">Rio Branco (GMT-5)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Idioma
+                  </label>
+                  <select
+                    value={idioma}
+                    onChange={(e) => setIdioma(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
+                  >
+                    <option value="pt-BR">Português (Brasil)</option>
+                    <option value="pt-PT">Português (Portugal)</option>
+                    <option value="en-US">English (US)</option>
+                    <option value="es-ES">Español</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Formato de Data
+                    </label>
+                    <select
+                      value={formatoData}
+                      onChange={(e) => setFormatoData(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
                     >
-                      Evolution API
-                    </button>
-                    <button
-                      onClick={() => setWhatsappProvider('twilio')}
-                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'twilio'
-                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
+                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Formato de Hora
+                    </label>
+                    <select
+                      value={formatoHora}
+                      onChange={(e) => setFormatoHora(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
                     >
-                      Twilio
-                    </button>
-                    <button
-                      onClick={() => setWhatsappProvider('baileys')}
-                      className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'baileys'
-                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                    >
-                      Baileys
-                    </button>
+                      <option value="24h">24 horas</option>
+                      <option value="12h">12 horas (AM/PM)</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Evolution API */}
-                {whatsappProvider === 'evolution' && (
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <Input
-                      label="URL da API"
-                      placeholder="https://api.evolution.com"
-                      value={evolutionUrl}
-                      onChange={(e) => setEvolutionUrl(e.target.value)}
-                    />
-                    <Input
-                      label="API Key"
-                      type="password"
-                      placeholder="Sua chave da API"
-                      value={evolutionKey}
-                      onChange={(e) => setEvolutionKey(e.target.value)}
-                    />
-                    <Input
-                      label="Nome da Instância"
-                      placeholder="minha-instancia"
-                      value={evolutionInstance}
-                      onChange={(e) => setEvolutionInstance(e.target.value)}
-                    />
-                  </div>
-                )}
+                <Button
+                  onClick={() => handleSalvar('gerais')}
+                  disabled={loading}
+                  variant="primary"
+                  className="w-full"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvar Configurações
+                </Button>
+              </div>
+            </Card>
+          )}
 
-                {/* Twilio */}
-                {whatsappProvider === 'twilio' && (
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <Input
-                      label="Account SID"
-                      placeholder="ACxxxxxxxxxxxxx"
-                      value={twilioSid}
-                      onChange={(e) => setTwilioSid(e.target.value)}
-                    />
-                    <Input
-                      label="Auth Token"
-                      type="password"
-                      placeholder="Seu token de autenticação"
-                      value={twilioToken}
-                      onChange={(e) => setTwilioToken(e.target.value)}
-                    />
-                    <Input
-                      label="Número WhatsApp (From)"
-                      placeholder="whatsapp:+5511999999999"
-                      value={twilioFrom}
-                      onChange={(e) => setTwilioFrom(e.target.value)}
-                    />
+          {/* TAB: WHATSAPP */}
+          {activeTab === 'whatsapp' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <MessageSquare className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Integração WhatsApp</h2>
+                      <p className="text-xs text-gray-500">Configure o provedor de WhatsApp</p>
+                    </div>
                   </div>
-                )}
-
-                {/* Baileys */}
-                {whatsappProvider === 'baileys' && (
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <Input
-                      label="URL da API"
-                      placeholder="http://localhost:3001"
-                      value={baileysUrl}
-                      onChange={(e) => setBaileysUrl(e.target.value)}
-                    />
-                    <Input
-                      label="API Key"
-                      type="password"
-                      placeholder="Sua chave da API"
-                      value={baileysKey}
-                      onChange={(e) => setBaileysKey(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-                  <Button
-                    onClick={() => handleSalvar('whatsapp')}
-                    disabled={loading}
-                    variant="primary"
-                    className="flex-1"
-                  >
-                    <Save className="w-4 h-4" />
-                    Salvar Configurações
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={verificarStatusConexao}
-                    className="flex-1 sm:flex-none"
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span className="hidden sm:inline">Verificar</span>
-                    <span className="sm:hidden">Conexão</span>
-                  </Button>
-                  {salvo && (
-                    <Badge variant="success" className="flex items-center gap-2 px-3 py-2">
-                      <Check className="w-3 h-3" />
-                      Salvo!
+                  {statusConexao && (
+                    <Badge
+                      variant={statusConexao.status === 'conectado' ? 'success' : statusConexao.status === 'verificando' ? 'info' : 'danger'}
+                      className="flex items-center gap-2"
+                    >
+                      {statusConexao.status === 'verificando' ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                          Verificando...
+                        </>
+                      ) : statusConexao.status === 'conectado' ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Conectado
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-3 h-3" />
+                          Desconectado
+                        </>
+                      )}
                     </Badge>
                   )}
                 </div>
-              </div>
-            </Card>
 
-            {/* Seção: IA e Automação */}
-            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="space-y-5 max-w-3xl">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Provedor WhatsApp
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <button
+                        onClick={() => setWhatsappProvider('evolution')}
+                        className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'evolution'
+                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                      >
+                        Evolution API
+                      </button>
+                      <button
+                        onClick={() => setWhatsappProvider('twilio')}
+                        className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'twilio'
+                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                      >
+                        Twilio
+                      </button>
+                      <button
+                        onClick={() => setWhatsappProvider('baileys')}
+                        className={`p-4 border-2 rounded-lg text-sm font-medium transition-all ${whatsappProvider === 'baileys'
+                          ? 'border-gray-900 bg-gray-50 text-gray-900 shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                      >
+                        Baileys
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Evolution API */}
+                  {whatsappProvider === 'evolution' && (
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <Input
+                        label="URL da API"
+                        placeholder="https://api.evolution.com"
+                        value={evolutionUrl}
+                        onChange={(e) => setEvolutionUrl(e.target.value)}
+                      />
+                      <Input
+                        label="API Key"
+                        type="password"
+                        placeholder="Sua chave da API"
+                        value={evolutionKey}
+                        onChange={(e) => setEvolutionKey(e.target.value)}
+                      />
+                      <Input
+                        label="Nome da Instância"
+                        placeholder="minha-instancia"
+                        value={evolutionInstance}
+                        onChange={(e) => setEvolutionInstance(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Twilio */}
+                  {whatsappProvider === 'twilio' && (
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <Input
+                        label="Account SID"
+                        placeholder="ACxxxxxxxxxxxxx"
+                        value={twilioSid}
+                        onChange={(e) => setTwilioSid(e.target.value)}
+                      />
+                      <Input
+                        label="Auth Token"
+                        type="password"
+                        placeholder="Seu token de autenticação"
+                        value={twilioToken}
+                        onChange={(e) => setTwilioToken(e.target.value)}
+                      />
+                      <Input
+                        label="Número WhatsApp (From)"
+                        placeholder="whatsapp:+5511999999999"
+                        value={twilioFrom}
+                        onChange={(e) => setTwilioFrom(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Baileys */}
+                  {whatsappProvider === 'baileys' && (
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <Input
+                        label="URL da API"
+                        placeholder="http://localhost:3001"
+                        value={baileysUrl}
+                        onChange={(e) => setBaileysUrl(e.target.value)}
+                      />
+                      <Input
+                        label="API Key"
+                        type="password"
+                        placeholder="Sua chave da API"
+                        value={baileysKey}
+                        onChange={(e) => setBaileysKey(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                    <Button
+                      onClick={() => handleSalvar('whatsapp')}
+                      disabled={loading}
+                      variant="primary"
+                      className="flex-1"
+                    >
+                      <Save className="w-4 h-4" />
+                      Salvar Configurações
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={verificarStatusConexao}
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span className="hidden sm:inline">Verificar</span>
+                      <span className="sm:hidden">Conexão</span>
+                    </Button>
+                    {salvo && (
+                      <Badge variant="success" className="flex items-center gap-2 px-3 py-2">
+                        <Check className="w-3 h-3" />
+                        Salvo!
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-5 bg-blue-50 border border-blue-200 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 bg-blue-100 rounded-lg flex-shrink-0">
+                    <Info className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm">Sobre as Configurações de WhatsApp</h3>
+                    <p className="text-xs text-gray-600 mb-2 leading-relaxed">
+                      As credenciais de WhatsApp são configuradas via variáveis de ambiente no servidor.
+                      Para alterar as configurações de produção, edite o arquivo <code className="bg-white px-1.5 py-0.5 rounded text-xs font-mono">.env</code> ou
+                      configure as variáveis no painel da Vercel.
+                    </p>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      <strong className="text-gray-700">Variáveis necessárias:</strong> EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_API_INSTANCE
+                      (para Evolution API) ou TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSPP_FROM (para Twilio).
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* TAB: IA & AUTOMAÇÃO */}
+          {activeTab === 'ia' && (
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <Bot className="w-5 h-5 text-purple-600" />
@@ -346,7 +495,7 @@ export default function ConfiguracoesPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-2xl">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex-1">
                     <label className="block font-medium text-gray-900 mb-1">IA Ativa por Padrão</label>
@@ -406,9 +555,11 @@ export default function ConfiguracoesPage() {
                 </Button>
               </div>
             </Card>
+          )}
 
-            {/* Seção: Distribuição de Conversas */}
-            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+          {/* TAB: DISTRIBUIÇÃO */}
+          {activeTab === 'distribuicao' && (
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Users className="w-5 h-5 text-blue-600" />
@@ -419,7 +570,7 @@ export default function ConfiguracoesPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-2xl">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex-1">
                     <label className="block font-medium text-gray-900 mb-1">Distribuição Automática</label>
@@ -478,83 +629,11 @@ export default function ConfiguracoesPage() {
                 </Button>
               </div>
             </Card>
+          )}
 
-            {/* Seção: Métricas e Metas */}
-            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-orange-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Métricas e Metas</h2>
-                  <p className="text-xs text-gray-500">Defina metas de desempenho</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meta: Tempo Médio de Resposta (segundos)
-                  </label>
-                  <Input
-                    type="number"
-                    min="30"
-                    max="600"
-                    value={metaTempoResposta.toString()}
-                    onChange={(e) => setMetaTempoResposta(Number(e.target.value))}
-                    placeholder="120"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Tempo ideal para primeira resposta</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meta: Taxa de Conversão (%)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={metaTaxaConversao.toString()}
-                    onChange={(e) => setMetaTaxaConversao(Number(e.target.value))}
-                    placeholder="15"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Porcentagem de prospects que viram matrículas</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meta: Satisfação Mínima (1-5)
-                  </label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="5"
-                    step="0.1"
-                    value={metaSatisfacao.toString()}
-                    onChange={(e) => setMetaSatisfacao(Number(e.target.value))}
-                    placeholder="4.0"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Nota mínima esperada nas avaliações</p>
-                </div>
-
-                <Button
-                  onClick={() => handleSalvar('metricas')}
-                  disabled={loading}
-                  variant="primary"
-                  className="w-full"
-                >
-                  <Save className="w-4 h-4" />
-                  Salvar Configurações
-                </Button>
-              </div>
-            </Card>
-          </div>
-
-          {/* COLUNA DIREITA */}
-          <div className="space-y-6">
-            {/* Seção: Notificações */}
-            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+          {/* TAB: NOTIFICAÇÕES */}
+          {activeTab === 'notificacoes' && (
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                 <div className="p-2 bg-yellow-100 rounded-lg">
                   <Bell className="w-5 h-5 text-yellow-600" />
@@ -565,7 +644,7 @@ export default function ConfiguracoesPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-2xl">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex-1">
                     <label className="block font-medium text-gray-900 mb-1">Notificações Ativas</label>
@@ -640,84 +719,70 @@ export default function ConfiguracoesPage() {
                 </Button>
               </div>
             </Card>
+          )}
 
-            {/* Seção: Configurações Gerais */}
-            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+          {/* TAB: MÉTRICAS */}
+          {activeTab === 'metricas' && (
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                <div className="p-2 bg-teal-100 rounded-lg">
-                  <Globe className="w-5 h-5 text-teal-600" />
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <BarChart3 className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Configurações Gerais</h2>
-                  <p className="text-xs text-gray-500">Ajustes de localização e idioma</p>
+                  <h2 className="text-lg font-semibold text-gray-900">Métricas e Metas</h2>
+                  <p className="text-xs text-gray-500">Defina metas de desempenho</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-2xl">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fuso Horário
+                    Meta: Tempo Médio de Resposta (segundos)
                   </label>
-                  <select
-                    value={fusoHorario}
-                    onChange={(e) => setFusoHorario(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
-                  >
-                    <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
-                    <option value="America/Manaus">Manaus (GMT-4)</option>
-                    <option value="America/Rio_Branco">Rio Branco (GMT-5)</option>
-                  </select>
+                  <Input
+                    type="number"
+                    min="30"
+                    max="600"
+                    value={metaTempoResposta.toString()}
+                    onChange={(e) => setMetaTempoResposta(Number(e.target.value))}
+                    placeholder="120"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Tempo ideal para primeira resposta</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Idioma
+                    Meta: Taxa de Conversão (%)
                   </label>
-                  <select
-                    value={idioma}
-                    onChange={(e) => setIdioma(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
-                  >
-                    <option value="pt-BR">Português (Brasil)</option>
-                    <option value="pt-PT">Português (Portugal)</option>
-                    <option value="en-US">English (US)</option>
-                    <option value="es-ES">Español</option>
-                  </select>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={metaTaxaConversao.toString()}
+                    onChange={(e) => setMetaTaxaConversao(Number(e.target.value))}
+                    placeholder="15"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Porcentagem de prospects que viram matrículas</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Formato de Data
-                    </label>
-                    <select
-                      value={formatoData}
-                      onChange={(e) => setFormatoData(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
-                    >
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Formato de Hora
-                    </label>
-                    <select
-                      value={formatoHora}
-                      onChange={(e) => setFormatoHora(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-transparent !bg-white !text-black transition-colors"
-                    >
-                      <option value="24h">24 horas</option>
-                      <option value="12h">12 horas (AM/PM)</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Meta: Satisfação Mínima (1-5)
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="5"
+                    step="0.1"
+                    value={metaSatisfacao.toString()}
+                    onChange={(e) => setMetaSatisfacao(Number(e.target.value))}
+                    placeholder="4.0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Nota mínima esperada nas avaliações</p>
                 </div>
 
                 <Button
-                  onClick={() => handleSalvar('gerais')}
+                  onClick={() => handleSalvar('metricas')}
                   disabled={loading}
                   variant="primary"
                   className="w-full"
@@ -727,9 +792,11 @@ export default function ConfiguracoesPage() {
                 </Button>
               </div>
             </Card>
+          )}
 
-            {/* Seção: Perfil do Usuário */}
-            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow">
+          {/* TAB: PERFIL */}
+          {activeTab === 'perfil' && (
+            <Card className="p-6 shadow-sm hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                 <div className="p-2 bg-indigo-100 rounded-lg">
                   <Shield className="w-5 h-5 text-indigo-600" />
@@ -740,7 +807,7 @@ export default function ConfiguracoesPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-2xl">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nome Completo
@@ -824,28 +891,8 @@ export default function ConfiguracoesPage() {
                 )}
               </div>
             </Card>
+          )}
 
-            {/* Informação sobre variáveis de ambiente */}
-            <Card className="p-5 bg-blue-50 border border-blue-200 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="p-1.5 bg-blue-100 rounded-lg flex-shrink-0">
-                  <Info className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-2 text-sm">Sobre as Configurações de WhatsApp</h3>
-                  <p className="text-xs text-gray-600 mb-2 leading-relaxed">
-                    As credenciais de WhatsApp são configuradas via variáveis de ambiente no servidor.
-                    Para alterar as configurações de produção, edite o arquivo <code className="bg-white px-1.5 py-0.5 rounded text-xs font-mono">.env</code> ou
-                    configure as variáveis no painel da Vercel.
-                  </p>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    <strong className="text-gray-700">Variáveis necessárias:</strong> EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_API_INSTANCE
-                    (para Evolution API) ou TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSPP_FROM (para Twilio).
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
         </div>
       </div>
     </div>

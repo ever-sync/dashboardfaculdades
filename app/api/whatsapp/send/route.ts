@@ -318,9 +318,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Salvar mensagem no banco após envio bem-sucedido
+    // Usar upsert para evitar conflito com webhook SEND_MESSAGE que pode ter chegado primeiro
     await supabase
       .from('mensagens')
-      .insert({
+      .upsert({
         conversa_id,
         conteudo,
         remetente: 'agente',
@@ -328,6 +329,9 @@ export async function POST(request: NextRequest) {
         lida: true,
         timestamp: new Date().toISOString(),
         message_id: sendResult.message_id
+      }, {
+        onConflict: 'message_id',
+        ignoreDuplicates: true
       })
 
     // Atualizar última mensagem na conversa e zerar contador de não lidas

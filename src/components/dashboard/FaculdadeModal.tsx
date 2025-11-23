@@ -398,14 +398,14 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">
             {faculdade ? 'Editar Faculdade' : 'Nova Faculdade'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-gray-400 hover:text-gray-600"
           >
             <X className="w-6 h-6" />
           </button>
@@ -462,13 +462,13 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Plano
               </label>
               <select
                 value={formData.plano}
                 onChange={(e) => setFormData({ ...formData, plano: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="basico">Básico</option>
                 <option value="pro">Pro</option>
@@ -477,13 +477,13 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status
               </label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-black rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>
@@ -518,10 +518,10 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
 
           {/* Seção de Instância Evolution */}
           {faculdade?.id && (
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            <div className="pt-4 border-t border-gray-200 space-y-4">
               <div className="flex items-center gap-2 mb-4">
-                <Smartphone className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <Smartphone className="w-5 h-5 text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-900">
                   Instância Evolution API
                 </h3>
               </div>
@@ -529,7 +529,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
               {instanceStatus === 'nao_configurado' ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Nome da Instância
                     </label>
                     <Input
@@ -538,7 +538,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
                       placeholder="ex: faculdade-centro-universitario"
                       error={undefined}
                     />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-xs text-gray-500">
                       Use apenas letras, números e hífens
                     </p>
                   </div>
@@ -555,8 +555,8 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Instância:</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{instanceName}</p>
+                      <p className="text-sm text-gray-600">Instância:</p>
+                      <p className="font-medium text-gray-900">{instanceName}</p>
                     </div>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(instanceStatus)}`}
@@ -566,17 +566,22 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
                   </div>
 
                   {qrCodeData && instanceStatus !== 'conectado' && (
-                    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <div className="flex items-center gap-2 mb-2">
-                        <QrCode className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <QrCode className="w-4 h-4 text-gray-600" />
+                        <p className="text-sm font-medium text-gray-900">
                           Escaneie o QR Code com o WhatsApp
                         </p>
                       </div>
                       <div className="flex justify-center bg-white p-4 rounded">
-                        <QRCodeSVG value={qrCodeData} size={200} />
+                        {/* O QR Code vem como base64 da API, então devemos exibir como imagem */}
+                        <img
+                          src={`data:image/png;base64,${qrCodeData}`}
+                          alt="QR Code WhatsApp"
+                          className="w-48 h-48 object-contain"
+                        />
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                      <p className="text-xs text-gray-500 mt-2 text-center">
                         O QR Code expira em alguns minutos
                       </p>
                     </div>
@@ -621,7 +626,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
                       onClick={handleDeleteInstance}
                       disabled={evolutionLoading}
                       size="sm"
-                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      className="text-red-600 hover:text-red-700"
                     >
                       Deletar Instância
                     </Button>
@@ -631,7 +636,7 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
             <Button
               type="button"
               variant="secondary"

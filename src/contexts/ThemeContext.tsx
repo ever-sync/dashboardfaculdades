@@ -30,7 +30,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const applyTheme = (newTheme: Theme) => {
-    // Layout agora é sempre claro; mantemos apenas o estado para possível uso futuro
+    // Dark mode desabilitado temporariamente
     const root = document.documentElement
     root.classList.remove('dark')
   }
@@ -57,13 +57,11 @@ export function useTheme() {
   const context = useContext(ThemeContext)
   if (!context) {
     // Fallback seguro caso o ThemeProvider não esteja no topo da árvore
-    // Evita quebrar a aplicação em ambientes onde o layout não é aplicado (ex: DevTools, testes)
     return {
       theme: 'light' as Theme,
-      toggleTheme: () => {},
-      setTheme: () => {},
+      toggleTheme: () => { },
+      setTheme: () => { },
     }
   }
   return context
 }
-

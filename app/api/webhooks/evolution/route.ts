@@ -35,9 +35,17 @@ export async function POST(request: NextRequest) {
                 console.log('📩 Processando MESSAGES_UPSERT...')
                 await handleMessageUpsert(data, instance)
                 break
+            case 'SEND_MESSAGE':
+                console.log('📤 Processando SEND_MESSAGE...')
+                await handleMessageUpsert(data, instance)
+                break
             case 'MESSAGES_UPDATE':
                 console.log('🔄 Processando MESSAGES_UPDATE...')
                 await handleMessageUpdate(data, instance)
+                break
+            case 'MESSAGES_DELETE':
+                console.log('🗑️ Processando MESSAGES_DELETE...')
+                await handleMessageDelete(data, instance)
                 break
             case 'CONNECTION_UPDATE':
                 console.log('🔌 Processando CONNECTION_UPDATE...')
@@ -196,7 +204,19 @@ async function handleMessageUpsert(data: any, instance: string) {
         return
     }
 
-    // 3. Inserir Mensagem
+    // 3. Inserir Mensagem (Verificar duplicidade)
+    console.log('💾 Verificando duplicidade da mensagem...')
+    const { data: existingMessage } = await supabase
+        .from('mensagens')
+        .select('id')
+        .eq('message_id', data.key.id)
+        .maybeSingle()
+
+    if (existingMessage) {
+        console.log('⚠️ Mensagem já existe, ignorando inserção.')
+        return
+    }
+
     console.log('💾 Inserindo mensagem no banco...')
     const { error: msgError } = await supabase
         .from('mensagens')
@@ -226,6 +246,15 @@ async function handleMessageUpdate(data: any, instance: string) {
             .update({ lida: true })
             .eq('message_id', data.key.id)
     }
+}
+
+async function handleMessageDelete(data: any, instance: string) {
+    if (!data.key?.id) return
+
+    console.log('🗑️ Deletando mensagem:', data.key.id)
+    // Opcional: Marcar como deletada ou remover do banco
+    // Por enquanto, vamos apenas logar, ou poderíamos adicionar um campo 'deleted_at'
+    // await supabase.from('mensagens').delete().eq('message_id', data.key.id)
 }
 
 // Helpers

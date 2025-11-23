@@ -931,8 +931,15 @@ export async function POST(request: NextRequest) {
               events: [
                 'MESSAGES_UPSERT',
                 'MESSAGES_UPDATE',
+                'MESSAGES_DELETE',
+                'SEND_MESSAGE',
                 'CONNECTION_UPDATE',
-                'QRCODE_UPDATED'
+                'QRCODE_UPDATED',
+                'CHATS_UPSERT',
+                'CHATS_UPDATE',
+                'CONTACTS_UPSERT',
+                'CONTACTS_UPDATE',
+                'PRESENCE_UPDATE'
               ]
             }
           })
@@ -1160,7 +1167,6 @@ export async function PATCH(request: NextRequest) {
     console.log('Webhook URL:', webhookUrl)
     console.log('API URL:', apiUrl)
     console.log('API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'não configurada')
-
     const webhookPayload = {
       enabled: true,
       url: webhookUrl,
@@ -1168,8 +1174,15 @@ export async function PATCH(request: NextRequest) {
       events: [
         'MESSAGES_UPSERT',
         'MESSAGES_UPDATE',
+        'MESSAGES_DELETE',
+        'SEND_MESSAGE',
         'CONNECTION_UPDATE',
-        'QRCODE_UPDATED'
+        'QRCODE_UPDATED',
+        'CHATS_UPSERT',
+        'CHATS_UPDATE',
+        'CONTACTS_UPSERT',
+        'CONTACTS_UPDATE',
+        'PRESENCE_UPDATE'
       ]
     }
 
