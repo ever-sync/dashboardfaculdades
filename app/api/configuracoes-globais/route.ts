@@ -121,16 +121,19 @@ export async function POST(request: NextRequest) {
     const { chave, valor, descricao, tipo, sensivel } = validation.data
 
     // Upsert (criar ou atualizar)
-    const { data, error } = await supabase
-      .from('configuracoes_globais')
-      .upsert({
-        chave,
-        valor: valor || null,
-        descricao: descricao || null,
-        tipo: tipo || 'texto',
-        sensivel: sensivel || false,
-        updated_at: new Date().toISOString(),
-      }, {
+    const upsertData = {
+      chave,
+      valor: valor || null,
+      descricao: descricao || null,
+      tipo: tipo || 'texto',
+      sensivel: sensivel || false,
+      updated_at: new Date().toISOString(),
+    }
+
+    // Type assertion para contornar problema de tipagem do Supabase
+    const query = supabase.from('configuracoes_globais') as any
+    const { data, error } = await query
+      .upsert(upsertData, {
         onConflict: 'chave',
       })
       .select()
