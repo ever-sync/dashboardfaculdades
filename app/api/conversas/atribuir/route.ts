@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Buscar atendente disponível automaticamente
-      const { data: atendenteAuto, error: functionError } = await supabase.rpc(
+      const { data: atendenteAuto, error: functionError } = await (supabase.rpc as any)(
         'buscar_atendente_disponivel',
         {
           p_faculdade_id: faculdade_id,
