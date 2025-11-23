@@ -163,12 +163,13 @@ export async function POST(request: NextRequest) {
     const novasAnotacoes = [...anotacoesAtuais, novaAnotacao]
 
     // Atualizar no banco
-    const { error: updateError } = await supabase
-      .from('conversas_whatsapp')
-      .update({
-        anotacoes: novasAnotacoes,
-        updated_at: new Date().toISOString(),
-      })
+    const updateData = {
+      anotacoes: novasAnotacoes,
+      updated_at: new Date().toISOString(),
+    }
+    const { error: updateError } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData)
       .eq('id', conversa_id)
 
     if (updateError) {
@@ -254,12 +255,13 @@ export async function PUT(request: NextRequest) {
     novasAnotacoes[anotacaoIndex] = anotacaoAtualizada
 
     // Atualizar no banco
-    const { error: updateError } = await supabase
-      .from('conversas_whatsapp')
-      .update({
-        anotacoes: novasAnotacoes,
-        updated_at: new Date().toISOString(),
-      })
+    const updateData = {
+      anotacoes: novasAnotacoes,
+      updated_at: new Date().toISOString(),
+    }
+    const { error: updateError } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData)
       .eq('id', conversa_id)
 
     if (updateError) {
@@ -329,12 +331,13 @@ export async function DELETE(request: NextRequest) {
     const novasAnotacoes = anotacoesAtuais.filter((a: Anotacao) => a.id !== anotacao_id)
 
     // Atualizar no banco
-    const { error: updateError } = await supabase
-      .from('conversas_whatsapp')
-      .update({
-        anotacoes: novasAnotacoes.length > 0 ? novasAnotacoes : null,
-        updated_at: new Date().toISOString(),
-      })
+    const updateData = {
+      anotacoes: novasAnotacoes.length > 0 ? novasAnotacoes : null,
+      updated_at: new Date().toISOString(),
+    }
+    const { error: updateError } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData as any)
       .eq('id', conversa_id)
 
     if (updateError) {

@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
               data_ultima_mensagem: dataUltimaMensagem,
               nao_lidas: unreadCount,
               updated_at: new Date().toISOString(),
-            })
+            } as any)
             .eq('id', conversaExistente.id)
 
           if (updateError) {
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
               nao_lidas: unreadCount,
               departamento: 'WhatsApp',
               setor: 'Atendimento',
-            })
+            } as any)
 
           if (insertError) {
             console.error(`Erro ao criar conversa para ${telefone}:`, insertError)

@@ -162,7 +162,7 @@ async function handleMessageUpsert(data: any, instance: string) {
                 nao_lidas: fromMe ? 0 : 1,
                 departamento: 'WhatsApp',
                 setor: 'Atendimento',
-            })
+            } as any)
             .select()
             .single()
 
@@ -186,7 +186,7 @@ async function handleMessageUpsert(data: any, instance: string) {
                 data_ultima_mensagem: new Date().toISOString(),
                 nao_lidas: newUnreadCount,
                 updated_at: new Date().toISOString(),
-            })
+            } as any)
             .eq('id', conversa.id)
 
         if (updateError) {

@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
           nao_lidas: 1,
           departamento: 'WhatsApp',
           setor: 'Atendimento',
-        })
+        } as any)
         .select()
         .single()
 
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
           status: 'ativo',
           status_conversa: 'ativa',
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', conversa.id)
     }
 
