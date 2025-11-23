@@ -10,6 +10,16 @@ export const dynamic = 'force-dynamic'
 
 const supabase = supabaseAdmin
 
+// Interface para atendente
+interface Atendente {
+  id: string
+  status: string
+  ativo: boolean
+  carga_trabalho_atual: number
+  carga_trabalho_maxima: number
+  faculdade_id: string
+}
+
 // Schema de validação
 const atribuirConversaSchema = z.object({
   conversa_id: z.string().uuid('ID de conversa inválido'),
@@ -57,21 +67,23 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      if (atendente.faculdade_id !== faculdade_id) {
+      const atendenteTyped = atendente as Atendente
+
+      if (atendenteTyped.faculdade_id !== faculdade_id) {
         return NextResponse.json(
           { error: 'Atendente não pertence à faculdade informada' },
           { status: 403 }
         )
       }
 
-      if (!atendente.ativo || atendente.status !== 'online') {
+      if (!atendenteTyped.ativo || atendenteTyped.status !== 'online') {
         return NextResponse.json(
           { error: 'Atendente não está disponível' },
           { status: 400 }
         )
       }
 
-      if (atendente.carga_trabalho_atual >= atendente.carga_trabalho_maxima) {
+      if (atendenteTyped.carga_trabalho_atual >= atendenteTyped.carga_trabalho_maxima) {
         return NextResponse.json(
           { error: 'Atendente atingiu o limite de conversas simultâneas' },
           { status: 400 }
@@ -123,13 +135,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Atualizar conversa
-        const { error: updateError } = await supabase
-          .from('conversas_whatsapp')
-          .update({
-            atendente_id: atendenteSelecionado.id,
-            atendente: atendenteSelecionado.id,
-            updated_at: new Date().toISOString()
-          })
+        const updateData = {
+          atendente_id: atendenteSelecionado.id,
+          atendente: atendenteSelecionado.id,
+          updated_at: new Date().toISOString()
+        }
+        const { error: updateError } = await (supabase
+          .from('conversas_whatsapp') as any)
+          .update(updateData as any)
           .eq('id', conversa_id)
 
         if (updateError) {
@@ -153,13 +166,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Atualizar conversa com atendente encontrado
-      const { error: updateError } = await supabase
-        .from('conversas_whatsapp')
-        .update({
-          atendente_id: atendenteAuto,
-          atendente: atendenteAuto,
-          updated_at: new Date().toISOString()
-        })
+      const updateData = {
+        atendente_id: atendenteAuto,
+        atendente: atendenteAuto,
+        updated_at: new Date().toISOString()
+      }
+      const { error: updateError } = await (supabase
+        .from('conversas_whatsapp') as any)
+        .update(updateData as any)
         .eq('id', conversa_id)
 
       if (updateError) {
@@ -176,13 +190,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Atribuir ao atendente específico fornecido
-    const { error: updateError } = await supabase
-      .from('conversas_whatsapp')
-      .update({
-        atendente_id: atendente_id,
-        atendente: atendente_id,
-        updated_at: new Date().toISOString()
-      })
+    const updateData = {
+      atendente_id: atendente_id,
+      atendente: atendente_id,
+      updated_at: new Date().toISOString()
+    }
+    const { error: updateError } = await (supabase
+      .from('conversas_whatsapp') as any)
+      .update(updateData as any)
       .eq('id', conversa_id)
 
     if (updateError) {
