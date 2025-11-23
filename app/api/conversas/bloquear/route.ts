@@ -50,14 +50,15 @@ export async function POST(request: NextRequest) {
       }
 
       // Bloquear conversa
-      const { error: updateError } = await supabase
-        .from('conversas_whatsapp')
-        .update({
-          bloqueado: true,
-          motivo_bloqueio: motivo || null,
-          data_bloqueio: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+      const updateData = {
+        bloqueado: true,
+        motivo_bloqueio: motivo || null,
+        data_bloqueio: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      const { error: updateError } = await (supabase
+        .from('conversas_whatsapp') as any)
+        .update(updateData as any)
         .eq('id', conversa_id)
 
       if (updateError) {
@@ -69,15 +70,16 @@ export async function POST(request: NextRequest) {
       }
 
       // Inserir mensagem de sistema informando bloqueio
-      const { error: mensagemError } = await supabase
-        .from('mensagens')
-        .insert({
-          conversa_id,
-          conteudo: `🔒 Contato bloqueado${motivo ? `: ${motivo}` : ''}`,
-          remetente: 'sistema',
-          tipo_mensagem: 'sistema',
-          timestamp: new Date().toISOString(),
-        })
+      const mensagemData = {
+        conversa_id,
+        conteudo: `🔒 Contato bloqueado${motivo ? `: ${motivo}` : ''}`,
+        remetente: 'sistema',
+        tipo_mensagem: 'sistema',
+        timestamp: new Date().toISOString(),
+      }
+      const { error: mensagemError } = await (supabase
+        .from('mensagens') as any)
+        .insert(mensagemData as any)
 
       if (mensagemError) {
         console.error('Erro ao criar mensagem de sistema:', mensagemError)
@@ -110,14 +112,15 @@ export async function POST(request: NextRequest) {
       }
 
       // Desbloquear conversa
-      const { error: updateError } = await supabase
-        .from('conversas_whatsapp')
-        .update({
-          bloqueado: false,
-          motivo_bloqueio: null,
-          data_bloqueio: null,
-          updated_at: new Date().toISOString(),
-        })
+      const updateData = {
+        bloqueado: false,
+        motivo_bloqueio: null,
+        data_bloqueio: null,
+        updated_at: new Date().toISOString(),
+      }
+      const { error: updateError } = await (supabase
+        .from('conversas_whatsapp') as any)
+        .update(updateData as any)
         .eq('id', conversa_id)
 
       if (updateError) {
@@ -129,15 +132,16 @@ export async function POST(request: NextRequest) {
       }
 
       // Inserir mensagem de sistema informando desbloqueio
-      const { error: mensagemError } = await supabase
-        .from('mensagens')
-        .insert({
-          conversa_id,
-          conteudo: '🔓 Contato desbloqueado',
-          remetente: 'sistema',
-          tipo_mensagem: 'sistema',
-          timestamp: new Date().toISOString(),
-        })
+      const mensagemData = {
+        conversa_id,
+        conteudo: '🔓 Contato desbloqueado',
+        remetente: 'sistema',
+        tipo_mensagem: 'sistema',
+        timestamp: new Date().toISOString(),
+      }
+      const { error: mensagemError } = await (supabase
+        .from('mensagens') as any)
+        .insert(mensagemData as any)
 
       if (mensagemError) {
         console.error('Erro ao criar mensagem de sistema:', mensagemError)
