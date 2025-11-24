@@ -7,7 +7,7 @@ export function getStripeServer(): Stripe {
     }
 
     return new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2024-11-20.acacia',
+        apiVersion: '2024-11-20.acacia' as any,
         typescript: true,
     })
 }
@@ -32,6 +32,7 @@ export const STRIPE_PLANS = {
 
 // Tipos de planos
 export type PlanType = 'basic' | 'pro'
+
 
 
 

@@ -170,7 +170,7 @@ async function handleMessageUpsert(data: any, instance: string) {
             console.error('❌ Erro ao criar conversa:', error)
             return
         }
-        conversa = novaConversa
+        conversa = novaConversa as any
         if (conversa) {
             console.log('✅ Conversa criada:', conversa.id)
         }
