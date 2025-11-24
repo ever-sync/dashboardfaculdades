@@ -6,11 +6,11 @@ import { getUserFriendlyError } from '@/lib/errorMessages'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
 export async function POST(request: NextRequest) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
     const body = await request.json()
 
     // Validar dados de entrada
