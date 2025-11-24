@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { hasPermission } from '@/lib/rbac'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
 export interface AuthContext {
     userId: string
     faculdadeId: string
@@ -21,6 +16,10 @@ export async function withAuth(
     requiredPermission?: string
 ): Promise<{ authorized: boolean; context?: AuthContext; response?: NextResponse }> {
     try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
         // Get authorization header
         const authHeader = request.headers.get('authorization')
 

@@ -1,9 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabase = supabaseAdmin
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
@@ -29,11 +27,11 @@ export async function POST(request: Request) {
             .eq('id', conversa_id)
             .single()
 
-        if (conversaError || !conversa || !conversa.faculdade?.evolution_instance) {
+        if (conversaError || !conversa || !(conversa as any).faculdade?.evolution_instance) {
             return NextResponse.json({ error: 'Conversation or instance not found' }, { status: 404 })
         }
 
-        const instanceName = conversa.faculdade.evolution_instance
+        const instanceName = (conversa as any).faculdade.evolution_instance
         const remoteJid = `${conversa.telefone}@s.whatsapp.net` // Formatar JID
 
         // 2. Enviar para Evolution API

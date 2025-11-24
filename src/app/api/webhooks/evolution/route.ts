@@ -1,10 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 
 // Inicializar cliente Supabase com chave de serviço para ignorar RLS
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabase = supabaseAdmin
 
 export async function POST(request: Request) {
     try {
@@ -115,7 +113,7 @@ export async function POST(request: Request) {
                 console.error('Erro ao criar conversa:', createError)
                 return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
             }
-            conversa = newConversa
+            conversa = newConversa as any
         } else {
             // Atualizar conversa existente
             const { error: updateError } = await supabase

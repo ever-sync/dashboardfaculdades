@@ -1,10 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-// Use service role for RBAC operations
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 // ============================================================================
 // Types
@@ -151,7 +145,7 @@ export async function getAllRoles(): Promise<Role[]> {
         return []
     }
 
-    return data || []
+    return (data as any) || []
 }
 
 /**
@@ -179,14 +173,14 @@ export async function getRoleWithPermissions(roleId: string): Promise<RoleWithPe
 
     if (permError) {
         console.error('Error fetching role permissions:', permError)
-        return { ...role, permissions: [] }
+        return { ...(role as any), permissions: [] }
     }
 
-    const permissions = (rolePermissions || [])
+    const permissions = ((rolePermissions as any) || [])
         .map((rp: any) => rp.permissions)
         .filter(Boolean)
 
-    return { ...role, permissions }
+    return { ...(role as any), permissions }
 }
 
 /**
@@ -278,7 +272,7 @@ export async function getAllPermissions(): Promise<Permission[]> {
         return []
     }
 
-    return data || []
+    return (data as any) || []
 }
 
 /**
@@ -296,7 +290,7 @@ export async function getPermissionsByResource(recurso: string): Promise<Permiss
         return []
     }
 
-    return data || []
+    return (data as any) || []
 }
 
 /**
@@ -363,7 +357,7 @@ export async function createRole(
         return { success: false, error: error.message }
     }
 
-    return { success: true, role: data }
+    return { success: true, role: data as any }
 }
 
 /**
