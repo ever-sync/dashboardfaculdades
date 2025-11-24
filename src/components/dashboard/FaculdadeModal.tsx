@@ -91,6 +91,33 @@ export function FaculdadeModal({ isOpen, onClose, onSave, faculdade }: Faculdade
     setErrors({})
   }, [faculdade, isOpen])
 
+  // Auto-refresh QR code when disconnected or connecting
+  useEffect(() => {
+    if (!faculdade?.id || !isOpen) return
+    if (instanceStatus !== 'desconectado' && instanceStatus !== 'conectando') return
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/evolution/instance?faculdade_id=${faculdade.id}`)
+        const data = await res.json()
+
+        if (res.ok) {
+          setInstanceStatus(data.status || 'nao_configurado')
+          setQrCodeData(data.qr_code || null)
+
+          // Se conectou, para o polling
+          if (data.status === 'conectado') {
+            clearInterval(interval)
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao atualizar QR code:', err)
+      }
+    }, 5000) // Atualizar a cada 5 segundos
+
+    return () => clearInterval(interval)
+  }, [faculdade?.id, isOpen, instanceStatus])
+
   if (!isOpen) return null
 
   const validateForm = (): boolean => {
