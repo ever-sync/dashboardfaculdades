@@ -3,20 +3,37 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-11-17.clover', // Use latest or compatible version
-    typescript: true,
-})
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 
-// Initialize Supabase Admin
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Initialize Stripe lazily
+const getStripe = () => {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY is not defined')
+    }
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-11-17.clover', // Use latest or compatible version
+        typescript: true,
+    })
+}
+
+// Initialize Supabase Admin lazily
+const getSupabase = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+        throw new Error('Supabase credentials are not defined')
+    }
+    return createClient(supabaseUrl, supabaseServiceKey)
+}
 
 export async function POST(req: Request) {
     const body = await req.text()
     const signature = (await headers()).get('Stripe-Signature') as string
+
+    const stripe = getStripe()
+    const supabase = getSupabase()
 
     let event: Stripe.Event
 

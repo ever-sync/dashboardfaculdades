@@ -4,11 +4,9 @@
  * Se não encontrar, usa variáveis de ambiente como fallback
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabase = supabaseAdmin
 
 export interface EvolutionConfig {
   apiUrl: string | undefined
@@ -49,16 +47,16 @@ export async function getEvolutionConfig(): Promise<EvolutionConfig> {
     }
   } catch (error: any) {
     // Em caso de erro (tabela não existe, etc), usar apenas variáveis de ambiente
-    const isTableNotFound = 
-      error?.code === 'PGRST116' || 
+    const isTableNotFound =
+      error?.code === 'PGRST116' ||
       error?.code === '42P01' ||
       error?.message?.includes('does not exist') ||
       error?.message?.includes('relation')
-    
+
     if (!isTableNotFound && error?.message) {
       console.warn('Erro ao buscar configuração Evolution do banco:', error.message)
     }
-    
+
     return {
       apiUrl: process.env.EVOLUTION_API_URL,
       apiKey: process.env.EVOLUTION_API_KEY,
